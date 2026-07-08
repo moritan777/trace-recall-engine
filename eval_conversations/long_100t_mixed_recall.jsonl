@@ -1,0 +1,100 @@
+{"turn": 1, "user": "みつきはチーズケーキが好き", "mode": "learn"}
+{"turn": 2, "user": "みつきはチーズケーキが好き", "mode": "learn"}
+{"turn": 3, "user": "みつきはチーズケーキが好き", "mode": "learn"}
+{"turn": 4, "user": "みつきはコーヒーが好き", "mode": "learn"}
+{"turn": 5, "user": "のりこは紅茶が好き", "mode": "learn"}
+{"turn": 6, "user": "のりこは紅茶が好き", "mode": "learn"}
+{"turn": 7, "user": "みつきは猫が好き", "mode": "learn"}
+{"turn": 8, "user": "昔飼っていた猫の名前はソラ", "mode": "learn"}
+{"turn": 9, "user": "みつきはSF映画が好き", "mode": "learn"}
+{"turn": 10, "user": "のりこは恋愛映画が好き", "mode": "learn"}
+{"turn": 11, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"]}
+{"turn": 12, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"]}
+{"turn": 13, "user": "昔の猫の名前なんだっけ？", "mode": "ask", "expected_words": ["ソラ", "猫"], "unexpected_words": ["紅茶"]}
+{"turn": 14, "user": "みつきが好きな映画ジャンルは？", "mode": "ask", "expected_words": ["SF映画", "映画"], "unexpected_words": ["恋愛映画", "のりこ"]}
+{"turn": 15, "user": "のりこが好きな映画は？", "mode": "ask", "expected_words": ["恋愛映画", "のりこ"], "unexpected_words": ["SF映画", "みつき"]}
+{"turn": 16, "user": "チーズケーキ好きだったっけ？", "mode": "ask", "expected_words": ["チーズケーキ", "好き"], "unexpected_words": ["紅茶"], "expect_unsuppressed_words": ["チーズケーキ"]}
+{"turn": 17, "user": "紅茶って誰が好きなんだっけ？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["みつき"]}
+{"turn": 18, "user": "猫の話をしてたよね", "mode": "ask_no_response", "expected_words": ["猫", "ソラ"], "unexpected_words": ["紅茶"]}
+{"turn": 19, "user": "コーヒーの話覚えてる？", "mode": "ask", "expected_words": ["コーヒー", "みつき"], "unexpected_words": ["紅茶", "のりこ"]}
+{"turn": 20, "user": "映画の好みを確認したい", "mode": "ask", "expected_words": ["SF映画", "恋愛映画", "映画"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 21, "user": "帰りにカフェでチーズケーキを食べたい", "mode": "learn"}
+{"turn": 22, "user": "帰りにカフェでチーズケーキを食べたい", "mode": "learn"}
+{"turn": 23, "user": "休日はカフェでコーヒーを飲みたい", "mode": "learn"}
+{"turn": 24, "user": "映画を見るときはポップコーンがほしい", "mode": "learn"}
+{"turn": 25, "user": "ポップコーンを食べながらカフェで休みたい", "mode": "learn"}
+{"turn": 26, "user": "カフェでは静かに本を読みたい", "mode": "learn"}
+{"turn": 27, "user": "本を読むなら窓際の席が好き", "mode": "learn"}
+{"turn": 28, "user": "帰り道に駅前のカフェへ寄った", "mode": "learn"}
+{"turn": 29, "user": "カフェ行きたい", "mode": "ask", "expected_words": ["カフェ", "チーズケーキ", "コーヒー", "帰り"], "unexpected_words": ["映画"]}
+{"turn": 30, "user": "映画楽しみ", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 31, "user": "帰りに寄りたい場所って何かあった？", "mode": "ask", "expected_words": ["帰り", "カフェ"], "unexpected_words": ["恋愛映画"]}
+{"turn": 32, "user": "カフェで何食べたいんだっけ？", "mode": "ask", "expected_words": ["カフェ", "チーズケーキ", "食べる"], "unexpected_words": ["紅茶"]}
+{"turn": 33, "user": "ポップコーンと何がつながってる？", "mode": "ask", "expected_words": ["ポップコーン", "映画", "カフェ"], "unexpected_words": ["猫"]}
+{"turn": 34, "user": "本を読む場所の話をした？", "mode": "ask", "expected_words": ["本", "読む", "カフェ", "窓際"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 35, "user": "駅前って何の話だった？", "mode": "ask", "expected_words": ["駅前", "カフェ", "帰り"], "unexpected_words": ["ソラ"]}
+{"turn": 36, "user": "休日のカフェは何を飲みたいんだっけ？", "mode": "ask", "expected_words": ["休日", "カフェ", "コーヒー"], "unexpected_words": ["紅茶"]}
+{"turn": 37, "user": "映画館で何か欲しいものあった？", "mode": "ask", "expected_words": ["映画", "ポップコーン", "ほしい"], "unexpected_words": ["カフェ"]}
+{"turn": 38, "user": "帰り道の話を思い出せる？", "mode": "ask_no_response", "expected_words": ["帰り道", "駅前", "カフェ"], "unexpected_words": ["映画"]}
+{"turn": 39, "user": "カフェの話は何度も出てる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["のりこ"]}
+{"turn": 40, "user": "カフェって直接聞いてるから出していいよ", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": [], "expect_unsuppressed_words": ["カフェ"]}
+{"turn": 41, "user": "昔カッターナイフで怪我をした", "mode": "learn"}
+{"turn": 42, "user": "カッターナイフは少し苦手", "mode": "learn"}
+{"turn": 43, "user": "包丁を使うときは慎重にしたい", "mode": "learn"}
+{"turn": 44, "user": "熱い鍋で指をやけどしたことがある", "mode": "learn"}
+{"turn": 45, "user": "病院の匂いは少し苦手", "mode": "learn"}
+{"turn": 46, "user": "元カノの話はやめてほしい", "mode": "learn"}
+{"turn": 47, "user": "元カノの話はまだ苦手", "mode": "learn"}
+{"turn": 48, "user": "でも猫の話なら大丈夫", "mode": "learn"}
+{"turn": 49, "user": "カッター使う作業がある", "mode": "ask", "expected_words": ["カッターナイフ", "怪我", "苦手"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 50, "user": "料理で刃物を使う", "mode": "ask", "expected_words": ["包丁", "慎重"], "unexpected_words": ["カッターナイフ"]}
+{"turn": 51, "user": "熱い鍋を持つ", "mode": "ask", "expected_words": ["鍋", "やけど", "熱い"], "unexpected_words": ["病院"]}
+{"turn": 52, "user": "病院に行くかも", "mode": "ask", "expected_words": ["病院", "苦手"], "unexpected_words": ["元カノ"]}
+{"turn": 53, "user": "元カノの話していい？", "mode": "ask", "expected_words": ["元カノ", "苦手", "やめて"], "unexpected_words": ["猫"]}
+{"turn": 54, "user": "猫の話なら大丈夫だった？", "mode": "ask", "expected_words": ["猫", "大丈夫"], "unexpected_words": ["元カノ"]}
+{"turn": 55, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 56, "user": "怪我の話を覚えてる？", "mode": "ask", "expected_words": ["怪我", "カッターナイフ"], "unexpected_words": ["紅茶"]}
+{"turn": 57, "user": "やけどって何の話？", "mode": "ask", "expected_words": ["やけど", "鍋", "熱い"], "unexpected_words": ["猫"]}
+{"turn": 58, "user": "慎重にしたい作業は？", "mode": "ask", "expected_words": ["包丁", "慎重"], "unexpected_words": ["映画"]}
+{"turn": 59, "user": "元カノって直接聞いた場合は？", "mode": "ask", "expected_words": ["元カノ"], "unexpected_words": [], "expect_unsuppressed_words": ["元カノ"]}
+{"turn": 60, "user": "今日は安全に作業したい", "mode": "ask_no_response", "expected_words": ["慎重", "包丁", "カッターナイフ"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 61, "user": "みつきの誕生日は7月15日", "mode": "learn"}
+{"turn": 62, "user": "誕生日にはチーズケーキを食べたい", "mode": "learn"}
+{"turn": 63, "user": "今日は記念日だね", "mode": "learn"}
+{"turn": 64, "user": "今日は記念日だね", "mode": "learn"}
+{"turn": 65, "user": "今日は記念日だね", "mode": "learn"}
+{"turn": 66, "user": "昨日は雨でカフェに行けなかった", "mode": "learn"}
+{"turn": 67, "user": "今日は晴れたから散歩したい", "mode": "learn"}
+{"turn": 68, "user": "明日はギターの練習をする", "mode": "learn"}
+{"turn": 69, "user": "最近ギターを始めた", "mode": "learn"}
+{"turn": 70, "user": "前はコーヒーが好きだったけど、今日は紅茶も気になる", "mode": "learn"}
+{"turn": 71, "user": "誕生日いつだっけ？", "mode": "ask", "expected_words": ["誕生日", "7月15日"], "unexpected_words": ["記念日"]}
+{"turn": 72, "user": "誕生日に食べたいものは？", "mode": "ask", "expected_words": ["誕生日", "チーズケーキ"], "unexpected_words": ["紅茶"]}
+{"turn": 73, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"]}
+{"turn": 74, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"]}
+{"turn": 75, "user": "昨日カフェ行けた？", "mode": "ask", "expected_words": ["昨日", "雨", "カフェ", "行けなかった"], "unexpected_words": ["晴れ"]}
+{"turn": 76, "user": "今日は何したい？", "mode": "ask", "expected_words": ["今日", "晴れ", "散歩"], "unexpected_words": ["雨"]}
+{"turn": 77, "user": "明日の予定は？", "mode": "ask", "expected_words": ["明日", "ギター", "練習"], "unexpected_words": ["誕生日"]}
+{"turn": 78, "user": "最近始めたことは？", "mode": "ask", "expected_words": ["ギター", "最近", "始めた"], "unexpected_words": ["カフェ"]}
+{"turn": 79, "user": "紅茶も気になってるんだっけ？", "mode": "ask", "expected_words": ["紅茶", "気になる"], "unexpected_words": ["のりこ"], "expect_unsuppressed_words": ["紅茶"]}
+{"turn": 80, "user": "飲み物の好みは変わった？", "mode": "ask", "expected_words": ["コーヒー", "紅茶", "気になる"], "unexpected_words": ["恋愛映画"]}
+{"turn": 81, "user": "夜は眠れないことがある", "mode": "learn"}
+{"turn": 82, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn"}
+{"turn": 83, "user": "朝はおはようって言ってほしい", "mode": "learn"}
+{"turn": 84, "user": "疲れた日は短く返してほしい", "mode": "learn"}
+{"turn": 85, "user": "仕事で疲れた日は早く寝たい", "mode": "learn"}
+{"turn": 86, "user": "チーズケーキの話をまたした", "mode": "learn"}
+{"turn": 87, "user": "チーズケーキの話をまたした", "mode": "learn"}
+{"turn": 88, "user": "チーズケーキの話をまたした", "mode": "learn"}
+{"turn": 89, "user": "眠れない夜どうしてたっけ？", "mode": "ask", "expected_words": ["眠れない", "夜", "静かな音楽"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 90, "user": "朝はどう話しかけてほしい？", "mode": "ask", "expected_words": ["朝", "おはよう"], "unexpected_words": ["夜"]}
+{"turn": 91, "user": "疲れた日はどう返してほしい？", "mode": "ask", "expected_words": ["疲れた", "短く", "早く寝たい"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 92, "user": "チーズケーキの話、また出す？", "mode": "ask", "expected_words": ["チーズケーキ"], "unexpected_words": [], "expect_unsuppressed_words": ["チーズケーキ"]}
+{"turn": 93, "user": "今日は普通に雑談したい", "mode": "ask", "expected_words": [], "unexpected_words": ["チーズケーキ"], "expect_suppressed_words": ["チーズケーキ"]}
+{"turn": 94, "user": "好きなものをまとめて", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["元カノ"]}
+{"turn": 95, "user": "苦手なものをまとめて", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 96, "user": "最近の話題でよく出るものは？", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "記念日"], "unexpected_words": []}
+{"turn": 97, "user": "のりことみつきの好みが混ざってない？", "mode": "ask", "expected_words": ["みつき", "のりこ", "紅茶", "チーズケーキ"], "unexpected_words": []}
+{"turn": 98, "user": "カフェと映画はつながってる？", "mode": "ask", "expected_words": ["カフェ", "映画", "ポップコーン"], "unexpected_words": ["元カノ"]}
+{"turn": 99, "user": "寝る前に何を思い出す？", "mode": "ask", "expected_words": ["眠れない", "夜", "音楽"], "unexpected_words": ["紅茶"]}
+{"turn": 100, "user": "ここまでの記憶で今の会話に必要そうなものだけ出して", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "カフェ", "ギター", "眠れない"], "unexpected_words": ["元カノ"]}

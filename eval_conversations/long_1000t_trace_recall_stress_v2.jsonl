@@ -1,0 +1,1000 @@
+{"turn": 1, "user": "みつきはチーズケーキが好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 2, "user": "みつきはチーズケーキが好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 3, "user": "みつきはチーズケーキが好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 4, "user": "みつきはコーヒーが好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 5, "user": "みつきは猫が好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 6, "user": "昔飼っていた猫の名前はソラ", "mode": "learn", "tags": ["seed"]}
+{"turn": 7, "user": "みつきはSF映画が好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 8, "user": "最近ギターを始めた", "mode": "learn", "tags": ["seed"]}
+{"turn": 9, "user": "のりこは紅茶が好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 10, "user": "のりこは恋愛映画が好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 11, "user": "のりこは静かな音楽が好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 12, "user": "友人Aはラーメンが好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 13, "user": "友人Aは野球が好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 14, "user": "友人Bはカレーが好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 15, "user": "友人Bは写真が好き", "mode": "learn", "tags": ["seed"]}
+{"turn": 16, "user": "みつきの誕生日は7月15日", "mode": "learn", "tags": ["seed"]}
+{"turn": 17, "user": "誕生日にはチーズケーキを食べたい", "mode": "learn", "tags": ["seed"]}
+{"turn": 18, "user": "今日は記念日だね", "mode": "learn", "tags": ["seed"]}
+{"turn": 19, "user": "今日は記念日だね", "mode": "learn", "tags": ["seed"]}
+{"turn": 20, "user": "今日は記念日だね", "mode": "learn", "tags": ["seed"]}
+{"turn": 21, "user": "帰りにカフェでチーズケーキを食べたい", "mode": "learn", "tags": ["seed"]}
+{"turn": 22, "user": "帰りにカフェでチーズケーキを食べたい", "mode": "learn", "tags": ["seed"]}
+{"turn": 23, "user": "休日はカフェでコーヒーを飲みたい", "mode": "learn", "tags": ["seed"]}
+{"turn": 24, "user": "映画を見るときはポップコーンがほしい", "mode": "learn", "tags": ["seed"]}
+{"turn": 25, "user": "ポップコーンを食べながらカフェで休みたい", "mode": "learn", "tags": ["seed"]}
+{"turn": 26, "user": "昔カッターナイフで怪我をした", "mode": "learn", "tags": ["seed"]}
+{"turn": 27, "user": "カッターナイフは少し苦手", "mode": "learn", "tags": ["seed"]}
+{"turn": 28, "user": "病院の匂いは少し苦手", "mode": "learn", "tags": ["seed"]}
+{"turn": 29, "user": "元カノの話はやめてほしい", "mode": "learn", "tags": ["seed"]}
+{"turn": 30, "user": "元カノの話はまだ苦手", "mode": "learn", "tags": ["seed"]}
+{"turn": 31, "user": "みつきの好きなものは？", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["initial_check"]}
+{"turn": 32, "user": "のりこの好きな飲み物は？", "mode": "ask_no_response", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["initial_check"]}
+{"turn": 33, "user": "昔の猫の名前なんだっけ？", "mode": "ask_no_response", "expected_words": ["ソラ", "猫"], "unexpected_words": ["紅茶"], "tags": ["initial_check"]}
+{"turn": 34, "user": "誕生日いつだっけ？", "mode": "ask_no_response", "expected_words": ["誕生日", "7月15日"], "unexpected_words": ["記念日"], "tags": ["initial_check"]}
+{"turn": 35, "user": "カフェで何食べたいんだっけ？", "mode": "ask_no_response", "expected_words": ["カフェ", "チーズケーキ", "食べる"], "unexpected_words": ["紅茶"], "tags": ["initial_check"]}
+{"turn": 36, "user": "カッター使う作業がある", "mode": "ask_no_response", "expected_words": ["カッターナイフ", "怪我", "苦手"], "unexpected_words": ["チーズケーキ"], "tags": ["initial_check"]}
+{"turn": 37, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 38, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 39, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 40, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 41, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 42, "user": "今日も何かあったっけ？", "mode": "ask_no_response", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 43, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 44, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 45, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 46, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 47, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 48, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 49, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 50, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 51, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 52, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 53, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 54, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 55, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 56, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 57, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 58, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 59, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 60, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 61, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 62, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 63, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 64, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 65, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 66, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 67, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 68, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 69, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 70, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 71, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 72, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 73, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 74, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 75, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 76, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 77, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 78, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 79, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 80, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 81, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 82, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 83, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 84, "user": "友人Aの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 85, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 86, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 87, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 88, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 89, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 90, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 91, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 92, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 93, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 94, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 95, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 96, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 97, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 98, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 99, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 100, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 101, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 102, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 103, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 104, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 105, "user": "映画の話で何が出てくる？", "mode": "ask_no_response", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 106, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 107, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 108, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 109, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 110, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 111, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 112, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 113, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 114, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 115, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 116, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 117, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 118, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 119, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 120, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 121, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 122, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 123, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 124, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 125, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 126, "user": "苦手なもの何かあった？", "mode": "ask_no_response", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 127, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 128, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 129, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 130, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 131, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 132, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 133, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 134, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 135, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 136, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 137, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 138, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 139, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 140, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 141, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 142, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 143, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 144, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 145, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 146, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 147, "user": "のりこの好きな飲み物は？", "mode": "ask_no_response", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 148, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 149, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 150, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 151, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 152, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 153, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 154, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 155, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 156, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 157, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 158, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 159, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 160, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 161, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 162, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 163, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 164, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 165, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 166, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 167, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 168, "user": "カフェの話って何とつながってる？", "mode": "ask_no_response", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 169, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 170, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 171, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 172, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 173, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 174, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 175, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 176, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 177, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 178, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 179, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 180, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 181, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 182, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 183, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 184, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 185, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 186, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 187, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 188, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 189, "user": "記念日っていつだっけ？", "mode": "ask_no_response", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 190, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 191, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 192, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 193, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 194, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 195, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 196, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 197, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 198, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 199, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 200, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 201, "user": "みつきはラーメンが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 202, "user": "カフェで本を読むをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 203, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 204, "user": "みつきは猫の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 205, "user": "夜に美術館へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 206, "user": "友人Aは温泉でコーヒーを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 207, "user": "友人Aはギターが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 208, "user": "今日は本を読むをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 209, "user": "友人Aは駅前でポップコーンを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 210, "user": "みつきの好きなものは？", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 211, "user": "休日に美術館へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 212, "user": "明日に公園へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 213, "user": "友人Aはカレーの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 214, "user": "駅前で早く寝るをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 215, "user": "のりこは映画を見るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 216, "user": "のりこは元カノを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 217, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 218, "user": "のりこは映画を見るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 219, "user": "友人Bは温泉で写真を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 220, "user": "みつきは本屋で猫を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 221, "user": "夜にカフェへ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 222, "user": "みつきは病院を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 223, "user": "のりこは本が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 224, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 225, "user": "友人Aは早起きを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 226, "user": "みつきはカフェで休むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 227, "user": "のりこは病院を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 228, "user": "旅行先でギター練習をしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 229, "user": "のりこはコーヒーの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 230, "user": "のりこはコーヒーが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 231, "user": "友人Bの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 232, "user": "友人Aは公園で猫を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 233, "user": "最近に職場へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 234, "user": "友人Bはコーヒーの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 235, "user": "友人Bは早く寝るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 236, "user": "みつきはポップコーンの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 237, "user": "休日に旅行先へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 238, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 239, "user": "友人Bは家でチーズケーキを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 240, "user": "旅行先で静かな音楽を聴くをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 241, "user": "帰りにカフェへ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 242, "user": "旅行先で写真を撮るをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 243, "user": "のりこは本が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 244, "user": "みつきは本が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 245, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 246, "user": "みつきは駅前で紅茶を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 247, "user": "友人Bは公園で本を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 248, "user": "朝は写真を撮るをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 249, "user": "朝に旅行先へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 250, "user": "みつきは本を読むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 251, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 252, "user": "今日も何かあったっけ？", "mode": "ask_no_response", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 253, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 254, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 255, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 256, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 257, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 258, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 259, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 260, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 261, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 262, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 263, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 264, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 265, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 266, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 267, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 268, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 269, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 270, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 271, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 272, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 273, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 274, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 275, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 276, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 277, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 278, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 279, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 280, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 281, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 282, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 283, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 284, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 285, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 286, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 287, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 288, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 289, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 290, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 291, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 292, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 293, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 294, "user": "友人Aの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 295, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 296, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 297, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 298, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 299, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 300, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 301, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 302, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 303, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 304, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 305, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 306, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 307, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 308, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 309, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 310, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 311, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 312, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 313, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 314, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 315, "user": "映画の話で何が出てくる？", "mode": "ask_no_response", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 316, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 317, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 318, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 319, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 320, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 321, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 322, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 323, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 324, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 325, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 326, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 327, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 328, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 329, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 330, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 331, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 332, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 333, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 334, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 335, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 336, "user": "苦手なもの何かあった？", "mode": "ask_no_response", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 337, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 338, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 339, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 340, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 341, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 342, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 343, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 344, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 345, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 346, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 347, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 348, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 349, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 350, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 351, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 352, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 353, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 354, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 355, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 356, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 357, "user": "のりこの好きな飲み物は？", "mode": "ask_no_response", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 358, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 359, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 360, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 361, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 362, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 363, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 364, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 365, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 366, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 367, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 368, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 369, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 370, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 371, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 372, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 373, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 374, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 375, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 376, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 377, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 378, "user": "カフェの話って何とつながってる？", "mode": "ask_no_response", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 379, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 380, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 381, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 382, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 383, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 384, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 385, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 386, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 387, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 388, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 389, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 390, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 391, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 392, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 393, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 394, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 395, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 396, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 397, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 398, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 399, "user": "記念日っていつだっけ？", "mode": "ask_no_response", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 400, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 401, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 402, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 403, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 404, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 405, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 406, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 407, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 408, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 409, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 410, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 411, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 412, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 413, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 414, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 415, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 416, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 417, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 418, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 419, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 420, "user": "みつきの好きなものは？", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 421, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 422, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 423, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 424, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 425, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 426, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 427, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 428, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 429, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 430, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 431, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 432, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 433, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 434, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 435, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 436, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 437, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 438, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 439, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 440, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 441, "user": "友人Bの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 442, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 443, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 444, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 445, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 446, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 447, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 448, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 449, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 450, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 451, "user": "休日に駅前へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 452, "user": "のりこは写真を撮るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 453, "user": "今日に駅前へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 454, "user": "友人Aは病院を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 455, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 456, "user": "友人Bは急かされることを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 457, "user": "みつきはカレーが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 458, "user": "友人Bはコーヒーが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 459, "user": "昨日に映画館へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 460, "user": "今日は静かな音楽を聴くをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 461, "user": "のりこは紅茶の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 462, "user": "今日も何かあったっけ？", "mode": "ask_no_response", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 463, "user": "本屋でギター練習をしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 464, "user": "友人Bはギターが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 465, "user": "友人Aはホラー映画を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 466, "user": "夜は静かな音楽を聴くをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 467, "user": "友人Aはコーヒーが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 468, "user": "みつきは温泉で本を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 469, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 470, "user": "友人Bは職場で写真を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 471, "user": "友人Bは猫が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 472, "user": "今日は写真を撮るをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 473, "user": "温泉で映画を見るをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 474, "user": "映画館で散歩をしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 475, "user": "友人Aは大きな音を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 476, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 477, "user": "友人Bは猫の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 478, "user": "夜は本を読むをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 479, "user": "のりこはチーズケーキが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 480, "user": "公園で静かな音楽を聴くをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 481, "user": "帰りに駅前へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 482, "user": "友人Bは猫が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 483, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 484, "user": "昔はカフェで休むをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 485, "user": "のりこは写真を撮るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 486, "user": "友人Bはラーメンの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 487, "user": "のりこはカッターナイフを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 488, "user": "のりこは写真の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 489, "user": "帰りは本を読むをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 490, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 491, "user": "カフェで散歩をしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 492, "user": "友人Aはホラー映画を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 493, "user": "友人Bはラーメンの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 494, "user": "旅行先で散歩をしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 495, "user": "友人Bはコーヒーが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 496, "user": "のりこはラーメンが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 497, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 498, "user": "帰りはギター練習をしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 499, "user": "友人Bは猫が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 500, "user": "みつきはポップコーンが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 501, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 502, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 503, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 504, "user": "友人Aの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 505, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 506, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 507, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 508, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 509, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 510, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 511, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 512, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 513, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 514, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 515, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 516, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 517, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 518, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 519, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 520, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 521, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 522, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 523, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 524, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 525, "user": "映画の話で何が出てくる？", "mode": "ask_no_response", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 526, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 527, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 528, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 529, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 530, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 531, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 532, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 533, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 534, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 535, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 536, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 537, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 538, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 539, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 540, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 541, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 542, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 543, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 544, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 545, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 546, "user": "苦手なもの何かあった？", "mode": "ask_no_response", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 547, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 548, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 549, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 550, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 551, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 552, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 553, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 554, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 555, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 556, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 557, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 558, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 559, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 560, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 561, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 562, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 563, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 564, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 565, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 566, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 567, "user": "のりこの好きな飲み物は？", "mode": "ask_no_response", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 568, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 569, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 570, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 571, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 572, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 573, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 574, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 575, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 576, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 577, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 578, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 579, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 580, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 581, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 582, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 583, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 584, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 585, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 586, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 587, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 588, "user": "カフェの話って何とつながってる？", "mode": "ask_no_response", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 589, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 590, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 591, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 592, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 593, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 594, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 595, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 596, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 597, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 598, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 599, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 600, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 601, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 602, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 603, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 604, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 605, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 606, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 607, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 608, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 609, "user": "記念日っていつだっけ？", "mode": "ask_no_response", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 610, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 611, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 612, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 613, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 614, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 615, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 616, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 617, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 618, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 619, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 620, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 621, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 622, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 623, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 624, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 625, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 626, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 627, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 628, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 629, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 630, "user": "みつきの好きなものは？", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 631, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 632, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 633, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 634, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 635, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 636, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 637, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 638, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 639, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 640, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 641, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 642, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 643, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 644, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 645, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 646, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 647, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 648, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 649, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 650, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 651, "user": "友人Bの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 652, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 653, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 654, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 655, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 656, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 657, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 658, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 659, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 660, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 661, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 662, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 663, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 664, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 665, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 666, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 667, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 668, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 669, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 670, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 671, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 672, "user": "今日も何かあったっけ？", "mode": "ask_no_response", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 673, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 674, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 675, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 676, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 677, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 678, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 679, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 680, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 681, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 682, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 683, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 684, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 685, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 686, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 687, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 688, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 689, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 690, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 691, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 692, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 693, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 694, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 695, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 696, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 697, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 698, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 699, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 700, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 701, "user": "休日に駅前へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 702, "user": "今日に職場へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 703, "user": "友人Aはカフェで本を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 704, "user": "友人Bはコーヒーの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 705, "user": "みつきはカレーが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 706, "user": "最近は静かな音楽を聴くをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 707, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 708, "user": "友人Aは写真を撮るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 709, "user": "友人Bは本を読むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 710, "user": "みつきは早起きを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 711, "user": "友人Aはギターが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 712, "user": "友人Aは早起きを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 713, "user": "のりこは温泉でポップコーンを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 714, "user": "友人Aの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 715, "user": "友人Bは本を読むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 716, "user": "友人Bはラーメンの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 717, "user": "夜は写真を撮るをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 718, "user": "のりこは美術館でポップコーンを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 719, "user": "のりこはギターの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 720, "user": "みつきはラーメンの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 721, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 722, "user": "昨日にカフェへ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 723, "user": "のりこはカフェで休むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 724, "user": "夜はカフェで休むをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 725, "user": "みつきは旅行先で写真を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 726, "user": "今日に本屋へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 727, "user": "友人Bは猫の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 728, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 729, "user": "友人Bは早起きを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 730, "user": "のりこはラーメンの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 731, "user": "最近に温泉へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 732, "user": "友人Aはポップコーンが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 733, "user": "みつきはラーメンの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 734, "user": "今日に映画館へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 735, "user": "映画の話で何が出てくる？", "mode": "ask_no_response", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 736, "user": "友人Aはホラー映画を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 737, "user": "友人Bは大きな音を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 738, "user": "職場でギター練習をしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 739, "user": "のりこはラーメンが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 740, "user": "友人Bはカフェで休むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 741, "user": "みつきはギター練習を覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 742, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 743, "user": "夜は静かな音楽を聴くをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 744, "user": "みつきはギター練習を覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 745, "user": "友人Bは猫が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 746, "user": "友人Aは映画を見るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 747, "user": "友人Aは本を読むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 748, "user": "のりこは大きな音を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 749, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 750, "user": "のりこは駅前でギターを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 751, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 752, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 753, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 754, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 755, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 756, "user": "苦手なもの何かあった？", "mode": "ask_no_response", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 757, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 758, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 759, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 760, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 761, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 762, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 763, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 764, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 765, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 766, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 767, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 768, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 769, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 770, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 771, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 772, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 773, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 774, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 775, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 776, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 777, "user": "のりこの好きな飲み物は？", "mode": "ask_no_response", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 778, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 779, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 780, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 781, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 782, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 783, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 784, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 785, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 786, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 787, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 788, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 789, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 790, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 791, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 792, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 793, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 794, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 795, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 796, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 797, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 798, "user": "カフェの話って何とつながってる？", "mode": "ask_no_response", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 799, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 800, "user": "チーズケーキの話をまたした", "mode": "learn", "tags": ["repetition_stress", "cheesecake"]}
+{"turn": 801, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 802, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 803, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 804, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 805, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 806, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 807, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 808, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 809, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 810, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 811, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 812, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 813, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 814, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 815, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 816, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 817, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 818, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 819, "user": "記念日っていつだっけ？", "mode": "ask_no_response", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 820, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 821, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 822, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 823, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 824, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 825, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 826, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 827, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 828, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 829, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 830, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 831, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 832, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 833, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 834, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 835, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 836, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 837, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 838, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 839, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 840, "user": "みつきの好きなものは？", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 841, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 842, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 843, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 844, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 845, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 846, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 847, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 848, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 849, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 850, "user": "今日は記念日だね", "mode": "learn", "tags": ["repetition_stress", "anniversary"]}
+{"turn": 851, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 852, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 853, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 854, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 855, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 856, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 857, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 858, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 859, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 860, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 861, "user": "友人Bの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 862, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 863, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 864, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 865, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 866, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 867, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 868, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 869, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 870, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 871, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 872, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 873, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 874, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 875, "user": "映画の話で何が出てくる？", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 876, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 877, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 878, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 879, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 880, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 881, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 882, "user": "今日も何かあったっけ？", "mode": "ask_no_response", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 883, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 884, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 885, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 886, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 887, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 888, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 889, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 890, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 891, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 892, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 893, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 894, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 895, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 896, "user": "苦手なもの何かあった？", "mode": "ask", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 897, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 898, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 899, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 900, "user": "帰りにカフェへ寄りたい", "mode": "learn", "tags": ["repetition_stress", "cafe"]}
+{"turn": 901, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 902, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 903, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask_no_response", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 904, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 905, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 906, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 907, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 908, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 909, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 910, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 911, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 912, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 913, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 914, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 915, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 916, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 917, "user": "のりこの好きな飲み物は？", "mode": "ask", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 918, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 919, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 920, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 921, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 922, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 923, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 924, "user": "友人Aの好きなものは？", "mode": "ask_no_response", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 925, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 926, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 927, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 928, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 929, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 930, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 931, "user": "友人Bの好きなものは？", "mode": "ask", "expected_words": ["友人B", "カレー", "写真"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 932, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 933, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 934, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 935, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 936, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 937, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 938, "user": "カフェの話って何とつながってる？", "mode": "ask", "expected_words": ["カフェ"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 939, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 940, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 941, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 942, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 943, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 944, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 945, "user": "映画の話で何が出てくる？", "mode": "ask_no_response", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 946, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 947, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 948, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 949, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 950, "user": "眠れない夜は静かな音楽を聴きたい", "mode": "learn", "tags": ["repetition_stress", "sleep"]}
+{"turn": 951, "user": "旅行先で映画を見るをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 952, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": [], "unexpected_words": ["記念日"], "expect_suppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 953, "user": "友人Bは本の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 954, "user": "家で散歩をしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 955, "user": "友人Aは急かされることを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 956, "user": "友人Bは静かな音楽を聴くを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 957, "user": "帰りは静かな音楽を聴くをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 958, "user": "帰りは映画を見るをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 959, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "expect_unsuppressed_words": ["記念日"], "tags": ["periodic_ask"]}
+{"turn": 960, "user": "友人Bは紅茶が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 961, "user": "友人Bは旅行先で猫を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 962, "user": "夜に旅行先へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 963, "user": "朝はカフェで休むをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 964, "user": "みつきは本屋でポップコーンを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 965, "user": "友人Bは旅行先でコーヒーを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 966, "user": "苦手なもの何かあった？", "mode": "ask_no_response", "expected_words": ["カッターナイフ", "病院", "元カノ"], "unexpected_words": ["チーズケーキ"], "tags": ["periodic_ask"]}
+{"turn": 967, "user": "みつきはカレーが好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 968, "user": "帰りに家へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 969, "user": "帰りに職場へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 970, "user": "夜に旅行先へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 971, "user": "みつきはカフェで休むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 972, "user": "友人Aは急かされることを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 973, "user": "最近の話題で必要そうなものだけ出して", "mode": "ask", "expected_words": ["チーズケーキ", "カフェ", "ギター"], "unexpected_words": ["元カノ"], "tags": ["periodic_ask"]}
+{"turn": 974, "user": "駅前で早く寝るをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 975, "user": "友人Aはカッターナイフを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 976, "user": "友人Bは病院を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 977, "user": "夜にカフェへ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 978, "user": "夜は静かな音楽を聴くをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 979, "user": "のりこは紅茶の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 980, "user": "みつきの好きなものは？", "mode": "ask", "expected_words": ["チーズケーキ", "コーヒー", "猫"], "unexpected_words": ["紅茶", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 981, "user": "のりこは急かされることを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 982, "user": "友人Bは公園で紅茶を食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 983, "user": "本屋でカフェで休むをしたことがある", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 984, "user": "友人Aはカッターナイフを少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 985, "user": "友人Bは本が好き", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 986, "user": "みつきは散歩を覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 987, "user": "のりこの好きな飲み物は？", "mode": "ask_no_response", "expected_words": ["紅茶", "のりこ"], "unexpected_words": ["コーヒー", "みつき"], "tags": ["periodic_ask"]}
+{"turn": 988, "user": "みつきは病院を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 989, "user": "友人Bは映画を見るを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 990, "user": "友人Bは職場でギターを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 991, "user": "友人Aはギターの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 992, "user": "昨日は写真を撮るをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 993, "user": "のりこは駅前でギターを食べたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 994, "user": "友人Aの好きなものは？", "mode": "ask", "expected_words": ["友人A", "ラーメン", "野球"], "unexpected_words": ["みつき", "のりこ"], "tags": ["periodic_ask"]}
+{"turn": 995, "user": "休日は本を読むをしたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 996, "user": "のりこはカレーの話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 997, "user": "のりこは病院を少し苦手に感じている", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 998, "user": "友人Aは本の話をまたした", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 999, "user": "今日に家へ行きたい", "mode": "learn", "tags": ["mixed_learn"]}
+{"turn": 1000, "user": "友人Bは本を読むを覚えておいてほしい", "mode": "learn", "tags": ["mixed_learn"]}
