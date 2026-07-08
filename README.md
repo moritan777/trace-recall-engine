@@ -284,6 +284,18 @@ MIT License
 
 This repository is not an attempt to reproduce the human brain.
 
-It is an attempt to ask a simple question:
+It started with a much simpler question.
 
-"How little must an AI remember for meaningful recall to emerge?"
+**Why do conversational memories feel different from retrieved text?**
+
+During the development of AIKanojyo, we repeatedly felt that something was missing.
+
+Not because the AI forgot facts.
+
+But because it did not seem to **recall experiences**.
+
+This project is an ongoing exploration of that question.
+
+It does not claim to have the answer.
+
+It simply tries to ask better questions.
