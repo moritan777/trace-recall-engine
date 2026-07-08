@@ -1,6 +1,34 @@
 # Documentation
 
-This directory is reserved for public-facing project documentation, design notes,
-architecture references, and evaluation methodology.
+## Foundations
 
-The repository-level overview remains in the root `README.md`.
+- 00 Project Overview
+- 01 Why Trace
+- 02 Trace Principle
+
+## Architecture
+
+- Architecture
+- Activation
+- Recall Selection
+- Working Memory
+- Topic Fatigue
+
+## Evaluation
+
+- Evaluation
+- Design History
+- Future Research
+
+## Concepts
+
+- Trace
+- Thread
+- ThreadGroup
+- Working Memory
+
+## Discussions
+
+- Circle and Thread
+- Count vs Weighted
+- Why not Summary
