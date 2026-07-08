@@ -322,6 +322,16 @@ Feedback, criticism, alternative ideas, benchmark scenarios, and related researc
 
 ---
 
+## Language Support
+
+The current research prototype is optimized for Japanese conversations.
+
+The underlying architecture is intended to be language-independent, but the current trace extraction and evaluation datasets are implemented for Japanese.
+
+Language-independent trace extraction remains future work.
+
+---
+
 ## License
 
 MIT License
