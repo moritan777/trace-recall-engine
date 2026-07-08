@@ -86,6 +86,7 @@ DEFAULT_HALF_LIFE_DAYS = 14.0
 DEFAULT_MAX_STRENGTH = 2.0
 DEFAULT_REINFORCE_AMOUNT = 0.10
 DEFAULT_MAX_DEPTH = 3
+FIXED_THREAD_STRENGTH_MODE = "count"
 
 DEPTH_DECAY: dict[int, float] = {
     0: 1.00,
@@ -1556,7 +1557,9 @@ def prompt_stats_dict(text: str) -> dict[str, int]:
 
 
 def normalize_thread_strength_mode(value: str) -> str:
-    return "weighted" if value == "weighted" else "count"
+    # Weighted-mode comparison experiments are closed.
+    # Trace-based Recall Engine v1 uses count as the fixed storage mode.
+    return FIXED_THREAD_STRENGTH_MODE
 
 
 def make_canonical_key(words) -> str:
@@ -1635,9 +1638,11 @@ def build_gate(args: argparse.Namespace, store: Optional[ThreadedConceptMemorySt
 
 def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemoryStore, WordExtractor, ActivationEngine, ResponseGenerator]:
     store = ThreadedConceptMemoryStore(args.db)
-    extractor = WordExtractor(args.base_url, args.api_key, args.model, args.timeout)
+    extractor_model = getattr(args, "extractor_model", "") or args.model
+    response_model = getattr(args, "response_model", "") or args.model
+    extractor = WordExtractor(args.base_url, args.api_key, extractor_model, args.timeout)
     engine = ActivationEngine(store, args.half_life_days, args.max_depth, args.common_bonus, args.mutual_amplification, args.thread_strength_mode)
-    generator = ResponseGenerator(args.base_url, args.api_key, args.model, args.timeout)
+    generator = ResponseGenerator(args.base_url, args.api_key, response_model, args.timeout)
     return store, extractor, engine, generator
 
 
@@ -1658,7 +1663,7 @@ def cmd_ask(args: argparse.Namespace) -> int:
     try:
         words = extractor.extract(args.text)
         result = engine.activate(words, args.top_words, args.top_threads)
-        print(f"\n[Strength Mode]\n{args.thread_strength_mode}")
+        print(f"\n[Storage Mode]\n{args.thread_strength_mode}")
         print_activation(result, trace_limit=args.trace_limit)
         gate = build_gate(args, store)
         gated = gate.gate(result) if gate is not None else None
@@ -1671,6 +1676,10 @@ def cmd_ask(args: argparse.Namespace) -> int:
             print("\n[Response]")
             response_text = generator.generate(args.text, result, args.response_include_trace, args.response_trace_limit, gate=gate)
             print(response_text)
+        else:
+            print("\n[Response]")
+            print("(skipped)")
+            print("reason=no_response_mode")
         if gated is not None:
             turn_no = store.record_exposures(gated, exposure_type="prompt")
             if response_text:
@@ -1707,7 +1716,7 @@ def cmd_words(args: argparse.Namespace) -> int:
 def cmd_seed_tests(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     try:
-        print(f"[Strength Mode] {args.thread_strength_mode}")
+        print(f"[Storage Mode] {args.thread_strength_mode}")
         seeds = [
             "みつきはチーズケーキが好き",
             "みつきはチーズケーキが好き",
@@ -1744,7 +1753,7 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
             print("[Test Input]", t)
             words = extractor.extract(t)
             result = engine.activate(words, args.top_words, args.top_threads)
-            print(f"\n[Strength Mode]\n{args.thread_strength_mode}")
+            print(f"\n[Storage Mode]\n{args.thread_strength_mode}")
             print_activation(result, trace_limit=args.trace_limit)
             gate = build_gate(args, store)
             gated = gate.gate(result) if gate is not None else None
@@ -1808,7 +1817,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
 
             if mode in {"ask", "ask_then_add"}:
                 result = engine.activate(words, args.top_words, args.top_threads)
-                print(f"\n[Strength Mode]\n{args.thread_strength_mode}")
+                print(f"\n[Storage Mode]\n{args.thread_strength_mode}")
                 print_activation(result, trace_limit=args.trace_limit)
                 gate = build_gate(args, store)
                 gated = gate.gate(result) if gate is not None else None
@@ -1836,6 +1845,8 @@ def cmd_config(args: argparse.Namespace) -> int:
     print("[LLM Config]")
     print(f"base_url: {base_url or '(not set; fallback mode)'}")
     print(f"model: {args.model}")
+    print(f"extractor_model: {getattr(args, 'extractor_model', '') or args.model}")
+    print(f"response_model: {getattr(args, 'response_model', '') or args.model}")
     print(f"api_key: {'set' if (args.api_key or os.getenv('LLM_API_KEY')) else '(not set)'}")
     print(f"NO_PROXY: {os.environ.get('NO_PROXY', '')}")
     print("proxy_mode: disabled for this script's HTTP calls")
@@ -1906,11 +1917,12 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 "",
                 f"- conversation_file: `{conversation_path}`",
                 f"- db: `{args.db}`",
-                f"- thread_strength_mode: `{args.thread_strength_mode}`",
-                f"- response_generation: `{'enabled' if normalize_llm_base_url(args.base_url) else 'fallback/no remote LLM'}`",
+                f"- storage_mode: `{FIXED_THREAD_STRENGTH_MODE}`",
+                "- weighted_mode: excluded from current evaluation scope",
+                f"- response_generation: `{eval_response_generation_label(args)}`",
                 "",
-                "| turn | mode | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough |",
-                "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+                "| turn | mode | response_skipped | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough | prompt_thread_group_count | response_used_group_count | recall_efficiency | prompt_word_count |",
+                "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
             ]
         )
 
@@ -1921,9 +1933,10 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 metrics = event["metrics"]
                 metrics_rows.append(flatten_eval_metrics(event))
                 report_lines.append(
-                    "| {turn} | {mode} | {expected_hit_count} | {unexpected_hit_count} | {recall_precision_like:.3f} | "
+                    "| {turn} | {mode} | {response_skipped} | {expected_hit_count} | {unexpected_hit_count} | {recall_precision_like:.3f} | "
                     "{recall_noise_count} | {fatigue_suppressed_count} | {response_used_expected_count} | "
-                    "{response_used_unexpected_count} | {prompt_tokens_rough} |".format(**metrics)
+                    "{response_used_unexpected_count} | {prompt_tokens_rough} | {prompt_thread_group_count} | {response_used_group_count} | "
+                    "{recall_efficiency:.3f} | {prompt_word_count} |".format(**metrics)
                 )
 
         write_jsonl(Path(args.events_jsonl), events)
@@ -1959,6 +1972,12 @@ def load_eval_conversation(path: Path) -> list[dict[str, Any]]:
     return turns
 
 
+def eval_response_generation_label(args: argparse.Namespace) -> str:
+    if getattr(args, "no_response", False):
+        return "skipped by --no-response"
+    return "enabled" if normalize_llm_base_url(args.base_url) else "fallback/no remote LLM"
+
+
 def run_eval_turn(
     item: dict[str, Any],
     args: argparse.Namespace,
@@ -1982,6 +2001,7 @@ def run_eval_turn(
             "user": user_text,
             "saved_thread_id": thread_id,
             "input_words": [w.word for w in words],
+            "response_skipped": False,
         }
 
     activation = engine.activate(words, args.top_words, args.top_threads)
@@ -1989,7 +2009,8 @@ def run_eval_turn(
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
     prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated)
     response_text = ""
-    if mode == "ask":
+    response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False)
+    if mode == "ask" and not response_skipped:
         response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate)
 
     if not args.no_reinforce:
@@ -2008,6 +2029,7 @@ def run_eval_turn(
         gated=gated,
         prompt=prompt,
         response_text=response_text,
+        response_skipped=response_skipped,
     )
     return {
         "turn": turn,
@@ -2022,6 +2044,7 @@ def run_eval_turn(
         "suppressed_words": [gated_word_to_dict(sw) for sw in gated.suppressed_words],
         "prompt_stats": prompt_stats_dict(prompt),
         "response_text": response_text,
+        "response_skipped": response_skipped,
         "metrics": metrics,
     }
 
@@ -2035,8 +2058,12 @@ def evaluate_recall_turn(
     gated: GatedContext,
     prompt: str,
     response_text: str,
+    response_skipped: bool = False,
 ) -> dict[str, Any]:
     gated_word_set = {gw.word for gw in gated.words}
+    working_memory_group_count = len(gated.threads)
+    working_memory_word_count = len(gated_word_set)
+    response_used_groups = [th.canonical_key for th in gated.threads if response_uses_thread_group(response_text, th)]
     response_expected = [w for w in expected_words if w and w in response_text]
     response_unexpected = [w for w in unexpected_words if w and w in response_text]
     expected_hits = [w for w in expected_words if w in gated_word_set or (w and w in response_text)]
@@ -2053,7 +2080,10 @@ def evaluate_recall_turn(
         "selected_thread_groups": [th.canonical_key for th in gated.threads],
         "suppressed_words": [sw.word for sw in gated.suppressed_words],
         "prompt_tokens_rough": prompt_stats_dict(prompt)["rough_tokens"],
+        "prompt_thread_group_count": working_memory_group_count,
+        "prompt_word_count": working_memory_word_count,
         "response_text": response_text,
+        "response_skipped": response_skipped,
         "expected_hit_count": len(expected_hits),
         "unexpected_hit_count": len(unexpected_hits),
         "recall_precision_like": precision_like,
@@ -2061,10 +2091,22 @@ def evaluate_recall_turn(
         "fatigue_suppressed_count": sum(1 for sw in gated.suppressed_words if sw.suppressed_by_fatigue),
         "response_used_expected_count": len(response_expected),
         "response_used_unexpected_count": len(response_unexpected),
+        "working_memory_group_count": working_memory_group_count,
+        "response_used_group_count": len(response_used_groups),
+        "recall_efficiency": (len(response_used_groups) / working_memory_group_count) if working_memory_group_count else 0.0,
+        "working_memory_word_count": working_memory_word_count,
+        "response_used_groups": response_used_groups,
         "expected_hits": expected_hits,
         "unexpected_hits": unexpected_hits,
         "prompt_only": sorted(prompt_only),
     }
+
+
+def response_uses_thread_group(response_text: str, group: GatedThreadGroup) -> bool:
+    if not response_text:
+        return False
+    candidate_words = merge_unique(group.core_words + group.direct_words + group.support_words + group.words)
+    return any(word and word in response_text for word in candidate_words)
 
 
 def gated_thread_group_to_dict(th: GatedThreadGroup) -> dict[str, Any]:
@@ -2109,7 +2151,10 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "selected_thread_groups": json.dumps(metrics["selected_thread_groups"], ensure_ascii=False),
         "suppressed_words": json.dumps(metrics["suppressed_words"], ensure_ascii=False),
         "prompt_tokens_rough": metrics["prompt_tokens_rough"],
+        "prompt_thread_group_count": metrics["prompt_thread_group_count"],
+        "prompt_word_count": metrics["prompt_word_count"],
         "response_text": metrics["response_text"],
+        "response_skipped": str(metrics["response_skipped"]).lower(),
         "expected_hit_count": metrics["expected_hit_count"],
         "unexpected_hit_count": metrics["unexpected_hit_count"],
         "recall_precision_like": f"{metrics['recall_precision_like']:.6f}",
@@ -2117,6 +2162,11 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "fatigue_suppressed_count": metrics["fatigue_suppressed_count"],
         "response_used_expected_count": metrics["response_used_expected_count"],
         "response_used_unexpected_count": metrics["response_used_unexpected_count"],
+        "working_memory_group_count": metrics["working_memory_group_count"],
+        "response_used_group_count": metrics["response_used_group_count"],
+        "recall_efficiency": f"{metrics['recall_efficiency']:.6f}",
+        "working_memory_word_count": metrics["working_memory_word_count"],
+        "response_used_groups": json.dumps(metrics["response_used_groups"], ensure_ascii=False),
         "prompt_only": json.dumps(metrics["prompt_only"], ensure_ascii=False),
     }
 
@@ -2139,7 +2189,10 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "selected_thread_groups",
         "suppressed_words",
         "prompt_tokens_rough",
+        "prompt_thread_group_count",
+        "prompt_word_count",
         "response_text",
+        "response_skipped",
         "expected_hit_count",
         "unexpected_hit_count",
         "recall_precision_like",
@@ -2147,6 +2200,11 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "fatigue_suppressed_count",
         "response_used_expected_count",
         "response_used_unexpected_count",
+        "working_memory_group_count",
+        "response_used_group_count",
+        "recall_efficiency",
+        "working_memory_word_count",
+        "response_used_groups",
         "prompt_only",
     ]
     with path.open("w", encoding="utf-8", newline="") as f:
@@ -2167,15 +2225,25 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
     unexpected = sum(int(r["unexpected_hit_count"]) for r in rows)
     fatigue = sum(int(r["fatigue_suppressed_count"]) for r in rows)
     avg_precision = sum(float(r["recall_precision_like"]) for r in rows) / len(rows)
+    avg_efficiency = sum(float(r["recall_efficiency"]) for r in rows) / len(rows)
+    wm_groups = sum(int(r["working_memory_group_count"]) for r in rows)
+    response_groups = sum(int(r["response_used_group_count"]) for r in rows)
+    wm_words = sum(int(r["working_memory_word_count"]) for r in rows)
+    response_skipped = sum(1 for r in rows if str(r["response_skipped"]).lower() == "true")
     return [
         "",
         "## Summary",
         "",
         f"- ask turns: {len(rows)}",
+        f"- Response skipped turns: {response_skipped}",
         f"- expected_hit_count_total: {expected}",
         f"- unexpected_hit_count_total: {unexpected}",
         f"- fatigue_suppressed_count_total: {fatigue}",
         f"- average_recall_precision_like: {avg_precision:.3f}",
+        f"- working_memory_group_count_total: {wm_groups}",
+        f"- response_used_group_count_total: {response_groups}",
+        f"- average_recall_efficiency: {avg_efficiency:.3f}",
+        f"- working_memory_word_count_total: {wm_words}",
     ]
 
 
@@ -2186,6 +2254,8 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--chat-base-url", default="")
     parser.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
     parser.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
+    parser.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""), help="Optional model override for word extraction; defaults to --model.")
+    parser.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""), help="Optional model override for response generation; defaults to --model.")
     parser.add_argument("--timeout", type=float, default=12.0)
     parser.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     parser.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
@@ -2196,7 +2266,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mutual-amplification", type=float, default=0.12, help="Small word boost from strong co-activated threads.")
     parser.add_argument("--response-include-trace", action="store_true")
     parser.add_argument("--response-trace-limit", type=int, default=10)
-    parser.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count")
+    parser.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count", help="Deprecated: count is fixed for Trace-based Recall Engine v1; weighted is coerced to count.")
     parser.add_argument("--fatigue-recent-turns", type=int, default=10)
     parser.add_argument("--fatigue-threshold", type=int, default=3)
     parser.add_argument("--disable-gate", action="store_true", help="Disable v0.8 Activation Gate and send raw activation summary.")
@@ -2251,12 +2321,14 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--chat-base-url", default="")
     p_eval.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
     p_eval.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
+    p_eval.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""))
+    p_eval.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""))
     p_eval.add_argument("--timeout", type=float, default=12.0)
     p_eval.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     p_eval.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
     p_eval.add_argument("--top-words", type=int, default=20)
     p_eval.add_argument("--top-threads", type=int, default=8)
-    p_eval.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count")
+    p_eval.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count", help="Deprecated: eval benchmarks are count-only; weighted is coerced to count.")
     p_eval.add_argument("--common-bonus", type=float, default=0.45)
     p_eval.add_argument("--mutual-amplification", type=float, default=0.12)
     p_eval.add_argument("--response-include-trace", action="store_true")
@@ -2274,6 +2346,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--events-jsonl", required=True)
     p_eval.add_argument("--metrics-csv", required=True)
     p_eval.add_argument("--no-reinforce", action="store_true")
+    p_eval.add_argument("--no-response", action="store_true")
     p_eval.set_defaults(func=cmd_eval)
 
     return parser
@@ -2286,6 +2359,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     if getattr(args, "chat_base_url", ""):
         args.base_url = args.chat_base_url
     args.base_url = normalize_llm_base_url(args.base_url)
+    requested_mode = getattr(args, "thread_strength_mode", FIXED_THREAD_STRENGTH_MODE)
+    args.thread_strength_mode = normalize_thread_strength_mode(requested_mode)
+    if requested_mode != args.thread_strength_mode:
+        print(
+            f"[warn] thread-strength-mode={requested_mode} is no longer part of evaluation/storage policy; using count.",
+            file=sys.stderr,
+        )
 
     return int(args.func(args))
 
