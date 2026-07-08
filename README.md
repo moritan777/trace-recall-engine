@@ -6,6 +6,27 @@
 
 ---
 
+
+## Repository Layout
+
+```
+.
+├── README.md
+├── LICENSE
+├── src/
+│   └── threaded_concept_memory_probe.py
+├── docs/
+├── eval_conversations/
+└── reports/        # ignored local output
+```
+
+- `src/` contains the Python research prototype.
+- `docs/` is reserved for public-facing design and methodology notes.
+- `eval_conversations/` is the place for JSONL evaluation fixtures.
+- `reports/` is intentionally ignored for local run outputs.
+
+---
+
 ## Why this project exists
 
 Most conversational memory systems store text and retrieve it later.
@@ -151,9 +172,9 @@ The project includes an evaluation mode.
 
 ```
 
-python threaded_concept_memory_probe.py eval 
---conversation-file eval_conversations/basic_recall.jsonl 
---thread-strength-mode count
+python src/threaded_concept_memory_probe.py eval \
+  --conversation-file eval_conversations/basic_recall.jsonl \
+  --thread-strength-mode count
 
 ```
 
