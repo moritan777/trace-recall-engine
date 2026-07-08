@@ -47,6 +47,7 @@ Meaning is generated only by the LLM from activated concepts.
 from __future__ import annotations
 
 import argparse
+import csv
 import datetime as dt
 import json
 import math
@@ -57,6 +58,7 @@ import sys
 import urllib.request
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Optional
 
 
@@ -1545,6 +1547,14 @@ def prompt_stats(label: str, text: str) -> str:
     return f"{label}: chars={len(text)}, lines={text.count(chr(10)) + 1 if text else 0}, rough_tokens={estimate_prompt_tokens_rough(text)}"
 
 
+def prompt_stats_dict(text: str) -> dict[str, int]:
+    return {
+        "chars": len(text),
+        "lines": text.count("\n") + 1 if text else 0,
+        "rough_tokens": estimate_prompt_tokens_rough(text),
+    }
+
+
 def normalize_thread_strength_mode(value: str) -> str:
     return "weighted" if value == "weighted" else "count"
 
@@ -1881,6 +1891,294 @@ def cmd_prompt_preview(args: argparse.Namespace) -> int:
         store.close()
 
 
+def cmd_eval(args: argparse.Namespace) -> int:
+    store, extractor, engine, generator = build_components(args)
+    events: list[dict[str, Any]] = []
+    metrics_rows: list[dict[str, Any]] = []
+    report_lines: list[str] = []
+    conversation_path = Path(args.conversation_file)
+
+    try:
+        turns = load_eval_conversation(conversation_path)
+        report_lines.extend(
+            [
+                "# Threaded Concept Memory Probe Evaluation",
+                "",
+                f"- conversation_file: `{conversation_path}`",
+                f"- db: `{args.db}`",
+                f"- thread_strength_mode: `{args.thread_strength_mode}`",
+                f"- response_generation: `{'enabled' if normalize_llm_base_url(args.base_url) else 'fallback/no remote LLM'}`",
+                "",
+                "| turn | mode | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough |",
+                "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+
+        for item in turns:
+            event = run_eval_turn(item, args, store, extractor, engine, generator)
+            events.append(event)
+            if event["mode"] in {"ask", "ask_no_response"}:
+                metrics = event["metrics"]
+                metrics_rows.append(flatten_eval_metrics(event))
+                report_lines.append(
+                    "| {turn} | {mode} | {expected_hit_count} | {unexpected_hit_count} | {recall_precision_like:.3f} | "
+                    "{recall_noise_count} | {fatigue_suppressed_count} | {response_used_expected_count} | "
+                    "{response_used_unexpected_count} | {prompt_tokens_rough} |".format(**metrics)
+                )
+
+        write_jsonl(Path(args.events_jsonl), events)
+        write_metrics_csv(Path(args.metrics_csv), metrics_rows)
+        report_lines.extend(build_eval_report_summary(metrics_rows))
+        write_text(Path(args.report_md), "\n".join(report_lines) + "\n")
+
+        print(f"[Eval] events_jsonl={args.events_jsonl}")
+        print(f"[Eval] metrics_csv={args.metrics_csv}")
+        print(f"[Eval] report_md={args.report_md}")
+        return 0
+    finally:
+        store.close()
+
+
+def load_eval_conversation(path: Path) -> list[dict[str, Any]]:
+    turns: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line_no, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{path}:{line_no}: invalid JSONL: {exc}") from exc
+            mode = item.get("mode")
+            if mode not in {"learn", "ask", "ask_no_response"}:
+                raise ValueError(f"{path}:{line_no}: mode must be learn, ask, or ask_no_response")
+            if "user" not in item:
+                raise ValueError(f"{path}:{line_no}: missing user")
+            turns.append(item)
+    return turns
+
+
+def run_eval_turn(
+    item: dict[str, Any],
+    args: argparse.Namespace,
+    store: ThreadedConceptMemoryStore,
+    extractor: WordExtractor,
+    engine: ActivationEngine,
+    generator: ResponseGenerator,
+) -> dict[str, Any]:
+    turn = int(item.get("turn", 0))
+    user_text = str(item["user"])
+    mode = str(item["mode"])
+    expected_words = [normalize_word(str(w)) for w in item.get("expected_words", []) if normalize_word(str(w))]
+    unexpected_words = [normalize_word(str(w)) for w in item.get("unexpected_words", []) if normalize_word(str(w))]
+    words = extractor.extract(user_text)
+
+    if mode == "learn":
+        thread_id = store.create_thread(words, source_text=user_text, thread_strength_mode=args.thread_strength_mode)
+        return {
+            "turn": turn,
+            "mode": mode,
+            "user": user_text,
+            "saved_thread_id": thread_id,
+            "input_words": [w.word for w in words],
+        }
+
+    activation = engine.activate(words, args.top_words, args.top_threads)
+    gate = build_gate(args, store)
+    gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
+    prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated)
+    response_text = ""
+    if mode == "ask":
+        response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate)
+
+    if not args.no_reinforce:
+        store.reinforce_seen(activation.activated_words)
+
+    turn_no = store.record_exposures(gated, exposure_type="prompt")
+    if response_text:
+        store.record_exposures(gated, turn_no=turn_no, exposure_type="response", response_text=response_text)
+
+    metrics = evaluate_recall_turn(
+        turn=turn,
+        mode=mode,
+        expected_words=expected_words,
+        unexpected_words=unexpected_words,
+        activation=activation,
+        gated=gated,
+        prompt=prompt,
+        response_text=response_text,
+    )
+    return {
+        "turn": turn,
+        "mode": mode,
+        "user": user_text,
+        "expected_words": expected_words,
+        "unexpected_words": unexpected_words,
+        "input_words": [w.word for w in activation.input_words],
+        "activated_words": [aw.word for aw in activation.activated_words],
+        "gated_words": [gw.word for gw in gated.words],
+        "selected_thread_groups": [gated_thread_group_to_dict(th) for th in gated.threads],
+        "suppressed_words": [gated_word_to_dict(sw) for sw in gated.suppressed_words],
+        "prompt_stats": prompt_stats_dict(prompt),
+        "response_text": response_text,
+        "metrics": metrics,
+    }
+
+
+def evaluate_recall_turn(
+    turn: int,
+    mode: str,
+    expected_words: list[str],
+    unexpected_words: list[str],
+    activation: ActivationResult,
+    gated: GatedContext,
+    prompt: str,
+    response_text: str,
+) -> dict[str, Any]:
+    gated_word_set = {gw.word for gw in gated.words}
+    response_expected = [w for w in expected_words if w and w in response_text]
+    response_unexpected = [w for w in unexpected_words if w and w in response_text]
+    expected_hits = [w for w in expected_words if w in gated_word_set or (w and w in response_text)]
+    unexpected_hits = [w for w in unexpected_words if w in gated_word_set or (w and w in response_text)]
+    prompt_only = [w for w in gated_word_set if w and w not in response_text]
+    denom = len(expected_hits) + len(unexpected_hits)
+    precision_like = (len(expected_hits) / denom) if denom else (1.0 if not unexpected_hits else 0.0)
+    return {
+        "turn": turn,
+        "mode": mode,
+        "input_words": [w.word for w in activation.input_words],
+        "activated_words": [aw.word for aw in activation.activated_words],
+        "gated_words": sorted(gated_word_set),
+        "selected_thread_groups": [th.canonical_key for th in gated.threads],
+        "suppressed_words": [sw.word for sw in gated.suppressed_words],
+        "prompt_tokens_rough": prompt_stats_dict(prompt)["rough_tokens"],
+        "response_text": response_text,
+        "expected_hit_count": len(expected_hits),
+        "unexpected_hit_count": len(unexpected_hits),
+        "recall_precision_like": precision_like,
+        "recall_noise_count": len(unexpected_hits),
+        "fatigue_suppressed_count": sum(1 for sw in gated.suppressed_words if sw.suppressed_by_fatigue),
+        "response_used_expected_count": len(response_expected),
+        "response_used_unexpected_count": len(response_unexpected),
+        "expected_hits": expected_hits,
+        "unexpected_hits": unexpected_hits,
+        "prompt_only": sorted(prompt_only),
+    }
+
+
+def gated_thread_group_to_dict(th: GatedThreadGroup) -> dict[str, Any]:
+    return {
+        "canonical_key": th.canonical_key,
+        "representative_thread_id": th.representative_thread_id,
+        "occurrence_count": th.occurrence_count,
+        "score": th.score,
+        "group_score": th.group_score,
+        "base_score": th.base_score,
+        "common_bonus": th.common_bonus,
+        "effective_strength": th.effective_strength,
+        "words": th.words,
+        "direct_words": th.direct_words,
+        "core_words": th.core_words,
+        "support_words": th.support_words,
+        "suppressed_words": th.suppressed_words,
+        "member_thread_ids": th.member_thread_ids,
+    }
+
+
+def gated_word_to_dict(word: GatedWord) -> dict[str, Any]:
+    return {
+        "word": word.word,
+        "score": word.score,
+        "depth": word.depth,
+        "role": word.role,
+        "reason": word.reason,
+        "fatigue_prompt": word.fatigue,
+        "suppressed_by_fatigue": word.suppressed_by_fatigue,
+    }
+
+
+def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
+    metrics = event["metrics"]
+    return {
+        "turn": metrics["turn"],
+        "mode": metrics["mode"],
+        "input_words": json.dumps(metrics["input_words"], ensure_ascii=False),
+        "activated_words": json.dumps(metrics["activated_words"], ensure_ascii=False),
+        "gated_words": json.dumps(metrics["gated_words"], ensure_ascii=False),
+        "selected_thread_groups": json.dumps(metrics["selected_thread_groups"], ensure_ascii=False),
+        "suppressed_words": json.dumps(metrics["suppressed_words"], ensure_ascii=False),
+        "prompt_tokens_rough": metrics["prompt_tokens_rough"],
+        "response_text": metrics["response_text"],
+        "expected_hit_count": metrics["expected_hit_count"],
+        "unexpected_hit_count": metrics["unexpected_hit_count"],
+        "recall_precision_like": f"{metrics['recall_precision_like']:.6f}",
+        "recall_noise_count": metrics["recall_noise_count"],
+        "fatigue_suppressed_count": metrics["fatigue_suppressed_count"],
+        "response_used_expected_count": metrics["response_used_expected_count"],
+        "response_used_unexpected_count": metrics["response_used_unexpected_count"],
+        "prompt_only": json.dumps(metrics["prompt_only"], ensure_ascii=False),
+    }
+
+
+def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "turn",
+        "mode",
+        "input_words",
+        "activated_words",
+        "gated_words",
+        "selected_thread_groups",
+        "suppressed_words",
+        "prompt_tokens_rough",
+        "response_text",
+        "expected_hit_count",
+        "unexpected_hit_count",
+        "recall_precision_like",
+        "recall_noise_count",
+        "fatigue_suppressed_count",
+        "response_used_expected_count",
+        "response_used_unexpected_count",
+        "prompt_only",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
+    if not rows:
+        return ["", "## Summary", "", "- ask turns: 0"]
+    expected = sum(int(r["expected_hit_count"]) for r in rows)
+    unexpected = sum(int(r["unexpected_hit_count"]) for r in rows)
+    fatigue = sum(int(r["fatigue_suppressed_count"]) for r in rows)
+    avg_precision = sum(float(r["recall_precision_like"]) for r in rows) / len(rows)
+    return [
+        "",
+        "## Summary",
+        "",
+        f"- ask turns: {len(rows)}",
+        f"- expected_hit_count_total: {expected}",
+        f"- unexpected_hit_count_total: {unexpected}",
+        f"- fatigue_suppressed_count_total: {fatigue}",
+        f"- average_recall_precision_like: {avg_precision:.3f}",
+    ]
+
+
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Threaded Concept Memory Probe v0.9")
     parser.add_argument("--db", default=DEFAULT_DB_PATH)
@@ -1945,6 +2243,38 @@ def make_parser() -> argparse.ArgumentParser:
     p_preview.add_argument("text")
     p_preview.add_argument("--show-prompt", action="store_true")
     p_preview.set_defaults(func=cmd_prompt_preview)
+
+    p_eval = sub.add_parser("eval")
+    p_eval.add_argument("--conversation-file", required=True)
+    p_eval.add_argument("--db", default=DEFAULT_DB_PATH)
+    p_eval.add_argument("--base-url", default=os.getenv("LLM_BASE_URL", ""))
+    p_eval.add_argument("--chat-base-url", default="")
+    p_eval.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
+    p_eval.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
+    p_eval.add_argument("--timeout", type=float, default=12.0)
+    p_eval.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
+    p_eval.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
+    p_eval.add_argument("--top-words", type=int, default=20)
+    p_eval.add_argument("--top-threads", type=int, default=8)
+    p_eval.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count")
+    p_eval.add_argument("--common-bonus", type=float, default=0.45)
+    p_eval.add_argument("--mutual-amplification", type=float, default=0.12)
+    p_eval.add_argument("--response-include-trace", action="store_true")
+    p_eval.add_argument("--response-trace-limit", type=int, default=10)
+    p_eval.add_argument("--fatigue-recent-turns", type=int, default=10)
+    p_eval.add_argument("--fatigue-threshold", type=int, default=3)
+    p_eval.add_argument("--disable-gate", action="store_true")
+    p_eval.add_argument("--gate-max-threads", type=int, default=4)
+    p_eval.add_argument("--gate-max-core-words", type=int, default=5)
+    p_eval.add_argument("--gate-max-words", type=int, default=12)
+    p_eval.add_argument("--gate-min-thread-score", type=float, default=0.05)
+    p_eval.add_argument("--gate-min-word-score", type=float, default=0.05)
+    p_eval.add_argument("--gate-support-ratio", type=float, default=0.18)
+    p_eval.add_argument("--report-md", required=True)
+    p_eval.add_argument("--events-jsonl", required=True)
+    p_eval.add_argument("--metrics-csv", required=True)
+    p_eval.add_argument("--no-reinforce", action="store_true")
+    p_eval.set_defaults(func=cmd_eval)
 
     return parser
 
