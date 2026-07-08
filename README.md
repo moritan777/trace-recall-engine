@@ -9,9 +9,9 @@
 ## Requirements
 
 - Python 3.11 or later
-- No third-party Python dependencies
+- No third-party dependencies
 
-The current implementation uses only the Python standard library.
+The current research prototype intentionally relies only on Python's standard library to keep experiments simple and reproducible.
 
 ---
 
