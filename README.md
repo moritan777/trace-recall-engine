@@ -6,6 +6,15 @@
 
 ---
 
+## Requirements
+
+- Python 3.11 or later
+- No third-party Python dependencies
+
+The current implementation uses only the Python standard library.
+
+---
+
 ## Why?
 
 This project did not begin with a new algorithm.
