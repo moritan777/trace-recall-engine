@@ -88,7 +88,6 @@ DEFAULT_REINFORCE_AMOUNT = 0.10
 DEFAULT_MAX_DEPTH = 3
 FIXED_THREAD_STRENGTH_MODE = "count"
 
-GENERIC_PERSON_TERMS = ("ユーザー", "user", "person_a", "Aさん")
 DEFAULT_SEED_TESTS_FILE = Path(__file__).resolve().parent.parent / "eval_conversations" / "seed_tests_public.jsonl"
 
 DEPTH_DECAY: dict[int, float] = {
@@ -390,10 +389,6 @@ class ThreadedConceptMemoryStore:
                 continue
             weight = clamp(float(item.weight), 0.1, 2.0)
             normalized[word] = max(normalized.get(word, 0.0), weight)
-
-        if any(person in normalized for person in GENERIC_PERSON_TERMS):
-            for w in list(normalized.keys()):
-                normalized[w] = clamp(normalized[w] * 1.15, 0.1, 2.3)
 
         canonical_key = make_canonical_key(normalized.keys())
         cur = self.conn.cursor()
@@ -829,8 +824,8 @@ class ActivationEngine:
 
         # v0.7: Common activation bonus.
         # Threads supported by multiple directly activated/input words get a strong boost.
-        # This makes "ユーザー + 好き" strongly prefer threads that contain both,
-        # while "好き" only threads remain weaker.
+        # This prefers traces where the current input words intersect, without
+        # privileging any word category.
         for thread_id, base in thread_base_scores.items():
             direct_count = len(thread_direct_matched_words.get(thread_id, set()))
             if direct_count >= 2:
@@ -1482,15 +1477,15 @@ def parse_json_object(text: str) -> dict[str, Any]:
 
 def fallback_extract_words(text: str) -> list[ExtractedWord]:
     text = normalize_text(text)
-    protected_terms = [
-        *GENERIC_PERSON_TERMS, "チーズケーキ", "コーヒー", "紅茶", "好き",
+    known_terms = [
+        "チーズケーキ", "コーヒー", "紅茶", "好き",
         "カフェ", "帰り", "食べる", "映画", "ポップコーン",
         "カッターナイフ", "カッター", "怪我", "苦手", "昔",
         "誕生日", "記念日", "猫", "ペット", "ギター",
     ]
 
     found: list[ExtractedWord] = []
-    for term in protected_terms:
+    for term in known_terms:
         if term in text:
             found.append(ExtractedWord(term, 1.2 if len(term) >= 4 else 1.0))
 
@@ -1505,11 +1500,20 @@ def fallback_extract_words(text: str) -> list[ExtractedWord]:
         ch = normalize_word(ch)
         if not ch or ch in stop:
             continue
-        if len(ch) >= 8 and re.search(r"[はがをにへでとてもやの]", ch):
-            continue
-        if any(ch in term and ch != term for term in protected_terms):
-            continue
-        found.append(ExtractedWord(ch, 0.8))
+        should_keep_chunk = not (len(ch) >= 8 and re.search(r"[はがをにへでとてもやの]", ch))
+        if should_keep_chunk and not any(ch in term and ch != term for term in known_terms):
+            found.append(ExtractedWord(ch, 0.8))
+
+        # Lightweight fallback tokenization for unsegmented Japanese text.
+        # Split on common particles so names and other nouns enter the same
+        # normal Trace path, without any person/name dictionary or score boost.
+        for part in re.split(r"[はがをにへでとものや]", ch):
+            part = normalize_word(part)
+            if not part or part in stop or part == ch:
+                continue
+            if any(part in term and part != term for term in known_terms):
+                continue
+            found.append(ExtractedWord(part, 0.8))
 
     return dedupe_extracted_words(found)
 
@@ -1556,9 +1560,9 @@ def fallback_generate_response(user_input: str, activation: ActivationResult) ->
     if not top:
         return "まだうまく思い出せないけど、その話もう少し聞かせて。"
     if "チーズケーキ" in top and "コーヒー" in top:
-        return "チーズケーキとコーヒーが強く出てきてるよ。ユーザーの好きなものとして、その二つがつながってる感じがする。"
+        return "チーズケーキとコーヒーが強く出てきてるよ。好きなものとして、その二つがつながってる感じがする。"
     if "チーズケーキ" in top:
-        return "チーズケーキが出てきたよ。ユーザーが好きって話とつながってる気がする。"
+        return "チーズケーキが出てきたよ。好きって話とつながってる気がする。"
     if "カッターナイフ" in top or "カッター" in top:
         return "カッターや怪我、苦手って単語が反応してる。少し気をつけた方がよさそう。"
     return "今反応してるのは、" + "、".join(top[:4]) + " あたりかな。"

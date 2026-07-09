@@ -1,0 +1,73 @@
+import tempfile
+import unittest
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from threaded_concept_memory_probe import (  # noqa: E402
+    ActivationEngine,
+    ExtractedWord,
+    ThreadedConceptMemoryStore,
+    fallback_extract_words,
+)
+
+
+class TracePrinciplePersonWordTests(unittest.TestCase):
+    def make_store(self):
+        tmp = tempfile.TemporaryDirectory()
+        store = ThreadedConceptMemoryStore(str(Path(tmp.name) / "memory.db"))
+        self.addCleanup(store.close)
+        self.addCleanup(tmp.cleanup)
+        return store
+
+    def words(self, *items):
+        return [ExtractedWord(word, weight) for word, weight in items]
+
+    def activated_word_names(self, result):
+        return [word.word for word in result.activated_words]
+
+    def test_name_seed_is_not_recalled_by_unrelated_input(self):
+        store = self.make_store()
+        store.create_thread(self.words(("みつき", 1.0)), source_text="みつき")
+        store.create_thread(self.words(("映画", 1.0), ("ポップコーン", 1.0)), source_text="映画とポップコーン")
+
+        result = ActivationEngine(store).activate(self.words(("映画", 1.0)), top_words=10, top_threads=10)
+
+        self.assertNotIn("みつき", self.activated_word_names(result))
+
+    def test_name_is_recalled_only_when_input_contains_name_by_normal_rules(self):
+        store = self.make_store()
+        store.create_thread(self.words(("みつき", 1.0), ("チーズケーキ", 1.0)), source_text="みつきはチーズケーキが好き")
+        store.create_thread(self.words(("映画", 1.0), ("ポップコーン", 1.0)), source_text="映画とポップコーン")
+
+        without_name = ActivationEngine(store).activate(self.words(("映画", 1.0)), top_words=10, top_threads=10)
+        with_name = ActivationEngine(store).activate(self.words(("みつき", 1.0)), top_words=10, top_threads=10)
+
+        self.assertNotIn("みつき", self.activated_word_names(without_name))
+        self.assertIn("みつき", self.activated_word_names(with_name))
+        self.assertIn("チーズケーキ", self.activated_word_names(with_name))
+
+    def test_multiple_people_preferences_run_without_person_boost(self):
+        store = self.make_store()
+        store.create_thread(self.words(("みつき", 1.0), ("チーズケーキ", 1.0), ("好き", 1.0)), source_text="みつきはチーズケーキが好き")
+        store.create_thread(self.words(("のりこ", 1.0), ("紅茶", 1.0), ("好き", 1.0)), source_text="のりこは紅茶が好き")
+
+        result = ActivationEngine(store).activate(self.words(("みつき", 1.0), ("好き", 1.0)), top_words=10, top_threads=10)
+        top_thread = result.activated_threads[0]
+
+        self.assertIn("みつき", top_thread.words)
+        self.assertIn("チーズケーキ", top_thread.words)
+        self.assertNotIn("のりこ", top_thread.words)
+        self.assertNotIn("紅茶", top_thread.words)
+
+    def test_fallback_extraction_keeps_person_words_on_normal_route(self):
+        extracted = {word.word: word.weight for word in fallback_extract_words("ユーザーはチーズケーキが好き")}
+
+        self.assertIn("ユーザー", extracted)
+        self.assertIn("チーズケーキ", extracted)
+        self.assertEqual(extracted["ユーザー"], 0.8)
+
+
+if __name__ == "__main__":
+    unittest.main()
