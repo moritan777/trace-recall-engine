@@ -88,6 +88,9 @@ DEFAULT_REINFORCE_AMOUNT = 0.10
 DEFAULT_MAX_DEPTH = 3
 FIXED_THREAD_STRENGTH_MODE = "count"
 
+GENERIC_PERSON_TERMS = ("ユーザー", "user", "person_a", "Aさん")
+DEFAULT_SEED_TESTS_FILE = Path(__file__).resolve().parent.parent / "eval_conversations" / "seed_tests_public.jsonl"
+
 DEPTH_DECAY: dict[int, float] = {
     0: 1.00,
     1: 0.40,
@@ -388,7 +391,7 @@ class ThreadedConceptMemoryStore:
             weight = clamp(float(item.weight), 0.1, 2.0)
             normalized[word] = max(normalized.get(word, 0.0), weight)
 
-        if "みつき" in normalized:
+        if any(person in normalized for person in GENERIC_PERSON_TERMS):
             for w in list(normalized.keys()):
                 normalized[w] = clamp(normalized[w] * 1.15, 0.1, 2.3)
 
@@ -826,7 +829,7 @@ class ActivationEngine:
 
         # v0.7: Common activation bonus.
         # Threads supported by multiple directly activated/input words get a strong boost.
-        # This makes "みつき + 好き" strongly prefer threads that contain both,
+        # This makes "ユーザー + 好き" strongly prefer threads that contain both,
         # while "好き" only threads remain weaker.
         for thread_id, base in thread_base_scores.items():
             direct_count = len(thread_direct_matched_words.get(thread_id, set()))
@@ -1426,10 +1429,10 @@ def parse_json_object(text: str) -> dict[str, Any]:
 def fallback_extract_words(text: str) -> list[ExtractedWord]:
     text = normalize_text(text)
     protected_terms = [
-        "みつき", "のりこ", "チーズケーキ", "コーヒー", "紅茶", "好き",
+        *GENERIC_PERSON_TERMS, "チーズケーキ", "コーヒー", "紅茶", "好き",
         "カフェ", "帰り", "食べる", "映画", "ポップコーン",
         "カッターナイフ", "カッター", "怪我", "苦手", "昔",
-        "誕生日", "記念日", "猫", "ソラ", "ギター",
+        "誕生日", "記念日", "猫", "ペット", "ギター",
     ]
 
     found: list[ExtractedWord] = []
@@ -1499,9 +1502,9 @@ def fallback_generate_response(user_input: str, activation: ActivationResult) ->
     if not top:
         return "まだうまく思い出せないけど、その話もう少し聞かせて。"
     if "チーズケーキ" in top and "コーヒー" in top:
-        return "チーズケーキとコーヒーが強く出てきてるよ。みつきの好きなものとして、その二つがつながってる感じがする。"
+        return "チーズケーキとコーヒーが強く出てきてるよ。ユーザーの好きなものとして、その二つがつながってる感じがする。"
     if "チーズケーキ" in top:
-        return "チーズケーキが出てきたよ。みつきが好きって話とつながってる気がする。"
+        return "チーズケーキが出てきたよ。ユーザーが好きって話とつながってる気がする。"
     if "カッターナイフ" in top or "カッター" in top:
         return "カッターや怪我、苦手って単語が反応してる。少し気をつけた方がよさそう。"
     return "今反応してるのは、" + "、".join(top[:4]) + " あたりかな。"
@@ -1717,36 +1720,16 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     try:
         print(f"[Storage Mode] {args.thread_strength_mode}")
-        seeds = [
-            "みつきはチーズケーキが好き",
-            "みつきはチーズケーキが好き",
-            "みつきはチーズケーキが好き",
-            "みつきはコーヒーが好き",
-            "のりこは紅茶が好き",
-            "帰りにカフェでチーズケーキを食べたい",
-            "映画を見るときはポップコーンがほしい",
-            "ポップコーンを食べながらカフェで休みたい",
-            "昔カッターナイフで怪我をした",
-            "カッターナイフは少し苦手",
-            "今日は記念日だね",
-            "今日は記念日だね",
-            "今日は記念日だね",
-        ]
+        seed_fixture = Path(args.seed_tests_file)
+        fixture_turns = load_eval_conversation(seed_fixture)
+        seeds = [str(item["user"]) for item in fixture_turns if item["mode"] == "learn"]
+        tests = [str(item["user"]) for item in fixture_turns if item["mode"] in {"ask", "ask_no_response"}]
 
         for s in seeds:
             words = extractor.extract(s)
             thread_id = store.create_thread(words, source_text=s, thread_strength_mode=args.thread_strength_mode)
             print(f"seed saved: {thread_id}: {s}")
             print("  words:", " / ".join(w.word for w in words))
-
-        tests = [
-            "みつきの好きなものは？",
-            "カフェ行きたい",
-            "映画楽しみ",
-            "カッター使う作業がある",
-            "今日も何かあったっけ？",
-            "記念日っていつだっけ？",
-        ]
 
         for t in tests:
             print("\n" + "=" * 60)
@@ -2299,6 +2282,11 @@ def make_parser() -> argparse.ArgumentParser:
     p_words.set_defaults(func=cmd_words)
 
     p_seed = sub.add_parser("seed-tests")
+    p_seed.add_argument(
+        "--seed-tests-file",
+        default=str(DEFAULT_SEED_TESTS_FILE),
+        help="JSONL fixture used by seed-tests; defaults to eval_conversations/seed_tests_public.jsonl.",
+    )
     p_seed.add_argument("--seed-generate-response", action="store_true")
     p_seed.set_defaults(func=cmd_seed_tests)
 

@@ -1,0 +1,19 @@
+{"turn": 1, "user": "ユーザーはチーズケーキが好き", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 2, "user": "ユーザーはチーズケーキが好き", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 3, "user": "ユーザーはチーズケーキが好き", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 4, "user": "ユーザーはコーヒーが好き", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 5, "user": "Aさんは紅茶が好き", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 6, "user": "帰りにカフェでチーズケーキを食べたい", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 7, "user": "映画を見るときはポップコーンがほしい", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 8, "user": "ポップコーンを食べながらカフェで休みたい", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 9, "user": "昔カッターナイフで怪我をした", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 10, "user": "カッターナイフは少し苦手", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 11, "user": "今日は記念日だね", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 12, "user": "今日は記念日だね", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 13, "user": "今日は記念日だね", "mode": "learn", "tags": ["seed-tests"]}
+{"turn": 14, "user": "ユーザーの好きなものは？", "mode": "ask", "expected_words": ["ユーザー", "チーズケーキ", "コーヒー"], "unexpected_words": ["紅茶", "Aさん"], "tags": ["seed-tests"]}
+{"turn": 15, "user": "カフェ行きたい", "mode": "ask", "expected_words": ["カフェ", "チーズケーキ"], "unexpected_words": [], "tags": ["seed-tests"]}
+{"turn": 16, "user": "映画楽しみ", "mode": "ask", "expected_words": ["映画", "ポップコーン"], "unexpected_words": [], "tags": ["seed-tests"]}
+{"turn": 17, "user": "カッター使う作業がある", "mode": "ask", "expected_words": ["カッターナイフ", "怪我", "苦手"], "unexpected_words": [], "tags": ["seed-tests"]}
+{"turn": 18, "user": "今日も何かあったっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "tags": ["seed-tests"]}
+{"turn": 19, "user": "記念日っていつだっけ？", "mode": "ask", "expected_words": ["記念日"], "unexpected_words": [], "tags": ["seed-tests"]}
