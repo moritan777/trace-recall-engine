@@ -355,3 +355,21 @@ That is perfectly acceptable.
 If this project encourages someone to ask better questions about conversational memory,
 
 then it has already achieved one of its goals.
+
+---
+
+## About this project
+
+Trace Recall Engine began as an attempt to improve the memory system of an AI companion project called AIKanojyo.
+
+Along the way, the research gradually shifted.
+
+The central question was no longer:
+
+"How should conversations be stored?"
+
+Instead, it became:
+
+"How should past experiences become part of a new conversation?"
+
+This repository documents that ongoing exploration.
