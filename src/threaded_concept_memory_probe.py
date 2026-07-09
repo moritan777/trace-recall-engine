@@ -87,6 +87,8 @@ DEFAULT_MAX_STRENGTH = 2.0
 DEFAULT_REINFORCE_AMOUNT = 0.10
 DEFAULT_MAX_DEPTH = 3
 FIXED_THREAD_STRENGTH_MODE = "count"
+VALID_CREATED_BY = {"user", "assistant"}
+VALID_ORIGIN_ORDER = {"none", "group"}
 
 DEFAULT_SEED_TESTS_FILE = Path(__file__).resolve().parent.parent / "eval_conversations" / "seed_tests_public.jsonl"
 
@@ -154,6 +156,7 @@ class Thread:
     created_at: str = ""
     last_seen: str = ""
     seen_count: int = 1
+    created_by: str = "user"
 
 
 @dataclass
@@ -205,6 +208,7 @@ class ActivatedThread:
     thread_strength: float = 1.0
     effective_strength: float = 1.0
     same_key_thread_count: int = 1
+    created_by: str = "user"
 
 
 @dataclass
@@ -240,6 +244,7 @@ class GatedThread:
     canonical_key: str = ""
     effective_strength: float = 1.0
     same_key_thread_count: int = 1
+    created_by: str = "user"
 
 
 @dataclass
@@ -258,6 +263,8 @@ class GatedThreadGroup:
     support_words: list[str]
     suppressed_words: list[str]
     member_thread_ids: list[str]
+    created_by_counts: dict[str, int]
+    dominant_created_by: str | None
 
 
 @dataclass
@@ -284,6 +291,7 @@ class ThreadedConceptMemoryStore:
             "created_at": "ALTER TABLE threads ADD COLUMN created_at TEXT",
             "last_seen": "ALTER TABLE threads ADD COLUMN last_seen TEXT",
             "seen_count": "ALTER TABLE threads ADD COLUMN seen_count INTEGER NOT NULL DEFAULT 1",
+            "created_by": "ALTER TABLE threads ADD COLUMN created_by TEXT NOT NULL DEFAULT 'user'",
         }
         for col, sql in migrations.items():
             if col not in cols:
@@ -333,7 +341,8 @@ class ThreadedConceptMemoryStore:
                 strength REAL NOT NULL DEFAULT 1.0,
                 created_at TEXT,
                 last_seen TEXT,
-                seen_count INTEGER NOT NULL DEFAULT 1
+                seen_count INTEGER NOT NULL DEFAULT 1,
+                created_by TEXT NOT NULL DEFAULT 'user'
             )
             """
         )
@@ -377,10 +386,18 @@ class ThreadedConceptMemoryStore:
         cur.execute("CREATE INDEX IF NOT EXISTS idx_conversation_exposures_word ON conversation_exposures(word)")
         self.conn.commit()
 
-    def create_thread(self, words: list[ExtractedWord], source_text: str | None, thread_strength_mode: str = "count") -> str:
+    def create_thread(self, words: list[ExtractedWord], source_text: str | None, thread_strength_mode: str = "count", created_by: str = "user") -> str:
         now = now_iso()
         date = now[:10]
         thread_strength_mode = normalize_thread_strength_mode(thread_strength_mode)
+        created_by = normalize_created_by(created_by)
+
+        # created_by records who produced the utterance that created this trace.
+        # It is not a semantic label for who the trace is about.
+        # The recall score must not be boosted only because a trace was created by user or assistant.
+        # created_by は、このTraceを生んだ発話者を記録する。
+        # それは「誰についての記憶か」という意味ラベルではない。
+        # user / assistant 由来であることだけを理由にRecall scoreを加点してはいけない。
 
         normalized: dict[str, float] = {}
         for item in words:
@@ -409,10 +426,10 @@ class ThreadedConceptMemoryStore:
                 cur.execute(
                     """
                     UPDATE threads
-                    SET strength = ?, seen_count = ?, last_seen = ?
+                    SET strength = ?, seen_count = ?, last_seen = ?, created_by = ?
                     WHERE thread_id = ?
                     """,
-                    (min(float(existing["strength"]) + 0.45, 4.0), int(existing["seen_count"]) + 1, now, thread_id),
+                    (min(float(existing["strength"]) + 0.45, 4.0), int(existing["seen_count"]) + 1, now, created_by, thread_id),
                 )
                 for word, weight in normalized.items():
                     self._upsert_word_node(cur, word, weight, now)
@@ -422,10 +439,10 @@ class ThreadedConceptMemoryStore:
         thread_id = "thread_" + uuid.uuid4().hex[:12]
         cur.execute(
             """
-            INSERT INTO threads(thread_id, date, source_text, canonical_key, strength, created_at, last_seen, seen_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO threads(thread_id, date, source_text, canonical_key, strength, created_at, last_seen, seen_count, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (thread_id, date, source_text, canonical_key, 1.0, now, now, 1),
+            (thread_id, date, source_text, canonical_key, 1.0, now, now, 1, created_by),
         )
 
         for word, weight in normalized.items():
@@ -518,7 +535,7 @@ class ThreadedConceptMemoryStore:
     def get_thread(self, thread_id: str) -> Optional[Thread]:
         row = self.conn.execute(
             """
-            SELECT thread_id, date, source_text, canonical_key, strength, created_at, last_seen, seen_count
+            SELECT thread_id, date, source_text, canonical_key, strength, created_at, last_seen, seen_count, created_by
             FROM threads
             WHERE thread_id = ?
             """,
@@ -537,6 +554,7 @@ class ThreadedConceptMemoryStore:
             created_at=row["created_at"] or row["date"],
             last_seen=row["last_seen"] or row["date"],
             seen_count=int(row["seen_count"]),
+            created_by=normalize_created_by(row["created_by"]),
         )
 
     def list_threads(self, limit: int = 20) -> list[Thread]:
@@ -918,6 +936,7 @@ class ActivationEngine:
                     thread_strength=thread.strength,
                     effective_strength=self._thread_effective_strength(thread, now),
                     same_key_thread_count=self.store.count_threads_by_canonical_key(thread.canonical_key),
+                    created_by=thread.created_by,
                 )
             )
 
@@ -1060,6 +1079,7 @@ class ActivationGate:
                     canonical_key=th.canonical_key,
                     effective_strength=th.effective_strength,
                     same_key_thread_count=th.same_key_thread_count,
+                    created_by=th.created_by,
                 )
             )
 
@@ -1145,6 +1165,11 @@ class ActivationGate:
             base_score = sum(th.base_score for th in members)
             common_bonus = sum(th.common_bonus for th in members)
             effective_strength = max(th.effective_strength for th in members)
+            created_by_counts: dict[str, int] = {}
+            for th in members:
+                origin = normalize_created_by(th.created_by)
+                created_by_counts[origin] = created_by_counts.get(origin, 0) + 1
+            dominant_created_by = max(created_by_counts.items(), key=lambda kv: (kv[1], kv[0]))[0] if created_by_counts else None
             result.append(
                 GatedThreadGroup(
                     canonical_key=key,
@@ -1161,6 +1186,8 @@ class ActivationGate:
                     support_words=merge_unique([w for th in members for w in th.support_words])[: self.max_core_words_per_thread],
                     suppressed_words=merge_unique([w for th in members for w in th.suppressed_words]),
                     member_thread_ids=member_thread_ids,
+                    created_by_counts=created_by_counts,
+                    dominant_created_by=dominant_created_by,
                 )
             )
         result.sort(key=lambda th: (th.group_score, th.score), reverse=True)
@@ -1182,9 +1209,10 @@ class ResponseGenerator:
         trace_limit: int = 10,
         gate: Optional[ActivationGate] = None,
         prompt_view: str = "threadgroup",
+        origin_order: str = "none",
     ) -> str:
         gated = gate.gate(activation) if gate is not None else None
-        prompt = build_response_prompt(user_input, activation, include_trace=include_trace, trace_limit=trace_limit, gated=gated, prompt_view=prompt_view)
+        prompt = build_response_prompt(user_input, activation, include_trace=include_trace, trace_limit=trace_limit, gated=gated, prompt_view=prompt_view, origin_order=origin_order)
         print("[LLM Prompt Stats] " + prompt_stats("response_prompt", prompt), file=sys.stderr)
 
         if self.base_url:
@@ -1216,7 +1244,7 @@ class ResponseGenerator:
         return fallback_generate_response(user_input, activation)
 
 
-def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadgroup") -> list[str]:
+def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadgroup", origin_order: str = "none") -> list[str]:
     prompt_view = normalize_prompt_view(prompt_view)
     lines: list[str] = []
     lines.append("")
@@ -1225,9 +1253,9 @@ def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadg
     lines.append("Only this gated context should be used for the response.")
 
     if prompt_view == "threadgroup":
-        lines.extend(format_threadgroup_view(gated))
+        lines.extend(format_threadgroup_view(gated, origin_order))
     elif prompt_view == "recall-state":
-        lines.extend(format_recall_state_view(gated))
+        lines.extend(format_recall_state_view(gated, origin_order))
     elif prompt_view == "edge":
         lines.extend(format_edge_view(gated))
     else:
@@ -1242,15 +1270,15 @@ def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadg
     return lines
 
 
-def format_threadgroup_view(gated: GatedContext) -> list[str]:
+def format_threadgroup_view(gated: GatedContext, origin_order: str = "none") -> list[str]:
     lines: list[str] = ["", "[Gated Thread Groups]"]
-    for th in gated.threads:
+    for th in ordered_thread_groups(gated.threads, origin_order):
         direct = ", ".join(th.direct_words) if th.direct_words else "-"
         core = " / ".join(th.core_words) if th.core_words else "-"
         support = " / ".join(th.support_words) if th.support_words else "-"
         bonus = f" common_bonus={th.common_bonus:.3f}" if th.common_bonus > 0 else ""
         lines.append(
-            f"key={th.canonical_key} occurrence={th.occurrence_count} representative={th.representative_thread_id} "
+            f"key={th.canonical_key} occurrence={th.occurrence_count} origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)} representative={th.representative_thread_id} "
             f"score={th.score:.3f} group_score={th.group_score:.3f} base={th.base_score:.3f}{bonus} "
             f"eff={th.effective_strength:.3f} direct={direct} core={core} support={support}"
         )
@@ -1262,13 +1290,31 @@ def format_threadgroup_view(gated: GatedContext) -> list[str]:
     return lines
 
 
-def format_recall_state_view(gated: GatedContext) -> list[str]:
+def format_recall_state_view(gated: GatedContext, origin_order: str = "none") -> list[str]:
     lines: list[str] = ["", "[Recall State]"]
-    for th in gated.threads:
+    ordered = ordered_thread_groups(gated.threads, origin_order)
+    if normalize_origin_order(origin_order) == "group":
+        current_origin = None
+        for th in ordered:
+            origin = th.dominant_created_by or "user"
+            if origin != current_origin:
+                lines.append("")
+                lines.append(f"{origin}-origin traces:")
+                current_origin = origin
+            words = " / ".join(th.core_words or th.words)
+            direct = " / ".join(th.direct_words) if th.direct_words else "-"
+            lines.append(f"- {words}")
+            lines.append(f"  occurrence={th.occurrence_count}")
+            lines.append(f"  origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)}")
+            lines.append(f"  score={th.group_score:.2f}")
+            lines.append(f"  direct={direct}")
+        return lines
+    for th in ordered:
         words = " / ".join(th.core_words or th.words)
         direct = " / ".join(th.direct_words) if th.direct_words else "-"
         lines.append(f"- {words}")
         lines.append(f"  occurrence={th.occurrence_count}")
+        lines.append(f"  origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)}")
         lines.append(f"  score={th.group_score:.2f}")
         lines.append(f"  direct={direct}")
     return lines
@@ -1290,7 +1336,7 @@ def format_edge_view(gated: GatedContext) -> list[str]:
     return lines
 
 
-def build_response_prompt(user_input: str, activation: ActivationResult, include_trace: bool = False, trace_limit: int = 10, gated: Optional[GatedContext] = None, prompt_view: str = "threadgroup") -> str:
+def build_response_prompt(user_input: str, activation: ActivationResult, include_trace: bool = False, trace_limit: int = 10, gated: Optional[GatedContext] = None, prompt_view: str = "threadgroup", origin_order: str = "none") -> str:
     lines: list[str] = []
     lines.append("[Current Input]")
     lines.append(user_input)
@@ -1301,7 +1347,7 @@ def build_response_prompt(user_input: str, activation: ActivationResult, include
         lines.append(f"- {w.word} ({w.weight:.2f})")
 
     if gated is not None:
-        lines.extend(format_gated_recall_context(gated, prompt_view))
+        lines.extend(format_gated_recall_context(gated, prompt_view, origin_order))
     else:
         lines.append("")
         lines.append("[Activated Words]")
@@ -1320,7 +1366,7 @@ def build_response_prompt(user_input: str, activation: ActivationResult, include
             if th.common_bonus > 0:
                 direct_hint = f" common_bonus={th.common_bonus:.3f}"
             lines.append(
-                f"{th.thread_id} score={th.score:.3f} base={th.base_score:.3f}{direct_hint} matched={matched}: {words}"
+                f"{th.thread_id} origin={th.created_by} score={th.score:.3f} base={th.base_score:.3f}{direct_hint} matched={matched}: {words}"
             )
 
     if include_trace:
@@ -1360,7 +1406,7 @@ def print_activation(result: ActivationResult, trace_limit: int = 80) -> None:
         matched = ", ".join(th.matched_words) if th.matched_words else "-"
         by = ", ".join(th.activated_by[:4]) if th.activated_by else "-"
         bonus = f" bonus={th.common_bonus:.4f}" if th.common_bonus > 0 else ""
-        print(f"  - {th.thread_id} score={th.score:.4f} base={th.base_score:.4f}{bonus} key={th.canonical_key} same_key_thread_count={th.same_key_thread_count} effective_strength={th.effective_strength:.4f} matched={matched} activated_by={by} date={th.date}: {' / '.join(th.words)}")
+        print(f"  - {th.thread_id} score={th.score:.4f} base={th.base_score:.4f}{bonus} key={th.canonical_key} origin={th.created_by} same_key_thread_count={th.same_key_thread_count} effective_strength={th.effective_strength:.4f} matched={matched} activated_by={by} date={th.date}: {' / '.join(th.words)}")
 
     print("\n[Activation Trace]")
     if not result.traces:
@@ -1383,7 +1429,7 @@ def print_gated_context(gated: GatedContext) -> None:
         print(
             f"  - canonical_key={th.canonical_key} occurrence_count={th.occurrence_count} "
             f"representative_thread_id={th.representative_thread_id} member_thread_count={len(th.member_thread_ids)} "
-            f"score={th.score:.4f} group_score={th.group_score:.4f}{bonus} effective_strength={th.effective_strength:.4f} "
+            f"origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)} score={th.score:.4f} group_score={th.group_score:.4f}{bonus} effective_strength={th.effective_strength:.4f} "
             f"direct={direct} core={core} support={support} members={', '.join(th.member_thread_ids)}"
         )
 
@@ -1403,7 +1449,7 @@ def print_gated_context(gated: GatedContext) -> None:
     print("\n[Working Memory Candidate]")
     print("- promptへ入るThreadGroup")
     for th in gated.threads:
-        print(f"  - key={th.canonical_key} occurrence={th.occurrence_count} representative={th.representative_thread_id}")
+        print(f"  - key={th.canonical_key} occurrence={th.occurrence_count} origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)} representative={th.representative_thread_id}")
     print("- promptへ入るWords")
     for gw in gated.words:
         print(f"  - {gw.word}")
@@ -1623,6 +1669,36 @@ def normalize_thread_strength_mode(value: str) -> str:
     return FIXED_THREAD_STRENGTH_MODE
 
 
+def normalize_created_by(value: str | None) -> str:
+    value = (value or "user").strip().lower()
+    if value not in VALID_CREATED_BY:
+        raise ValueError(f"created_by/role must be one of: user, assistant (got {value!r})")
+    return value
+
+
+def normalize_origin_order(value: str | None) -> str:
+    value = (value or "none").strip().lower()
+    if value not in VALID_ORIGIN_ORDER:
+        raise ValueError(f"origin_order must be one of: none, group (got {value!r})")
+    return value
+
+
+def format_origin_counts(counts: dict[str, int], dominant: str | None = None) -> str:
+    counts = {normalize_created_by(k): int(v) for k, v in counts.items() if int(v) > 0}
+    if not counts:
+        return dominant or "user"
+    if len(counts) == 1:
+        return next(iter(counts))
+    return ",".join(f"{origin}:{counts[origin]}" for origin in ("user", "assistant") if origin in counts)
+
+
+def ordered_thread_groups(threads: list[GatedThreadGroup], origin_order: str = "none") -> list[GatedThreadGroup]:
+    if normalize_origin_order(origin_order) == "none":
+        return threads
+    order = {"assistant": 0, "user": 1}
+    return [item[1] for item in sorted(enumerate(threads), key=lambda item: (order.get(item[1].dominant_created_by or "user", 9), item[0]))]
+
+
 def normalize_prompt_view(value: str) -> str:
     value = (value or "threadgroup").strip().lower()
     if value not in {"threadgroup", "recall-state", "edge"}:
@@ -1718,7 +1794,7 @@ def cmd_add(args: argparse.Namespace) -> int:
     store, extractor, _, _ = build_components(args)
     try:
         words = extractor.extract(args.text)
-        thread_id = store.create_thread(words, source_text=args.text, thread_strength_mode=args.thread_strength_mode)
+        thread_id = store.create_thread(words, source_text=args.text, thread_strength_mode=args.thread_strength_mode, created_by=args.role)
         print(f"saved: {thread_id}")
         print("words:", " / ".join(f"{w.word}({w.weight:.2f})" for w in words))
         return 0
@@ -1742,7 +1818,7 @@ def cmd_ask(args: argparse.Namespace) -> int:
         response_text = ""
         if not args.no_response:
             print("\n[Response]")
-            response_text = generator.generate(args.text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
+            response_text = generator.generate(args.text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
             print(response_text)
         else:
             print("\n[Response]")
@@ -1761,7 +1837,7 @@ def cmd_threads(args: argparse.Namespace) -> int:
     store = ThreadedConceptMemoryStore(args.db)
     try:
         for th in store.list_threads(args.limit):
-            print(f"{th.thread_id} {th.date} key={th.canonical_key} strength={th.strength:.2f} seen={th.seen_count}: {' / '.join(th.words)}")
+            print(f"{th.thread_id} {th.date} key={th.canonical_key} origin={th.created_by} strength={th.strength:.2f} seen={th.seen_count}: {' / '.join(th.words)}")
             if args.show_source:
                 print(f"  source(debug only): {th.source_text}")
         return 0
@@ -1787,12 +1863,12 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
         print(f"[Storage Mode] {args.thread_strength_mode}")
         seed_fixture = Path(args.seed_tests_file)
         fixture_turns = load_eval_conversation(seed_fixture)
-        seeds = [str(item["user"]) for item in fixture_turns if item["mode"] == "learn"]
-        tests = [str(item["user"]) for item in fixture_turns if item["mode"] in {"ask", "ask_no_response"}]
+        seeds = [(str(item["text"]), str(item["role"])) for item in fixture_turns if item["mode"] == "learn"]
+        tests = [str(item["text"]) for item in fixture_turns if item["mode"] in {"ask", "ask_no_response"}]
 
-        for s in seeds:
+        for s, role in seeds:
             words = extractor.extract(s)
-            thread_id = store.create_thread(words, source_text=s, thread_strength_mode=args.thread_strength_mode)
+            thread_id = store.create_thread(words, source_text=s, thread_strength_mode=args.thread_strength_mode, created_by=role)
             print(f"seed saved: {thread_id}: {s}")
             print("  words:", " / ".join(w.word for w in words))
 
@@ -1810,7 +1886,7 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
             response_text = ""
             if args.seed_generate_response:
                 print("\n[Response]")
-                response_text = generator.generate(t, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
+                response_text = generator.generate(t, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
                 print(response_text)
             if gated is not None:
                 turn_no = store.record_exposures(gated, exposure_type="prompt")
@@ -1845,7 +1921,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
                 break
             if text == "/threads":
                 for th in store.list_threads(20):
-                    print(f"{th.thread_id} {th.date} key={th.canonical_key} strength={th.strength:.2f} seen={th.seen_count}: {' / '.join(th.words)}")
+                    print(f"{th.thread_id} {th.date} key={th.canonical_key} origin={th.created_by} strength={th.strength:.2f} seen={th.seen_count}: {' / '.join(th.words)}")
                 continue
             if text == "/words":
                 for node in store.list_words(50):
@@ -1873,14 +1949,14 @@ def cmd_chat(args: argparse.Namespace) -> int:
                     print_gated_context(gated)
                 store.reinforce_seen(result.activated_words)
                 print("\n[Response]")
-                response_text = generator.generate(text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
+                response_text = generator.generate(text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
                 print(response_text)
                 if gated is not None:
                     turn_no = store.record_exposures(gated, exposure_type="prompt")
                     store.record_exposures(gated, turn_no=turn_no, exposure_type="response", response_text=response_text)
 
             if mode in {"add", "ask_then_add"}:
-                thread_id = store.create_thread(words, source_text=text, thread_strength_mode=args.thread_strength_mode)
+                thread_id = store.create_thread(words, source_text=text, thread_strength_mode=args.thread_strength_mode, created_by="user")
                 print(f"\n[saved] {thread_id}: " + " / ".join(w.word for w in words))
 
         return 0
@@ -1932,8 +2008,8 @@ def cmd_prompt_preview(args: argparse.Namespace) -> int:
         result = engine.activate(words, args.top_words, args.top_threads)
         gate = build_gate(args, store)
         gated = gate.gate(result) if gate is not None else None
-        prompt_without_trace = build_response_prompt(args.text, result, include_trace=False, gated=gated, prompt_view=args.prompt_view)
-        prompt_with_trace = build_response_prompt(args.text, result, include_trace=True, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view)
+        prompt_without_trace = build_response_prompt(args.text, result, include_trace=False, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
+        prompt_with_trace = build_response_prompt(args.text, result, include_trace=True, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
         print_activation(result, trace_limit=args.trace_limit)
         if gated is not None:
             print_gated_context(gated)
@@ -1970,8 +2046,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 "- weighted_mode: excluded from current evaluation scope",
                 f"- response_generation: `{eval_response_generation_label(args)}`",
                 "",
-                "| turn | mode | response_skipped | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough | prompt_thread_group_count | response_used_group_count | recall_efficiency | prompt_word_count |",
-                "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+                "| turn | mode | response_skipped | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough | prompt_thread_group_count | wm_user_origin | wm_assistant_origin | response_used_group_count | resp_user_origin | resp_assistant_origin | origin_mixed | recall_efficiency | prompt_word_count |",
+                "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
             ]
         )
 
@@ -1984,7 +2060,9 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 report_lines.append(
                     "| {turn} | {mode} | {response_skipped} | {expected_hit_count} | {unexpected_hit_count} | {recall_precision_like:.3f} | "
                     "{recall_noise_count} | {fatigue_suppressed_count} | {response_used_expected_count} | "
-                    "{response_used_unexpected_count} | {prompt_tokens_rough} | {prompt_thread_group_count} | {response_used_group_count} | "
+                    "{response_used_unexpected_count} | {prompt_tokens_rough} | {prompt_thread_group_count} | "
+                    "{working_memory_user_origin_group_count} | {working_memory_assistant_origin_group_count} | {response_used_group_count} | "
+                    "{response_used_user_origin_group_count} | {response_used_assistant_origin_group_count} | {origin_mixed_group_count} | "
                     "{recall_efficiency:.3f} | {prompt_word_count} |".format(**metrics)
                 )
 
@@ -2001,6 +2079,20 @@ def cmd_eval(args: argparse.Namespace) -> int:
         store.close()
 
 
+def resolve_eval_turn_text_and_role(item: dict[str, Any], path: Path | None = None, line_no: int | None = None) -> tuple[str, str]:
+    role = normalize_created_by(str(item.get("role", "user")))
+    if "text" in item and item["text"] is not None:
+        return str(item["text"]), role
+    if role == "assistant" and "assistant" in item:
+        return str(item["assistant"]), role
+    if role == "user" and "user" in item:
+        return str(item["user"]), role
+    if "user" in item:
+        return str(item["user"]), "user"
+    location = f"{path}:{line_no}: " if path is not None and line_no is not None else ""
+    raise ValueError(f"{location}missing utterance text for role={role}; use text, user, or assistant")
+
+
 def load_eval_conversation(path: Path) -> list[dict[str, Any]]:
     turns: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
@@ -2015,8 +2107,13 @@ def load_eval_conversation(path: Path) -> list[dict[str, Any]]:
             mode = item.get("mode")
             if mode not in {"learn", "ask", "ask_no_response"}:
                 raise ValueError(f"{path}:{line_no}: mode must be learn, ask, or ask_no_response")
-            if "user" not in item:
-                raise ValueError(f"{path}:{line_no}: missing user")
+            text, role = resolve_eval_turn_text_and_role(item, path, line_no)
+            item["text"] = text
+            item["role"] = role
+            if role == "user":
+                item.setdefault("user", text)
+            else:
+                item.setdefault("assistant", text)
             turns.append(item)
     return turns
 
@@ -2036,18 +2133,20 @@ def run_eval_turn(
     generator: ResponseGenerator,
 ) -> dict[str, Any]:
     turn = int(item.get("turn", 0))
-    user_text = str(item["user"])
+    user_text = str(item["text"])
+    role = normalize_created_by(str(item.get("role", "user")))
     mode = str(item["mode"])
     expected_words = [normalize_word(str(w)) for w in item.get("expected_words", []) if normalize_word(str(w))]
     unexpected_words = [normalize_word(str(w)) for w in item.get("unexpected_words", []) if normalize_word(str(w))]
     words = extractor.extract(user_text)
 
     if mode == "learn":
-        thread_id = store.create_thread(words, source_text=user_text, thread_strength_mode=args.thread_strength_mode)
+        thread_id = store.create_thread(words, source_text=user_text, thread_strength_mode=args.thread_strength_mode, created_by=role)
         return {
             "turn": turn,
             "mode": mode,
             "user": user_text,
+            "role": role,
             "saved_thread_id": thread_id,
             "input_words": [w.word for w in words],
             "response_skipped": False,
@@ -2056,11 +2155,11 @@ def run_eval_turn(
     activation = engine.activate(words, args.top_words, args.top_threads)
     gate = build_gate(args, store)
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
-    prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view)
+    prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
     response_text = ""
     response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False)
     if mode == "ask" and not response_skipped:
-        response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
+        response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
 
     if not args.no_reinforce:
         store.reinforce_seen(activation.activated_words)
@@ -2084,6 +2183,7 @@ def run_eval_turn(
         "turn": turn,
         "mode": mode,
         "user": user_text,
+        "role": role,
         "expected_words": expected_words,
         "unexpected_words": unexpected_words,
         "input_words": [w.word for w in activation.input_words],
@@ -2112,7 +2212,8 @@ def evaluate_recall_turn(
     gated_word_set = {gw.word for gw in gated.words}
     working_memory_group_count = len(gated.threads)
     working_memory_word_count = len(gated_word_set)
-    response_used_groups = [th.canonical_key for th in gated.threads if response_uses_thread_group(response_text, th)]
+    response_used_threads = [th for th in gated.threads if response_uses_thread_group(response_text, th)]
+    response_used_groups = [th.canonical_key for th in response_used_threads]
     response_expected = [w for w in expected_words if w and w in response_text]
     response_unexpected = [w for w in unexpected_words if w and w in response_text]
     expected_hits = [w for w in expected_words if w in gated_word_set or (w and w in response_text)]
@@ -2141,7 +2242,12 @@ def evaluate_recall_turn(
         "response_used_expected_count": len(response_expected),
         "response_used_unexpected_count": len(response_unexpected),
         "working_memory_group_count": working_memory_group_count,
+        "working_memory_user_origin_group_count": sum(1 for th in gated.threads if th.dominant_created_by == "user"),
+        "working_memory_assistant_origin_group_count": sum(1 for th in gated.threads if th.dominant_created_by == "assistant"),
         "response_used_group_count": len(response_used_groups),
+        "response_used_user_origin_group_count": sum(1 for th in response_used_threads if th.dominant_created_by == "user"),
+        "response_used_assistant_origin_group_count": sum(1 for th in response_used_threads if th.dominant_created_by == "assistant"),
+        "origin_mixed_group_count": sum(1 for th in gated.threads if len(th.created_by_counts) > 1),
         "recall_efficiency": (len(response_used_groups) / working_memory_group_count) if working_memory_group_count else 0.0,
         "working_memory_word_count": working_memory_word_count,
         "response_used_groups": response_used_groups,
@@ -2175,6 +2281,8 @@ def gated_thread_group_to_dict(th: GatedThreadGroup) -> dict[str, Any]:
         "support_words": th.support_words,
         "suppressed_words": th.suppressed_words,
         "member_thread_ids": th.member_thread_ids,
+        "created_by_counts": th.created_by_counts,
+        "dominant_created_by": th.dominant_created_by,
     }
 
 
@@ -2213,7 +2321,12 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "response_used_expected_count": metrics["response_used_expected_count"],
         "response_used_unexpected_count": metrics["response_used_unexpected_count"],
         "working_memory_group_count": metrics["working_memory_group_count"],
+        "working_memory_user_origin_group_count": metrics["working_memory_user_origin_group_count"],
+        "working_memory_assistant_origin_group_count": metrics["working_memory_assistant_origin_group_count"],
         "response_used_group_count": metrics["response_used_group_count"],
+        "response_used_user_origin_group_count": metrics["response_used_user_origin_group_count"],
+        "response_used_assistant_origin_group_count": metrics["response_used_assistant_origin_group_count"],
+        "origin_mixed_group_count": metrics["origin_mixed_group_count"],
         "recall_efficiency": f"{metrics['recall_efficiency']:.6f}",
         "working_memory_word_count": metrics["working_memory_word_count"],
         "response_used_groups": json.dumps(metrics["response_used_groups"], ensure_ascii=False),
@@ -2252,7 +2365,12 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "response_used_expected_count",
         "response_used_unexpected_count",
         "working_memory_group_count",
+        "working_memory_user_origin_group_count",
+        "working_memory_assistant_origin_group_count",
         "response_used_group_count",
+        "response_used_user_origin_group_count",
+        "response_used_assistant_origin_group_count",
+        "origin_mixed_group_count",
         "recall_efficiency",
         "working_memory_word_count",
         "response_used_groups",
@@ -2319,6 +2437,8 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--response-include-trace", action="store_true")
     parser.add_argument("--response-trace-limit", type=int, default=10)
     parser.add_argument("--prompt-view", choices=["threadgroup", "recall-state", "edge"], default="threadgroup")
+    parser.add_argument("--origin-order", choices=["none", "group"], default="none", help="Prompt display ordering only; does not affect recall scores or gate selection.")
+    parser.add_argument("--role", choices=["user", "assistant"], default="user", help="Speaker origin for add command traces.")
     parser.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count", help="Deprecated: count is fixed for Trace-based Recall Engine v1; weighted is coerced to count.")
     parser.add_argument("--fatigue-recent-turns", type=int, default=10)
     parser.add_argument("--fatigue-threshold", type=int, default=3)
@@ -2392,6 +2512,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--response-include-trace", action="store_true")
     p_eval.add_argument("--response-trace-limit", type=int, default=10)
     p_eval.add_argument("--prompt-view", choices=["threadgroup", "recall-state", "edge"], default="threadgroup")
+    p_eval.add_argument("--origin-order", choices=["none", "group"], default="none")
     p_eval.add_argument("--fatigue-recent-turns", type=int, default=10)
     p_eval.add_argument("--fatigue-threshold", type=int, default=3)
     p_eval.add_argument("--disable-gate", action="store_true")
@@ -2426,6 +2547,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             file=sys.stderr,
         )
     args.prompt_view = normalize_prompt_view(getattr(args, "prompt_view", "threadgroup"))
+    args.origin_order = normalize_origin_order(getattr(args, "origin_order", "none"))
+    if hasattr(args, "role"):
+        args.role = normalize_created_by(args.role)
 
     return int(args.func(args))
 
