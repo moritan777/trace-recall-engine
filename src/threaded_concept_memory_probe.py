@@ -1179,9 +1179,17 @@ class ResponseGenerator:
         self.model = model or os.getenv("LLM_MODEL", "local-model")
         self.timeout_sec = timeout_sec
 
-    def generate(self, user_input: str, activation: ActivationResult, include_trace: bool = False, trace_limit: int = 10, gate: Optional[ActivationGate] = None) -> str:
+    def generate(
+        self,
+        user_input: str,
+        activation: ActivationResult,
+        include_trace: bool = False,
+        trace_limit: int = 10,
+        gate: Optional[ActivationGate] = None,
+        prompt_view: str = "threadgroup",
+    ) -> str:
         gated = gate.gate(activation) if gate is not None else None
-        prompt = build_response_prompt(user_input, activation, include_trace=include_trace, trace_limit=trace_limit, gated=gated)
+        prompt = build_response_prompt(user_input, activation, include_trace=include_trace, trace_limit=trace_limit, gated=gated, prompt_view=prompt_view)
         print("[LLM Prompt Stats] " + prompt_stats("response_prompt", prompt), file=sys.stderr)
 
         if self.base_url:
@@ -1213,7 +1221,81 @@ class ResponseGenerator:
         return fallback_generate_response(user_input, activation)
 
 
-def build_response_prompt(user_input: str, activation: ActivationResult, include_trace: bool = False, trace_limit: int = 10, gated: Optional[GatedContext] = None) -> str:
+def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadgroup") -> list[str]:
+    prompt_view = normalize_prompt_view(prompt_view)
+    lines: list[str] = []
+    lines.append("")
+    lines.append("[Gated Recall Context]")
+    lines.append(gated.summary)
+    lines.append("Only this gated context should be used for the response.")
+
+    if prompt_view == "threadgroup":
+        lines.extend(format_threadgroup_view(gated))
+    elif prompt_view == "recall-state":
+        lines.extend(format_recall_state_view(gated))
+    elif prompt_view == "edge":
+        lines.extend(format_edge_view(gated))
+    else:
+        raise ValueError(f"unsupported prompt_view: {prompt_view}")
+
+    if gated.suppressed_words:
+        lines.append("")
+        lines.append("[Suppressed Words]")
+        lines.append("These were activated internally but should not drive the response.")
+        for sw in gated.suppressed_words[:10]:
+            lines.append(f"- {sw.word} score={sw.score:.3f} depth={sw.depth}")
+    return lines
+
+
+def format_threadgroup_view(gated: GatedContext) -> list[str]:
+    lines: list[str] = ["", "[Gated Thread Groups]"]
+    for th in gated.threads:
+        direct = ", ".join(th.direct_words) if th.direct_words else "-"
+        core = " / ".join(th.core_words) if th.core_words else "-"
+        support = " / ".join(th.support_words) if th.support_words else "-"
+        bonus = f" common_bonus={th.common_bonus:.3f}" if th.common_bonus > 0 else ""
+        lines.append(
+            f"key={th.canonical_key} occurrence={th.occurrence_count} representative={th.representative_thread_id} "
+            f"score={th.score:.3f} group_score={th.group_score:.3f} base={th.base_score:.3f}{bonus} "
+            f"eff={th.effective_strength:.3f} direct={direct} core={core} support={support}"
+        )
+
+    lines.append("")
+    lines.append("[Gated Words]")
+    for gw in gated.words:
+        lines.append(f"- {gw.word} score={gw.score:.3f} depth={gw.depth} role={gw.role} fatigue={gw.fatigue} reason={gw.reason}")
+    return lines
+
+
+def format_recall_state_view(gated: GatedContext) -> list[str]:
+    lines: list[str] = ["", "[Recall State]"]
+    for th in gated.threads:
+        words = " / ".join(th.core_words or th.words)
+        direct = " / ".join(th.direct_words) if th.direct_words else "-"
+        lines.append(f"- {words}")
+        lines.append(f"  occurrence={th.occurrence_count}")
+        lines.append(f"  score={th.group_score:.2f}")
+        lines.append(f"  direct={direct}")
+    return lines
+
+
+def format_edge_view(gated: GatedContext) -> list[str]:
+    edge_counts: dict[tuple[str, str], int] = {}
+    edge_scores: dict[tuple[str, str], float] = {}
+    for th in gated.threads:
+        words = th.core_words or th.words
+        for left, right in zip(words, words[1:]):
+            key = (left, right)
+            edge_counts[key] = edge_counts.get(key, 0) + th.occurrence_count
+            edge_scores[key] = edge_scores.get(key, 0.0) + th.group_score
+
+    lines: list[str] = ["", "[Edge Activation]"]
+    for (left, right), count in sorted(edge_counts.items(), key=lambda item: (edge_scores[item[0]], item[1]), reverse=True):
+        lines.append(f"- {left} -- {right} count={count}")
+    return lines
+
+
+def build_response_prompt(user_input: str, activation: ActivationResult, include_trace: bool = False, trace_limit: int = 10, gated: Optional[GatedContext] = None, prompt_view: str = "threadgroup") -> str:
     lines: list[str] = []
     lines.append("[Current Input]")
     lines.append(user_input)
@@ -1224,35 +1306,7 @@ def build_response_prompt(user_input: str, activation: ActivationResult, include
         lines.append(f"- {w.word} ({w.weight:.2f})")
 
     if gated is not None:
-        lines.append("")
-        lines.append("[Gated Recall Context]")
-        lines.append(gated.summary)
-        lines.append("Only this gated context should be used for the response.")
-
-        lines.append("")
-        lines.append("[Gated Thread Groups]")
-        for th in gated.threads:
-            direct = ", ".join(th.direct_words) if th.direct_words else "-"
-            core = " / ".join(th.core_words) if th.core_words else "-"
-            support = " / ".join(th.support_words) if th.support_words else "-"
-            bonus = f" common_bonus={th.common_bonus:.3f}" if th.common_bonus > 0 else ""
-            lines.append(
-                f"key={th.canonical_key} occurrence={th.occurrence_count} representative={th.representative_thread_id} "
-                f"score={th.score:.3f} group_score={th.group_score:.3f} base={th.base_score:.3f}{bonus} "
-                f"eff={th.effective_strength:.3f} direct={direct} core={core} support={support}"
-            )
-
-        lines.append("")
-        lines.append("[Gated Words]")
-        for gw in gated.words:
-            lines.append(f"- {gw.word} score={gw.score:.3f} depth={gw.depth} role={gw.role} fatigue={gw.fatigue} reason={gw.reason}")
-
-        if gated.suppressed_words:
-            lines.append("")
-            lines.append("[Suppressed Words]")
-            lines.append("These were activated internally but should not drive the response.")
-            for sw in gated.suppressed_words[:10]:
-                lines.append(f"- {sw.word} score={sw.score:.3f} depth={sw.depth}")
+        lines.extend(format_gated_recall_context(gated, prompt_view))
     else:
         lines.append("")
         lines.append("[Activated Words]")
@@ -1565,6 +1619,13 @@ def normalize_thread_strength_mode(value: str) -> str:
     return FIXED_THREAD_STRENGTH_MODE
 
 
+def normalize_prompt_view(value: str) -> str:
+    value = (value or "threadgroup").strip().lower()
+    if value not in {"threadgroup", "recall-state", "edge"}:
+        raise ValueError(f"prompt_view must be one of: threadgroup, recall-state, edge (got {value!r})")
+    return value
+
+
 def make_canonical_key(words) -> str:
     normalized = []
     for w in words:
@@ -1677,7 +1738,7 @@ def cmd_ask(args: argparse.Namespace) -> int:
         response_text = ""
         if not args.no_response:
             print("\n[Response]")
-            response_text = generator.generate(args.text, result, args.response_include_trace, args.response_trace_limit, gate=gate)
+            response_text = generator.generate(args.text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
             print(response_text)
         else:
             print("\n[Response]")
@@ -1745,7 +1806,7 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
             response_text = ""
             if args.seed_generate_response:
                 print("\n[Response]")
-                response_text = generator.generate(t, result, args.response_include_trace, args.response_trace_limit, gate=gate)
+                response_text = generator.generate(t, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
                 print(response_text)
             if gated is not None:
                 turn_no = store.record_exposures(gated, exposure_type="prompt")
@@ -1808,7 +1869,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
                     print_gated_context(gated)
                 store.reinforce_seen(result.activated_words)
                 print("\n[Response]")
-                response_text = generator.generate(text, result, args.response_include_trace, args.response_trace_limit, gate=gate)
+                response_text = generator.generate(text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
                 print(response_text)
                 if gated is not None:
                     turn_no = store.record_exposures(gated, exposure_type="prompt")
@@ -1867,8 +1928,8 @@ def cmd_prompt_preview(args: argparse.Namespace) -> int:
         result = engine.activate(words, args.top_words, args.top_threads)
         gate = build_gate(args, store)
         gated = gate.gate(result) if gate is not None else None
-        prompt_without_trace = build_response_prompt(args.text, result, include_trace=False, gated=gated)
-        prompt_with_trace = build_response_prompt(args.text, result, include_trace=True, trace_limit=args.response_trace_limit, gated=gated)
+        prompt_without_trace = build_response_prompt(args.text, result, include_trace=False, gated=gated, prompt_view=args.prompt_view)
+        prompt_with_trace = build_response_prompt(args.text, result, include_trace=True, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view)
         print_activation(result, trace_limit=args.trace_limit)
         if gated is not None:
             print_gated_context(gated)
@@ -1901,6 +1962,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 f"- conversation_file: `{conversation_path}`",
                 f"- db: `{args.db}`",
                 f"- storage_mode: `{FIXED_THREAD_STRENGTH_MODE}`",
+                f"- prompt_view: `{args.prompt_view}`",
                 "- weighted_mode: excluded from current evaluation scope",
                 f"- response_generation: `{eval_response_generation_label(args)}`",
                 "",
@@ -1990,11 +2052,11 @@ def run_eval_turn(
     activation = engine.activate(words, args.top_words, args.top_threads)
     gate = build_gate(args, store)
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
-    prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated)
+    prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view)
     response_text = ""
     response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False)
     if mode == "ask" and not response_skipped:
-        response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate)
+        response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view)
 
     if not args.no_reinforce:
         store.reinforce_seen(activation.activated_words)
@@ -2082,6 +2144,7 @@ def evaluate_recall_turn(
         "expected_hits": expected_hits,
         "unexpected_hits": unexpected_hits,
         "prompt_only": sorted(prompt_only),
+        "prompt_only_words": sorted(prompt_only),
     }
 
 
@@ -2151,6 +2214,7 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "working_memory_word_count": metrics["working_memory_word_count"],
         "response_used_groups": json.dumps(metrics["response_used_groups"], ensure_ascii=False),
         "prompt_only": json.dumps(metrics["prompt_only"], ensure_ascii=False),
+        "prompt_only_words": json.dumps(metrics["prompt_only_words"], ensure_ascii=False),
     }
 
 
@@ -2189,6 +2253,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "working_memory_word_count",
         "response_used_groups",
         "prompt_only",
+        "prompt_only_words",
     ]
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -2249,6 +2314,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mutual-amplification", type=float, default=0.12, help="Small word boost from strong co-activated threads.")
     parser.add_argument("--response-include-trace", action="store_true")
     parser.add_argument("--response-trace-limit", type=int, default=10)
+    parser.add_argument("--prompt-view", choices=["threadgroup", "recall-state", "edge"], default="threadgroup")
     parser.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count", help="Deprecated: count is fixed for Trace-based Recall Engine v1; weighted is coerced to count.")
     parser.add_argument("--fatigue-recent-turns", type=int, default=10)
     parser.add_argument("--fatigue-threshold", type=int, default=3)
@@ -2321,6 +2387,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--mutual-amplification", type=float, default=0.12)
     p_eval.add_argument("--response-include-trace", action="store_true")
     p_eval.add_argument("--response-trace-limit", type=int, default=10)
+    p_eval.add_argument("--prompt-view", choices=["threadgroup", "recall-state", "edge"], default="threadgroup")
     p_eval.add_argument("--fatigue-recent-turns", type=int, default=10)
     p_eval.add_argument("--fatigue-threshold", type=int, default=3)
     p_eval.add_argument("--disable-gate", action="store_true")
@@ -2354,6 +2421,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             f"[warn] thread-strength-mode={requested_mode} is no longer part of evaluation/storage policy; using count.",
             file=sys.stderr,
         )
+    args.prompt_view = normalize_prompt_view(getattr(args, "prompt_view", "threadgroup"))
 
     return int(args.func(args))
 
