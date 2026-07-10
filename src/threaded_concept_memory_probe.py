@@ -89,6 +89,8 @@ DEFAULT_MAX_DEPTH = 3
 FIXED_THREAD_STRENGTH_MODE = "count"
 VALID_CREATED_BY = {"user", "assistant"}
 VALID_ORIGIN_ORDER = {"none", "group"}
+USER_PARTICIPANT_WORD = "@user"
+ASSISTANT_PARTICIPANT_WORD = "@assistant"
 
 DEFAULT_SEED_TESTS_FILE = Path(__file__).resolve().parent.parent / "eval_conversations" / "seed_tests_public.jsonl"
 
@@ -592,6 +594,13 @@ class ThreadedConceptMemoryStore:
         row = self.conn.execute("SELECT COUNT(*) AS c FROM threads WHERE canonical_key = ?", (canonical_key,)).fetchone()
         return int(row["c"]) if row else 1
 
+    def has_thread_source(self, source_text: str, created_by: str) -> bool:
+        row = self.conn.execute(
+            "SELECT 1 FROM threads WHERE source_text = ? AND created_by = ? LIMIT 1",
+            (source_text, normalize_created_by(created_by)),
+        ).fetchone()
+        return row is not None
+
     def get_next_turn_no(self) -> int:
         row = self.conn.execute("SELECT COALESCE(MAX(turn_no), 0) + 1 AS next_turn FROM conversation_exposures").fetchone()
         return int(row["next_turn"]) if row else 1
@@ -807,6 +816,55 @@ class WordExtractor:
             print("[LLM Extractor Debug] final words=" + json.dumps([w.__dict__ for w in final_words], ensure_ascii=False), file=sys.stderr)
             print(f"[LLM Extractor Debug] contains 名前 after python filter={'名前' in {w.word for w in final_words}}", file=sys.stderr)
         return final_words
+
+
+def normalize_participant_references(
+    source_text: str,
+    created_by: str,
+    words: list[ExtractedWord],
+    debug: bool = False,
+) -> list[ExtractedWord]:
+    """Add canonical participant reference words from the original utterance.
+
+    Participant reference normalization does not assign semantic importance.
+    It only preserves who first-person and second-person expressions referred to
+    in a two-party conversation.
+
+    @user and @assistant must participate in recall as ordinary word nodes.
+    They must not receive score boosts, anchor privileges, or identity-specific
+    retrieval rules.
+    """
+    created_by = normalize_created_by(created_by)
+    text = normalize_text(source_text)
+    references: list[tuple[str, str]] = []
+
+    if "私" in text or "わたし" in text:
+        references.append(("私", USER_PARTICIPANT_WORD if created_by == "user" else ASSISTANT_PARTICIPANT_WORD))
+    if "あなた" in text:
+        references.append(("あなた", ASSISTANT_PARTICIPANT_WORD if created_by == "user" else USER_PARTICIPANT_WORD))
+
+    pronoun_words = {"私", "わたし", "あなた"}
+    retained_words = [word for word in words if normalize_word(word.word) not in pronoun_words]
+    additions = [ExtractedWord(canonical, 1.0) for _, canonical in references]
+    normalized = dedupe_extracted_words(additions + retained_words)
+
+    if debug:
+        print("[Participant Reference Normalization]", file=sys.stderr)
+        if references:
+            print(f"created_by={created_by}", file=sys.stderr)
+            print("source references:", file=sys.stderr)
+            for source, canonical in references:
+                print(f"- {source} -> {canonical}", file=sys.stderr)
+            print("before:", file=sys.stderr)
+            for word in words:
+                print(f"- {word.word}", file=sys.stderr)
+            print("after:", file=sys.stderr)
+            for word in normalized:
+                print(f"- {word.word}", file=sys.stderr)
+        else:
+            print("- no participant references", file=sys.stderr)
+
+    return normalized
 
 
 class ActivationEngine:
@@ -1439,6 +1497,8 @@ def build_response_prompt(user_input: str, activation: ActivationResult, include
     lines.append("[Extracted Input Words]")
     for w in activation.input_words:
         lines.append(f"- {w.word} ({w.weight:.2f})")
+    lines.append("@user and @assistant are conversational participant references.")
+    lines.append("They indicate who first-person or second-person expressions referred to in the original utterance.")
 
     if gated is not None:
         lines.extend(format_gated_recall_context(gated, prompt_view, origin_order))
@@ -1909,10 +1969,20 @@ def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemorySto
     return store, extractor, engine, generator
 
 
+def extract_normalized_words(args: argparse.Namespace, extractor: WordExtractor, text: str, role: str) -> list[ExtractedWord]:
+    words = extractor.extract(text)
+    return normalize_participant_references(
+        text,
+        role,
+        words,
+        debug=getattr(args, "debug_participant_reference", False),
+    )
+
+
 def cmd_add(args: argparse.Namespace) -> int:
     store, extractor, _, _ = build_components(args)
     try:
-        words = extractor.extract(args.text)
+        words = extract_normalized_words(args, extractor, args.text, args.role)
         thread_id = store.create_thread(words, source_text=args.text, thread_strength_mode=args.thread_strength_mode, created_by=args.role)
         print(f"saved: {thread_id}")
         print("words:", " / ".join(f"{w.word}({w.weight:.2f})" for w in words))
@@ -1924,7 +1994,7 @@ def cmd_add(args: argparse.Namespace) -> int:
 def cmd_ask(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     try:
-        words = extractor.extract(args.text)
+        words = extract_normalized_words(args, extractor, args.text, args.role)
         result = engine.activate(words, args.top_words, args.top_threads)
         print(f"\n[Storage Mode]\n{args.thread_strength_mode}")
         print_activation(result, trace_limit=args.trace_limit)
@@ -1976,6 +2046,26 @@ def cmd_words(args: argparse.Namespace) -> int:
         store.close()
 
 
+def cmd_bootstrap_identity(args: argparse.Namespace) -> int:
+    store, extractor, _, _ = build_components(args)
+    try:
+        utterances = [
+            ("user", f"私の名前は{args.user_name}です。"),
+            ("assistant", f"私の名前は{args.assistant_name}です。"),
+        ]
+        for role, text in utterances:
+            if not args.force and store.has_thread_source(text, role):
+                print(f"bootstrap skipped existing: role={role} text={text}")
+                continue
+            words = extract_normalized_words(args, extractor, text, role)
+            thread_id = store.create_thread(words, source_text=text, thread_strength_mode=args.thread_strength_mode, created_by=role)
+            print(f"bootstrap saved: {thread_id} role={role}")
+            print("  words:", " / ".join(w.word for w in words))
+        return 0
+    finally:
+        store.close()
+
+
 def cmd_seed_tests(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     try:
@@ -1986,7 +2076,7 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
         tests = [str(item["text"]) for item in fixture_turns if item["mode"] in {"ask", "ask_no_response"}]
 
         for s, role in seeds:
-            words = extractor.extract(s)
+            words = extract_normalized_words(args, extractor, s, role)
             thread_id = store.create_thread(words, source_text=s, thread_strength_mode=args.thread_strength_mode, created_by=role)
             print(f"seed saved: {thread_id}: {s}")
             print("  words:", " / ".join(w.word for w in words))
@@ -1994,7 +2084,7 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
         for t in tests:
             print("\n" + "=" * 60)
             print("[Test Input]", t)
-            words = extractor.extract(t)
+            words = extract_normalized_words(args, extractor, t, "user")
             result = engine.activate(words, args.top_words, args.top_threads)
             print(f"\n[Storage Mode]\n{args.thread_strength_mode}")
             print_activation(result, trace_limit=args.trace_limit)
@@ -2056,7 +2146,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
                 mode = "ask"
                 text = text[5:].strip()
 
-            words = extractor.extract(text)
+            words = extract_normalized_words(args, extractor, text, "user")
 
             if mode in {"ask", "ask_then_add"}:
                 result = engine.activate(words, args.top_words, args.top_threads)
@@ -2123,7 +2213,7 @@ def cmd_config(args: argparse.Namespace) -> int:
 def cmd_prompt_preview(args: argparse.Namespace) -> int:
     store, extractor, engine, _ = build_components(args)
     try:
-        words = extractor.extract(args.text)
+        words = extract_normalized_words(args, extractor, args.text, args.role)
         result = engine.activate(words, args.top_words, args.top_threads)
         gate = build_gate(args, store)
         gated = gate.gate(result) if gate is not None else None
@@ -2257,7 +2347,7 @@ def run_eval_turn(
     mode = str(item["mode"])
     expected_words = [normalize_word(str(w)) for w in item.get("expected_words", []) if normalize_word(str(w))]
     unexpected_words = [normalize_word(str(w)) for w in item.get("unexpected_words", []) if normalize_word(str(w))]
-    words = extractor.extract(user_text)
+    words = extract_normalized_words(args, extractor, user_text, role)
 
     if mode == "learn":
         thread_id = store.create_thread(words, source_text=user_text, thread_strength_mode=args.thread_strength_mode, created_by=role)
@@ -2546,6 +2636,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""), help="Optional model override for word extraction; defaults to --model.")
     parser.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""), help="Optional model override for response generation; defaults to --model.")
     parser.add_argument("--debug-extractor", action="store_true", help="Print LLM extractor prompt, raw response, parsed words, and Python-filtered words.")
+    parser.add_argument("--debug-participant-reference", action="store_true", help="Print participant reference normalization before/after details.")
     parser.add_argument("--timeout", type=float, default=12.0)
     parser.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     parser.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
@@ -2591,6 +2682,12 @@ def make_parser() -> argparse.ArgumentParser:
     p_words.add_argument("--limit", type=int, default=100)
     p_words.set_defaults(func=cmd_words)
 
+    p_bootstrap = sub.add_parser("bootstrap-identity")
+    p_bootstrap.add_argument("--user-name", required=True)
+    p_bootstrap.add_argument("--assistant-name", required=True)
+    p_bootstrap.add_argument("--force", action="store_true", help="Insert bootstrap traces even when matching source_text/created_by already exists.")
+    p_bootstrap.set_defaults(func=cmd_bootstrap_identity)
+
     p_seed = sub.add_parser("seed-tests")
     p_seed.add_argument(
         "--seed-tests-file",
@@ -2622,6 +2719,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""))
     p_eval.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""))
     p_eval.add_argument("--debug-extractor", action="store_true")
+    p_eval.add_argument("--debug-participant-reference", action="store_true")
     p_eval.add_argument("--timeout", type=float, default=12.0)
     p_eval.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     p_eval.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)

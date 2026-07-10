@@ -1,0 +1,3 @@
+{"turn":1,"role":"user","text":"父はコーヒーが好きです。","mode":"learn"}
+{"turn":2,"role":"user","text":"母はパンが好きです。","mode":"learn"}
+{"turn":3,"role":"user","text":"父は何が好き？","mode":"ask","expected_words":["父","コーヒー","好き"],"unexpected_words":["@user","@assistant","パン"]}
