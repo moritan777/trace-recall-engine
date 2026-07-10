@@ -86,6 +86,32 @@ class TracePrinciplePersonWordTests(unittest.TestCase):
         self.assertIn("紅茶", assistant_preference)
         self.assertIn("好き", assistant_preference)
 
+    def test_llm_extractor_system_prompt_mentions_relational_bridge_words(self):
+        extractor = WordExtractor("http://example.test/v1", model="test-model")
+        raw_response = '{"words":[{"word":"名前","weight":1.0},{"word":"のりこ","weight":1.4}]}'
+
+        with patch("threaded_concept_memory_probe.call_openai_compatible_chat", return_value=raw_response) as mock_chat:
+            extractor.extract("私の名前はのりこです。")
+
+        messages = mock_chat.call_args.kwargs["messages"]
+        system_prompt = messages[0]["content"]
+        self.assertIn("relational bridge words", system_prompt)
+        self.assertIn("名前", system_prompt)
+        self.assertIn("Do not return only the most specific proper noun", system_prompt)
+        self.assertIn("from an utterance", system_prompt)
+        self.assertNotIn("from a user utterance", system_prompt)
+
+    def test_llm_extractor_keeps_name_bridge_and_specific_name_from_raw_response(self):
+        extractor = WordExtractor("http://example.test/v1", model="test-model")
+        raw_response = '{"words":[{"word":"名前","weight":1.0},{"word":"のりこ","weight":1.4}]}'
+
+        with patch("threaded_concept_memory_probe.call_openai_compatible_chat", return_value=raw_response):
+            words = extractor.extract("私の名前はのりこです。")
+
+        extracted = {word.word: word.weight for word in words}
+        self.assertEqual(extracted["名前"], 1.0)
+        self.assertEqual(extracted["のりこ"], 1.4)
+
     def test_llm_extractor_debug_shows_name_survives_python_filter(self):
         extractor = WordExtractor("http://example.test/v1", model="test-model", debug=True)
         raw_response = '{"words":[{"word":"私","weight":0.8},{"word":"名前","weight":1.0},{"word":"のりこ","weight":1.0}]}'
