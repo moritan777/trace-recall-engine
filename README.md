@@ -236,8 +236,12 @@ Example:
 
 ```bash
 python src/threaded_concept_memory_probe.py eval \
-  --conversation-file eval_conversations/basic_recall.jsonl \
-  --thread-strength-mode count
+  --conversation-file eval_conversations/seed_tests_public.jsonl \
+  --db reports/seed_tests.db \
+  --no-response \
+  --events-jsonl reports/seed_tests_events.jsonl \
+  --metrics-csv reports/seed_tests_metrics.csv \
+  --report-md reports/seed_tests.md
 ```
 
 Current evaluation focuses on:
