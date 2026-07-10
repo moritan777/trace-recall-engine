@@ -52,6 +52,8 @@ import datetime as dt
 import json
 import math
 import os
+import subprocess
+import time
 import re
 import sqlite3
 import sys
@@ -2626,6 +2628,367 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
     ]
 
 
+SENSITIVITY_PARAMETER_VALUES = {
+    "gate_max_threads": [1, 2, 3, 4, 5, 6],
+    "gate_max_words": [3, 5, 7, 10, 15],
+    "common_bonus": [0.0, 0.2, 0.4, 0.6, 0.8],
+}
+
+SENSITIVITY_METRIC_FIELDS = [
+    "expected_hit_count_total",
+    "unexpected_hit_count_total",
+    "average_precision_like",
+    "zero_expected_hit_turns",
+    "average_prompt_tokens",
+    "max_prompt_tokens",
+    "average_prompt_words",
+    "average_thread_groups",
+    "max_thread_groups",
+    "average_recall_time_ms",
+    "p95_recall_time_ms",
+    "max_recall_time_ms",
+    "database_size_bytes",
+    "word_count",
+    "thread_count",
+    "word_thread_link_count",
+    "average_links_per_thread",
+    "average_threads_per_word",
+]
+
+
+def parse_sensitivity_values(raw: str, parameter: str) -> list[Any]:
+    values: list[Any] = []
+    for chunk in raw.split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if parameter in {"gate_max_threads", "gate_max_words"}:
+            values.append(int(chunk))
+        elif parameter == "common_bonus":
+            values.append(float(chunk))
+        else:
+            raise ValueError(f"unsupported sensitivity parameter: {parameter}")
+    if not values:
+        raise ValueError("--values did not contain any values")
+    return values
+
+
+def sensitivity_baseline_parameters(args: argparse.Namespace) -> dict[str, Any]:
+    return {
+        "gate_max_threads": args.gate_max_threads,
+        "gate_max_words": args.gate_max_words,
+        "common_bonus": args.common_bonus,
+    }
+
+
+def sensitivity_run_key(parameter: str, value: Any) -> tuple[str, str]:
+    return (parameter, str(value))
+
+
+def load_completed_sensitivity_runs(path: Path) -> set[tuple[str, str]]:
+    if not path.exists():
+        return set()
+    with path.open("r", encoding="utf-8", newline="") as f:
+        return {(row["parameter"], row["value"]) for row in csv.DictReader(f) if row.get("parameter") != "baseline"}
+
+
+def percentile_95(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, math.ceil(len(ordered) * 0.95) - 1)
+    return ordered[index]
+
+
+def db_stats(db_path: Path) -> dict[str, Any]:
+    size = db_path.stat().st_size if db_path.exists() else 0
+    conn = sqlite3.connect(db_path)
+    try:
+        cur = conn.cursor()
+        words = int(cur.execute("SELECT COUNT(*) FROM words").fetchone()[0])
+        threads = int(cur.execute("SELECT COUNT(*) FROM threads").fetchone()[0])
+        links = int(cur.execute("SELECT COUNT(*) FROM word_threads").fetchone()[0])
+    finally:
+        conn.close()
+    return {
+        "database_size_bytes": size,
+        "word_count": words,
+        "thread_count": threads,
+        "word_thread_link_count": links,
+        "average_links_per_thread": (links / threads) if threads else 0.0,
+        "average_threads_per_word": (links / words) if words else 0.0,
+    }
+
+
+def run_sensitivity_trial(args: argparse.Namespace, parameter: str, value: Any, db_path: Path) -> dict[str, Any]:
+    # This framework measures the sensitivity of the current Trace Recall Engine.
+    # It must not modify the recall algorithm itself.
+    # Its purpose is to identify stable parameter ranges,
+    # not to automatically search for the highest benchmark score.
+    #
+    # 本機能はTrace Recall Engineの感度分析を行うための研究支援機能である。
+    # Recallアルゴリズム自体を変更してはいけない。
+    # 目的は最高スコア探索ではなく、
+    # 安定動作するパラメータ範囲を可視化することである。
+    trial_args = argparse.Namespace(**vars(args))
+    trial_args.db = str(db_path)
+    if parameter != "baseline":
+        setattr(trial_args, parameter, value)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+
+    store, extractor, engine, generator = build_components(trial_args)
+    metrics_rows: list[dict[str, Any]] = []
+    recall_times_ms: list[float] = []
+    try:
+        turns = load_eval_conversation(Path(trial_args.conversation_file))
+        for item in turns:
+            if item["mode"] in {"ask", "ask_no_response"}:
+                start = time.perf_counter()
+                event = run_eval_turn(item, trial_args, store, extractor, engine, generator)
+                recall_times_ms.append((time.perf_counter() - start) * 1000.0)
+            else:
+                event = run_eval_turn(item, trial_args, store, extractor, engine, generator)
+            if event["mode"] in {"ask", "ask_no_response"}:
+                metrics_rows.append(event["metrics"])
+    finally:
+        store.close()
+
+    expected = sum(int(r["expected_hit_count"]) for r in metrics_rows)
+    unexpected = sum(int(r["unexpected_hit_count"]) for r in metrics_rows)
+    precisions = [float(r["recall_precision_like"]) for r in metrics_rows]
+    prompt_tokens = [int(r["prompt_tokens_rough"]) for r in metrics_rows]
+    prompt_words = [int(r["prompt_word_count"]) for r in metrics_rows]
+    thread_groups = [int(r["prompt_thread_group_count"]) for r in metrics_rows]
+    row = {
+        "parameter": parameter,
+        "value": value,
+        "precision": (sum(precisions) / len(precisions)) if precisions else 0.0,
+        "unexpected_hits": unexpected,
+        "expected_hits": expected,
+        "prompt_tokens": (sum(prompt_tokens) / len(prompt_tokens)) if prompt_tokens else 0.0,
+        "thread_groups": (sum(thread_groups) / len(thread_groups)) if thread_groups else 0.0,
+        "words": (sum(prompt_words) / len(prompt_words)) if prompt_words else 0.0,
+        "recall_time_ms": (sum(recall_times_ms) / len(recall_times_ms)) if recall_times_ms else 0.0,
+        "expected_hit_count_total": expected,
+        "unexpected_hit_count_total": unexpected,
+        "average_precision_like": (sum(precisions) / len(precisions)) if precisions else 0.0,
+        "zero_expected_hit_turns": sum(1 for r in metrics_rows if int(r["expected_hit_count"]) == 0),
+        "average_prompt_tokens": (sum(prompt_tokens) / len(prompt_tokens)) if prompt_tokens else 0.0,
+        "max_prompt_tokens": max(prompt_tokens) if prompt_tokens else 0,
+        "average_prompt_words": (sum(prompt_words) / len(prompt_words)) if prompt_words else 0.0,
+        "average_thread_groups": (sum(thread_groups) / len(thread_groups)) if thread_groups else 0.0,
+        "max_thread_groups": max(thread_groups) if thread_groups else 0,
+        "average_recall_time_ms": (sum(recall_times_ms) / len(recall_times_ms)) if recall_times_ms else 0.0,
+        "p95_recall_time_ms": percentile_95(recall_times_ms),
+        "max_recall_time_ms": max(recall_times_ms) if recall_times_ms else 0.0,
+    }
+    row.update(db_stats(db_path))
+    return row
+
+
+def write_sensitivity_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def format_sensitivity_value(value: Any) -> str:
+    return f"{value:g}" if isinstance(value, float) else str(value)
+
+
+def build_sensitivity_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    summary: list[dict[str, Any]] = []
+    for parameter in SENSITIVITY_PARAMETER_VALUES:
+        subset = [r for r in rows if r["parameter"] == parameter]
+        if not subset:
+            continue
+        best_precision = max(float(r["precision"]) for r in subset)
+        stable = [r for r in subset if float(r["precision"]) >= best_precision * 0.95]
+        recommended_row = min(stable or subset, key=lambda r: (float(r["unexpected_hits"]), float(r["prompt_tokens"]), float(r["recall_time_ms"])))
+        stable_values = [float(r["value"]) for r in stable] if stable else [float(r["value"]) for r in subset]
+        summary.append({
+            "parameter": parameter,
+            "best_precision": f"{best_precision:.6f}",
+            "stable_min": format_sensitivity_value(min(stable_values)),
+            "stable_max": format_sensitivity_value(max(stable_values)),
+            "recommended": recommended_row["value"],
+            "comments": "",
+        })
+    return summary
+
+
+def write_fallback_svg(path: Path, title: str, xlabel: str, ylabel: str, xs: list[float], ys: list[float]) -> None:
+    width, height = 960, 576
+    left, right, top, bottom = 100, 40, 70, 90
+    x_min, x_max = min(xs), max(xs)
+    y_min, y_max = min(ys), max(ys)
+    if x_min == x_max:
+        x_min -= 1.0
+        x_max += 1.0
+    if y_min == y_max:
+        y_min -= 1.0
+        y_max += 1.0
+
+    def sx(x: float) -> float:
+        return left + (x - x_min) / (x_max - x_min) * (width - left - right)
+
+    def sy(y: float) -> float:
+        return height - bottom - (y - y_min) / (y_max - y_min) * (height - top - bottom)
+
+    points = " ".join(f"{sx(x):.1f},{sy(y):.1f}" for x, y in zip(xs, ys))
+    circles = "\n".join(
+        f'<circle cx="{sx(x):.1f}" cy="{sy(y):.1f}" r="5" fill="#1f77b4"><title>{x}: {y:.4f}</title></circle>'
+        for x, y in zip(xs, ys)
+    )
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+  <rect width="100%" height="100%" fill="white"/>
+  <text x="{width/2}" y="35" text-anchor="middle" font-family="sans-serif" font-size="24">{title}</text>
+  <line x1="{left}" y1="{height-bottom}" x2="{width-right}" y2="{height-bottom}" stroke="#333"/>
+  <line x1="{left}" y1="{top}" x2="{left}" y2="{height-bottom}" stroke="#333"/>
+  <polyline points="{points}" fill="none" stroke="#1f77b4" stroke-width="3"/>
+  {circles}
+  <text x="{width/2}" y="{height-30}" text-anchor="middle" font-family="sans-serif" font-size="18">{xlabel}</text>
+  <text x="25" y="{height/2}" text-anchor="middle" font-family="sans-serif" font-size="18" transform="rotate(-90 25 {height/2})">{ylabel}</text>
+  <text x="{left}" y="{height-bottom+25}" text-anchor="middle" font-family="sans-serif" font-size="14">{x_min:g}</text>
+  <text x="{width-right}" y="{height-bottom+25}" text-anchor="middle" font-family="sans-serif" font-size="14">{x_max:g}</text>
+  <text x="{left-10}" y="{height-bottom}" text-anchor="end" font-family="sans-serif" font-size="14">{y_min:g}</text>
+  <text x="{left-10}" y="{top}" text-anchor="end" font-family="sans-serif" font-size="14">{y_max:g}</text>
+</svg>
+"""
+    path.write_text(svg, encoding="utf-8")
+
+
+def make_sensitivity_graphs(rows: list[dict[str, Any]], graph_dir: Path) -> dict[str, list[str]]:
+    graph_dir.mkdir(parents=True, exist_ok=True)
+    graphs: dict[str, list[str]] = {}
+    try:
+        import matplotlib.pyplot as plt
+    except Exception as exc:
+        (graph_dir / "GRAPH_WARNING.txt").write_text(f"matplotlib unavailable; generated fallback SVG graphs: {exc}\n", encoding="utf-8")
+        plt = None
+    specs = [
+        ("precision", "precision", "Precision"),
+        ("unexpected_hits", "unexpected_hits", "Unexpected Hits"),
+        ("prompt_tokens", "prompt_tokens", "Prompt Tokens"),
+        ("thread_groups", "thread_groups", "Thread Groups"),
+        ("recall_time_ms", "recall_time_ms", "Recall Time (ms)"),
+        ("db_size_bytes", "database_size_bytes", "Database Size (bytes)"),
+    ]
+    for parameter in SENSITIVITY_PARAMETER_VALUES:
+        subset = sorted([r for r in rows if r["parameter"] == parameter], key=lambda r: float(r["value"]))
+        graphs[parameter] = []
+        if not subset:
+            continue
+        xs = [float(r["value"]) for r in subset]
+        for filename_metric, row_metric, ylabel in specs:
+            ys = [float(r[row_metric]) for r in subset]
+            out = graph_dir / f"{parameter}_{filename_metric}.svg"
+            if plt is not None:
+                fig, ax = plt.subplots(figsize=(7, 4.2), dpi=160)
+                ax.plot(xs, ys, marker="o", linewidth=2)
+                ax.set_title(f"{parameter}: {ylabel}")
+                ax.set_xlabel(parameter)
+                ax.set_ylabel(ylabel)
+                ax.grid(True, alpha=0.3)
+                fig.tight_layout()
+                fig.savefig(out, format="svg")
+                plt.close(fig)
+            else:
+                write_fallback_svg(out, f"{parameter}: {ylabel}", parameter, ylabel, xs, ys)
+            graphs[parameter].append(str(out.relative_to(graph_dir.parent.parent)))
+    return graphs
+
+
+def git_commit_hash() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        return "unknown"
+
+
+def build_sensitivity_report(rows: list[dict[str, Any]], baseline: dict[str, Any], graphs: dict[str, list[str]]) -> str:
+    baseline_row = next((r for r in rows if r["parameter"] == "baseline"), None)
+    lines = ["# Parameter Sensitivity Report", "", "This report is a scaffold for human analysis. Conclusions are intentionally left blank.", ""]
+    for parameter in SENSITIVITY_PARAMETER_VALUES:
+        subset = [r for r in rows if r["parameter"] == parameter]
+        if not subset:
+            continue
+        lines += ["## Parameter", "", f"`{parameter}`", "", "### Baseline", "", f"`{baseline[parameter]}`", "", "### Tested", ""]
+        lines.extend(f"- `{r['value']}`" for r in sorted(subset, key=lambda r: float(r["value"])))
+        lines += ["", "### Baselineとの差", "", "| value | Precision | Prompt | Unexpected |", "|---:|---:|---:|---:|"]
+        for r in sorted(subset, key=lambda r: float(r["value"])):
+            if baseline_row:
+                precision_delta = float(r["precision"]) - float(baseline_row["precision"])
+                prompt_delta = float(r["prompt_tokens"]) - float(baseline_row["prompt_tokens"])
+                unexpected_delta = int(float(r["unexpected_hits"])) - int(float(baseline_row["unexpected_hits"]))
+                lines.append(f"| {r['value']} | {precision_delta:+.3f} | {prompt_delta:+.1f} tokens | {unexpected_delta:+d} |")
+        lines += ["", "### Graphs", ""]
+        for graph in graphs.get(parameter, []):
+            lines.append(f"![{Path(graph).stem}]({graph})")
+            lines.append("")
+        lines += ["### Conclusion", "", "（空欄）", ""]
+    return "\n".join(lines) + "\n"
+
+
+def cmd_sensitivity(args: argparse.Namespace) -> int:
+    report_dir = Path(args.output_dir)
+    graph_dir = report_dir / "graphs"
+    runs_csv = report_dir / "runs.csv"
+    summary_csv = report_dir / "summary.csv"
+    baseline = sensitivity_baseline_parameters(args)
+    parameters = args.parameter or list(SENSITIVITY_PARAMETER_VALUES)
+    values_by_parameter = {p: (parse_sensitivity_values(args.values, p) if args.values else SENSITIVITY_PARAMETER_VALUES[p]) for p in parameters}
+    plan = [("baseline", "baseline")] + [(p, v) for p in parameters for v in values_by_parameter[p]]
+    if args.dry_run:
+        print("[Sensitivity dry-run]")
+        for parameter, value in plan:
+            print(f"- {parameter}={value}")
+        return 0
+
+    report_dir.mkdir(parents=True, exist_ok=True)
+    completed = load_completed_sensitivity_runs(runs_csv) if args.resume else set()
+    rows: list[dict[str, Any]] = []
+    if args.resume and runs_csv.exists():
+        with runs_csv.open("r", encoding="utf-8", newline="") as f:
+            rows.extend(dict(r) for r in csv.DictReader(f))
+
+    for parameter, value in plan:
+        if parameter != "baseline" and sensitivity_run_key(parameter, value) in completed:
+            print(f"[Sensitivity] skip completed {parameter}={value}")
+            continue
+        db_name = "baseline.sqlite" if parameter == "baseline" else f"{parameter}_{str(value).replace('.', '_')}.sqlite"
+        row = run_sensitivity_trial(args, parameter, value, report_dir / "db" / db_name)
+        rows = [r for r in rows if not (r["parameter"] == parameter and str(r["value"]) == str(value))]
+        rows.append(row)
+        print(f"[Sensitivity] done {parameter}={value}")
+        write_sensitivity_csv(runs_csv, rows, ["parameter", "value", "precision", "unexpected_hits", "expected_hits", "prompt_tokens", "thread_groups", "words", "recall_time_ms"] + SENSITIVITY_METRIC_FIELDS)
+
+    summary_rows = build_sensitivity_summary(rows)
+    write_sensitivity_csv(summary_csv, summary_rows, ["parameter", "best_precision", "stable_min", "stable_max", "recommended", "comments"])
+    graphs = make_sensitivity_graphs(rows, graph_dir)
+    write_text(report_dir / "report.md", build_sensitivity_report(rows, baseline, graphs))
+    manifest = {
+        "commit": git_commit_hash(),
+        "date": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "python_version": sys.version,
+        "conversation_file": str(Path(args.conversation_file)),
+        "model": args.model,
+        "base_url": args.base_url,
+        "baseline_parameters": baseline,
+        "tested_parameter": parameters,
+        "tested_values": values_by_parameter,
+        "seed": args.seed,
+    }
+    write_text(report_dir / "manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    print(f"[Sensitivity] report_dir={report_dir}")
+    return 0
+
+
+
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Threaded Concept Memory Probe v0.9")
     parser.add_argument("--db", default=DEFAULT_DB_PATH)
@@ -2747,6 +3110,18 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--no-reinforce", action="store_true")
     p_eval.add_argument("--no-response", action="store_true")
     p_eval.set_defaults(func=cmd_eval)
+
+    p_sensitivity = sub.add_parser("sensitivity")
+    p_sensitivity.add_argument("--conversation-file", default=str(DEFAULT_SEED_TESTS_FILE), help="JSONL fixture; defaults to eval_conversations/seed_tests_public.jsonl.")
+    p_sensitivity.add_argument("--output-dir", default="reports/sensitivity")
+    p_sensitivity.add_argument("--parameter", action="append", choices=list(SENSITIVITY_PARAMETER_VALUES), help="Parameter to sweep. May be repeated; defaults to all.")
+    p_sensitivity.add_argument("--values", help="Comma-separated values for the selected parameter(s).")
+    p_sensitivity.add_argument("--dry-run", action="store_true")
+    p_sensitivity.add_argument("--resume", action="store_true")
+    p_sensitivity.add_argument("--seed", type=int, default=0)
+    p_sensitivity.add_argument("--no-reinforce", action="store_true")
+    p_sensitivity.add_argument("--no-response", action="store_true", default=True, help="Skip response generation so timing covers recall/prompt construction only (default).")
+    p_sensitivity.set_defaults(func=cmd_sensitivity)
 
     return parser
 
