@@ -1,7 +1,10 @@
 import tempfile
 import unittest
 from pathlib import Path
+import io
 import sys
+from contextlib import redirect_stderr
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -9,6 +12,7 @@ from threaded_concept_memory_probe import (  # noqa: E402
     ActivationEngine,
     ExtractedWord,
     ThreadedConceptMemoryStore,
+    WordExtractor,
     fallback_extract_words,
 )
 
@@ -81,6 +85,25 @@ class TracePrinciplePersonWordTests(unittest.TestCase):
         self.assertIn("のりこ", assistant_preference)
         self.assertIn("紅茶", assistant_preference)
         self.assertIn("好き", assistant_preference)
+
+    def test_llm_extractor_debug_shows_name_survives_python_filter(self):
+        extractor = WordExtractor("http://example.test/v1", model="test-model", debug=True)
+        raw_response = '{"words":[{"word":"私","weight":0.8},{"word":"名前","weight":1.0},{"word":"のりこ","weight":1.0}]}'
+        stderr = io.StringIO()
+
+        with patch("threaded_concept_memory_probe.call_openai_compatible_chat", return_value=raw_response):
+            with redirect_stderr(stderr):
+                words = extractor.extract("私の名前はのりこです。")
+
+        debug_output = stderr.getvalue()
+        extracted = {word.word for word in words}
+        self.assertIn("名前", extracted)
+        self.assertIn("のりこ", extracted)
+        self.assertIn("[LLM Extractor Debug] system prompt BEGIN", debug_output)
+        self.assertIn("Input:\n私の名前はのりこです。\n\nReturn JSON only.", debug_output)
+        self.assertIn(raw_response, debug_output)
+        self.assertIn('"word": "名前"', debug_output)
+        self.assertIn("contains 名前 after python filter=True", debug_output)
 
 
 if __name__ == "__main__":

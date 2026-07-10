@@ -660,11 +660,12 @@ class ThreadedConceptMemoryStore:
 
 
 class WordExtractor:
-    def __init__(self, base_url: str = "", api_key: str = "", model: str = "local-model", timeout_sec: float = 12.0) -> None:
+    def __init__(self, base_url: str = "", api_key: str = "", model: str = "local-model", timeout_sec: float = 12.0, debug: bool = False) -> None:
         self.base_url = normalize_llm_base_url(base_url or os.getenv("LLM_BASE_URL", ""))
         self.api_key = api_key or os.getenv("LLM_API_KEY", "")
         self.model = model or os.getenv("LLM_MODEL", "local-model")
         self.timeout_sec = timeout_sec
+        self.debug = debug or os.getenv("LLM_EXTRACTOR_DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}
 
     def extract(self, text: str) -> list[ExtractedWord]:
         if self.base_url:
@@ -685,34 +686,59 @@ class WordExtractor:
             "Keep words short. Use base/common forms when natural.\n"
             "Weight range: 0.4 to 1.4. Important concrete words can be 1.2-1.4."
         )
+        user_message = f"Input:\n{text}\n\nReturn JSON only."
+        if self.debug:
+            print("[LLM Extractor Debug] system prompt BEGIN", file=sys.stderr)
+            print(system, file=sys.stderr)
+            print("[LLM Extractor Debug] system prompt END", file=sys.stderr)
+            print("[LLM Extractor Debug] user message BEGIN", file=sys.stderr)
+            print(user_message, file=sys.stderr)
+            print("[LLM Extractor Debug] user message END", file=sys.stderr)
+
         content = call_openai_compatible_chat(
             base_url=self.base_url,
             api_key=self.api_key,
             model=self.model,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user", "content": f"Input:\n{text}\n\nReturn JSON only."},
+                {"role": "user", "content": user_message},
             ],
             temperature=0.0,
             max_tokens=256,
             timeout_sec=self.timeout_sec,
         )
+        if self.debug:
+            print("[LLM Extractor Debug] raw response BEGIN", file=sys.stderr)
+            print(content, file=sys.stderr)
+            print("[LLM Extractor Debug] raw response END", file=sys.stderr)
 
         data = parse_json_object(content)
         words_raw = data.get("words", [])
+        if self.debug:
+            print("[LLM Extractor Debug] parsed words raw=" + json.dumps(words_raw, ensure_ascii=False), file=sys.stderr)
         words: list[ExtractedWord] = []
+        removed_items: list[Any] = []
         for item in words_raw:
             if not isinstance(item, dict):
+                removed_items.append(item)
                 continue
             word = normalize_word(str(item.get("word", "")))
             if not word:
+                removed_items.append(item)
                 continue
             try:
                 weight = float(item.get("weight", 1.0))
             except Exception:
                 weight = 1.0
             words.append(ExtractedWord(word, clamp(weight, 0.1, 2.0)))
-        return dedupe_extracted_words(words) or fallback_extract_words(text)
+        deduped_words = dedupe_extracted_words(words)
+        final_words = deduped_words or fallback_extract_words(text)
+        if self.debug:
+            print("[LLM Extractor Debug] python normalized words=" + json.dumps([w.__dict__ for w in words], ensure_ascii=False), file=sys.stderr)
+            print("[LLM Extractor Debug] python removed items=" + json.dumps(removed_items, ensure_ascii=False), file=sys.stderr)
+            print("[LLM Extractor Debug] final words=" + json.dumps([w.__dict__ for w in final_words], ensure_ascii=False), file=sys.stderr)
+            print(f"[LLM Extractor Debug] contains 名前 after python filter={'名前' in {w.word for w in final_words}}", file=sys.stderr)
+        return final_words
 
 
 class ActivationEngine:
@@ -1809,7 +1835,7 @@ def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemorySto
     store = ThreadedConceptMemoryStore(args.db)
     extractor_model = getattr(args, "extractor_model", "") or args.model
     response_model = getattr(args, "response_model", "") or args.model
-    extractor = WordExtractor(args.base_url, args.api_key, extractor_model, args.timeout)
+    extractor = WordExtractor(args.base_url, args.api_key, extractor_model, args.timeout, debug=getattr(args, "debug_extractor", False))
     engine = ActivationEngine(store, args.half_life_days, args.max_depth, args.common_bonus, args.mutual_amplification, args.thread_strength_mode)
     generator = ResponseGenerator(args.base_url, args.api_key, response_model, args.timeout)
     return store, extractor, engine, generator
@@ -2451,6 +2477,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
     parser.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""), help="Optional model override for word extraction; defaults to --model.")
     parser.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""), help="Optional model override for response generation; defaults to --model.")
+    parser.add_argument("--debug-extractor", action="store_true", help="Print LLM extractor prompt, raw response, parsed words, and Python-filtered words.")
     parser.add_argument("--timeout", type=float, default=12.0)
     parser.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     parser.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
@@ -2526,6 +2553,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
     p_eval.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""))
     p_eval.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""))
+    p_eval.add_argument("--debug-extractor", action="store_true")
     p_eval.add_argument("--timeout", type=float, default=12.0)
     p_eval.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     p_eval.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
