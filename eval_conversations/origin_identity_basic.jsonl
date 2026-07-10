@@ -1,0 +1,4 @@
+{"turn":1,"role":"user","text":"僕の名前はみつきです。","mode":"learn"}
+{"turn":2,"role":"assistant","text":"私の名前はのりこです。","mode":"learn"}
+{"turn":3,"role":"user","text":"僕の名前なんだっけ？","mode":"ask","expected_words":["みつき"],"unexpected_words":["のりこ"]}
+{"turn":4,"role":"user","text":"あなたの名前は？","mode":"ask","expected_words":["のりこ"],"unexpected_words":["みつき"]}

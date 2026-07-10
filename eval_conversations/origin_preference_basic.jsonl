@@ -1,0 +1,4 @@
+{"turn":1,"role":"user","text":"僕はチーズケーキが好きです。","mode":"learn"}
+{"turn":2,"role":"assistant","text":"私は紅茶が好きです。","mode":"learn"}
+{"turn":3,"role":"user","text":"僕は何が好き？","mode":"ask","expected_words":["チーズケーキ"],"unexpected_words":["紅茶"]}
+{"turn":4,"role":"user","text":"あなたは何が好き？","mode":"ask","expected_words":["紅茶"],"unexpected_words":["チーズケーキ"]}
