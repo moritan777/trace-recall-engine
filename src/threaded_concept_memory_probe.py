@@ -1541,7 +1541,7 @@ def fallback_extract_words(text: str) -> list[ExtractedWord]:
         found.append(ExtractedWord("カッターナイフ", 0.9))
 
     chunks = re.findall(r"[A-Za-z0-9]+|[ぁ-んァ-ン一-龥ー]{2,}", text)
-    stop = {"です", "ます", "だった", "って", "これ", "それ", "今日", "明日", "昨日", "する", "した", "ある", "いる", "もの", "なもの"}
+    stop = {"です", "ます", "す", "だった", "って", "これ", "それ", "今日", "明日", "昨日", "する", "した", "ある", "いる", "もの", "なもの"}
     for ch in chunks:
         ch = normalize_word(ch)
         if not ch or ch in stop:
@@ -1553,7 +1553,9 @@ def fallback_extract_words(text: str) -> list[ExtractedWord]:
         # Lightweight fallback tokenization for unsegmented Japanese text.
         # Split on common particles so names and other nouns enter the same
         # normal Trace path, without any person/name dictionary or score boost.
-        for part in re.split(r"[はがをにへでとものや]", ch):
+        # Do not split word-initial 「の」: names such as 「のりこ」 and 「のぞみ」
+        # must stay intact as ordinary words, not as special person anchors.
+        for part in split_japanese_particles(ch):
             part = normalize_word(part)
             if not part or part in stop or part == ch:
                 continue
@@ -1562,6 +1564,29 @@ def fallback_extract_words(text: str) -> list[ExtractedWord]:
             found.append(ExtractedWord(part, 0.8))
 
     return dedupe_extracted_words(found)
+
+
+def split_japanese_particles(text: str) -> list[str]:
+    """Split lightweight Japanese fallback chunks without damaging word-initial 「の」."""
+    split_particles = set("はがをにへでともや")
+    boundary_particles = split_particles | {"の"}
+    parts: list[str] = []
+    start = 0
+    for index, char in enumerate(text):
+        should_split = char in split_particles
+        if char == "の":
+            previous = text[index - 1] if index > 0 else ""
+            # Treat 「の」 as a particle only when it has a real word on its left.
+            # This preserves word-initial 「の」 after another particle, e.g.
+            # 「私の名前はのりこです」 -> 「私」/「名前」/「のりこ」.
+            should_split = index > start and previous not in boundary_particles
+        if should_split:
+            if start < index:
+                parts.append(text[start:index])
+            start = index + 1
+    if start < len(text):
+        parts.append(text[start:])
+    return parts
 
 
 def dedupe_extracted_words(words: list[ExtractedWord]) -> list[ExtractedWord]:
