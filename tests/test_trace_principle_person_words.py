@@ -14,6 +14,7 @@ from threaded_concept_memory_probe import (  # noqa: E402
     ThreadedConceptMemoryStore,
     WordExtractor,
     fallback_extract_words,
+    normalize_participant_references,
 )
 
 
@@ -130,6 +131,51 @@ class TracePrinciplePersonWordTests(unittest.TestCase):
         self.assertIn(raw_response, debug_output)
         self.assertIn('"word": "名前"', debug_output)
         self.assertIn("contains 名前 after python filter=True", debug_output)
+
+    def test_user_first_person_normalizes_to_user_participant(self):
+        words = normalize_participant_references("私の名前はみつきです", "user", self.words(("名前", 1.0), ("みつき", 1.4)))
+        extracted = {word.word: word.weight for word in words}
+
+        self.assertIn("@user", extracted)
+        self.assertNotIn("@assistant", extracted)
+        self.assertEqual(extracted["@user"], 1.0)
+
+    def test_assistant_first_person_normalizes_to_assistant_participant(self):
+        words = normalize_participant_references("私の名前はのりこです", "assistant", self.words(("名前", 1.0), ("のりこ", 1.4)))
+        extracted = {word.word for word in words}
+
+        self.assertIn("@assistant", extracted)
+        self.assertNotIn("@user", extracted)
+
+    def test_second_person_normalizes_by_speaker(self):
+        user_words = {word.word for word in normalize_participant_references("あなたの名前は？", "user", self.words(("名前", 1.0)))}
+        assistant_words = {word.word for word in normalize_participant_references("あなたの名前は？", "assistant", self.words(("名前", 1.0)))}
+
+        self.assertIn("@assistant", user_words)
+        self.assertIn("@user", assistant_words)
+
+    def test_third_person_does_not_add_participant_reference(self):
+        words = normalize_participant_references("父はコーヒーが好き", "user", self.words(("父", 1.0), ("コーヒー", 1.2), ("好き", 1.0)))
+        extracted = {word.word for word in words}
+
+        self.assertIn("父", extracted)
+        self.assertNotIn("@user", extracted)
+        self.assertNotIn("@assistant", extracted)
+
+    def test_normalization_does_not_depend_on_llm_extracting_pronoun(self):
+        words = normalize_participant_references("私の名前はみつきです", "user", self.words(("名前", 1.0), ("みつき", 1.4)))
+        extracted = {word.word for word in words}
+
+        self.assertIn("@user", extracted)
+        self.assertIn("名前", extracted)
+        self.assertIn("みつき", extracted)
+
+    def test_normalization_replaces_extracted_pronoun_with_participant_word(self):
+        words = normalize_participant_references("私の名前はみつきです", "user", self.words(("私", 0.8), ("名前", 1.0), ("みつき", 1.4)))
+        extracted = {word.word for word in words}
+
+        self.assertIn("@user", extracted)
+        self.assertNotIn("私", extracted)
 
 
 if __name__ == "__main__":
