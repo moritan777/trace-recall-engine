@@ -68,6 +68,20 @@ class TracePrinciplePersonWordTests(unittest.TestCase):
         self.assertIn("チーズケーキ", extracted)
         self.assertEqual(extracted["ユーザー"], 0.8)
 
+    def test_fallback_extraction_preserves_word_initial_no(self):
+        assistant_name = {word.word for word in fallback_extract_words("私の名前はのりこです。")}
+        user_name = {word.word for word in fallback_extract_words("僕の名前はみつきです。")}
+        assistant_preference = {word.word for word in fallback_extract_words("のりこは紅茶が好きです。")}
+
+        self.assertIn("名前", assistant_name)
+        self.assertIn("のりこ", assistant_name)
+        self.assertNotIn("りこ", assistant_name)
+        self.assertIn("名前", user_name)
+        self.assertIn("みつき", user_name)
+        self.assertIn("のりこ", assistant_preference)
+        self.assertIn("紅茶", assistant_preference)
+        self.assertIn("好き", assistant_preference)
+
 
 if __name__ == "__main__":
     unittest.main()
