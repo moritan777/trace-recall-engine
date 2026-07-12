@@ -2349,6 +2349,10 @@ def eval_response_generation_label(args: argparse.Namespace) -> str:
     return "enabled" if normalize_llm_base_url(args.base_url) else "fallback/no remote LLM"
 
 
+def sensitivity_response_generation_label(args: argparse.Namespace) -> str:
+    return "disabled" if getattr(args, "no_response", True) else "enabled"
+
+
 def run_eval_turn(
     item: dict[str, Any],
     args: argparse.Namespace,
@@ -2976,6 +2980,7 @@ def run_sensitivity_trial(args: argparse.Namespace, dimension: str, value: Any, 
         "prompt_view": trial_args.prompt_view,
         "participant_reference": "disabled" if getattr(trial_args, "disable_participant_reference", False) else "enabled",
         "origin_order": trial_args.origin_order,
+        "response_generation": sensitivity_response_generation_label(trial_args),
         "precision": (sum(precisions) / len(precisions)) if precisions else 0.0,
         "unexpected_hits": unexpected,
         "expected_hits": expected,
@@ -3128,9 +3133,9 @@ def git_commit_hash() -> str:
         return "unknown"
 
 
-def build_sensitivity_report(rows: list[dict[str, Any]], baseline: dict[str, Any], graphs: dict[str, list[str]]) -> str:
+def build_sensitivity_report(rows: list[dict[str, Any]], baseline: dict[str, Any], graphs: dict[str, list[str]], response_generation: str = "disabled") -> str:
     baseline_row = next((r for r in rows if r["parameter"] == "baseline"), None)
-    lines = ["# Parameter Sensitivity Report", "", "This report is a scaffold for human analysis. Conclusions are intentionally left blank.", ""]
+    lines = ["# Parameter Sensitivity Report", "", "This report is a scaffold for human analysis. Conclusions are intentionally left blank.", "", f"- response_generation: `{response_generation}`", ""]
     for parameter in SENSITIVITY_DIMENSION_VALUES:
         subset = [r for r in rows if r["dimension"] == parameter or r["parameter"] == parameter]
         if not subset:
@@ -3163,8 +3168,10 @@ def cmd_sensitivity(args: argparse.Namespace) -> int:
     dimensions = args.dimension or args.parameter or list(SENSITIVITY_DIMENSION_VALUES)
     values_by_parameter = {p: (parse_sensitivity_values(args.values, p) if args.values else SENSITIVITY_DIMENSION_VALUES[p]) for p in dimensions}
     plan = [("baseline", "baseline")] + [(p, v) for p in dimensions for v in values_by_parameter[p]]
+    response_generation = sensitivity_response_generation_label(args)
     if args.dry_run:
         print("[Sensitivity dry-run]")
+        print(f"response_generation={response_generation}")
         for parameter, value in plan:
             print(f"- {parameter}={value}")
         return 0
@@ -3193,12 +3200,12 @@ def cmd_sensitivity(args: argparse.Namespace) -> int:
         rows = [r for r in rows if not (r.get("dimension", r["parameter"]) == parameter and str(r["value"]) == str(value))]
         rows.append(row)
         print(f"[Sensitivity] done {parameter}={value}")
-        write_sensitivity_csv(runs_csv, rows, ["experiment_type", "dimension", "parameter", "value", "prompt_view", "participant_reference", "origin_order", "precision", "unexpected_hits", "expected_hits", "prompt_tokens", "thread_groups", "words", "recall_time_ms"] + SENSITIVITY_METRIC_FIELDS)
+        write_sensitivity_csv(runs_csv, rows, ["experiment_type", "dimension", "parameter", "value", "prompt_view", "participant_reference", "origin_order", "response_generation", "precision", "unexpected_hits", "expected_hits", "prompt_tokens", "thread_groups", "words", "recall_time_ms"] + SENSITIVITY_METRIC_FIELDS)
 
     summary_rows = build_sensitivity_summary(rows)
     write_sensitivity_csv(summary_csv, summary_rows, ["parameter", "best_precision", "stable_min", "stable_max", "recommended", "comments"])
     graphs = make_sensitivity_graphs(rows, graph_dir)
-    write_text(report_dir / "report.md", build_sensitivity_report(rows, baseline, graphs))
+    write_text(report_dir / "report.md", build_sensitivity_report(rows, baseline, graphs, response_generation))
     manifest = {
         "commit": git_commit_hash(),
         "date": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -3207,6 +3214,7 @@ def cmd_sensitivity(args: argparse.Namespace) -> int:
         "model": args.model,
         "base_url": args.base_url,
         "baseline_parameters": baseline,
+        "response_generation": response_generation,
         "tested_parameter": dimensions,
         "tested_dimensions": dimensions,
         "experiment_types": {d: SENSITIVITY_EXPERIMENT_TYPES[d] for d in dimensions},
@@ -3355,7 +3363,10 @@ def make_parser() -> argparse.ArgumentParser:
     p_sensitivity.add_argument("--resume", action="store_true")
     p_sensitivity.add_argument("--seed", type=int, default=0)
     p_sensitivity.add_argument("--no-reinforce", action="store_true")
-    p_sensitivity.add_argument("--no-response", action="store_true", default=True, help="Skip response generation so timing covers recall/prompt construction only (default).")
+    sensitivity_response = p_sensitivity.add_mutually_exclusive_group()
+    sensitivity_response.add_argument("--response", dest="no_response", action="store_false", help="Enable LLM response generation for each sensitivity trial.")
+    sensitivity_response.add_argument("--no-response", dest="no_response", action="store_true", help="Skip response generation so timing covers recall/prompt construction only (default).")
+    p_sensitivity.set_defaults(no_response=True)
     p_sensitivity.add_argument("--save-research-log", action="store_true", help="Save prompt/response research logs under each trial directory. Logs may contain private conversation content.")
     p_sensitivity.set_defaults(func=cmd_sensitivity)
 

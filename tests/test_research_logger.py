@@ -1,8 +1,11 @@
 import json
 import tempfile
+import io
 import unittest
 from pathlib import Path
 import sys
+from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -82,6 +85,62 @@ class ResearchLoggerTests(unittest.TestCase):
             record = json.loads((out / "trials" / "edge" / "research_log.jsonl").read_text(encoding="utf-8"))
             self.assertEqual(record["comparison_value"], "edge")
             self.assertTrue(record["response"]["skipped"])
+
+    def test_sensitivity_response_save_research_log_records_mock_llm_response(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            conversation = self.make_conversation(tmp)
+            out = tmp / "sensitivity"
+            with patch("threaded_concept_memory_probe.call_openai_compatible_chat", return_value="みつきです。"):
+                rc = main([
+                    "--base-url", "http://example.test",
+                    "sensitivity",
+                    "--conversation-file", str(conversation),
+                    "--output-dir", str(out),
+                    "--dimension", "prompt_view",
+                    "--values", "threadgroup",
+                    "--response",
+                    "--save-research-log",
+                ])
+            self.assertEqual(rc, 0)
+            record = json.loads((out / "trials" / "threadgroup" / "research_log.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(record["response"]["text"], "みつきです。")
+            self.assertFalse(record["response"]["skipped"])
+            self.assertGreater(record["timing"]["llm_response_ms"], 0.0)
+            self.assertEqual(record["evaluation"]["response_used_expected_count"], 1)
+            self.assertEqual(record["evaluation"]["response_used_unexpected_count"], 0)
+            self.assertIn("response_generation", (out / "runs.csv").read_text(encoding="utf-8"))
+            self.assertIn('"response_generation": "enabled"', (out / "manifest.json").read_text(encoding="utf-8"))
+            self.assertIn("response_generation: `enabled`", (out / "report.md").read_text(encoding="utf-8"))
+
+    def test_sensitivity_dry_run_displays_response_generation_state(self):
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            rc = main([
+                "sensitivity",
+                "--dimension", "prompt_view",
+                "--values", "threadgroup",
+                "--response",
+                "--dry-run",
+            ])
+        self.assertEqual(rc, 0)
+        self.assertIn("response_generation=enabled", stdout.getvalue())
+
+    def test_sensitivity_response_and_no_response_are_mutually_exclusive(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            conversation = self.make_conversation(tmp)
+            with self.assertRaises(SystemExit) as cm, redirect_stderr(io.StringIO()):
+                main([
+                    "sensitivity",
+                    "--conversation-file", str(conversation),
+                    "--output-dir", str(tmp / "sensitivity"),
+                    "--dimension", "prompt_view",
+                    "--values", "threadgroup",
+                    "--response",
+                    "--no-response",
+                ])
+            self.assertEqual(cm.exception.code, 2)
 
 
 if __name__ == "__main__":
