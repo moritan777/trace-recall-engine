@@ -369,7 +369,7 @@ python src/threaded_concept_memory_probe.py sensitivity ^
   --save-research-log
 ```
 
-Sensitivity keeps response generation disabled by default for compatibility. Add `--response` with an LLM endpoint when Prompt View comparisons need actual LLM responses in the research logs; `--response` and `--no-response` are mutually exclusive.
+Sensitivity keeps response generation disabled by default for compatibility. Add `--enable-response-generation` with an LLM endpoint when Prompt View comparisons need actual LLM responses in the research logs; `--enable-response-generation` and `--no-response` are mutually exclusive.
 
 Research logs may contain complete user inputs, prompts, recalled traces, and LLM responses. Do not publish logs containing private conversations.
 

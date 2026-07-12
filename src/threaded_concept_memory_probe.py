@@ -3227,8 +3227,14 @@ def cmd_sensitivity(args: argparse.Namespace) -> int:
 
 
 
+class NoAbbrevArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("allow_abbrev", False)
+        super().__init__(*args, **kwargs)
+
+
 def make_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Threaded Concept Memory Probe v0.9")
+    parser = NoAbbrevArgumentParser(description="Threaded Concept Memory Probe v0.9")
     parser.add_argument("--db", default=DEFAULT_DB_PATH)
     parser.add_argument("--base-url", default=os.getenv("LLM_BASE_URL", ""))
     parser.add_argument("--chat-base-url", default="")
@@ -3263,7 +3269,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gate-min-word-score", type=float, default=0.05)
     parser.add_argument("--gate-support-ratio", type=float, default=0.18)
 
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", required=True, parser_class=NoAbbrevArgumentParser)
 
     p_add = sub.add_parser("add")
     p_add.add_argument("text")
@@ -3364,7 +3370,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_sensitivity.add_argument("--seed", type=int, default=0)
     p_sensitivity.add_argument("--no-reinforce", action="store_true")
     sensitivity_response = p_sensitivity.add_mutually_exclusive_group()
-    sensitivity_response.add_argument("--response", dest="no_response", action="store_false", help="Enable LLM response generation for each sensitivity trial.")
+    sensitivity_response.add_argument("--enable-response-generation", dest="no_response", action="store_false", help="Enable LLM response generation for each sensitivity trial.")
     sensitivity_response.add_argument("--no-response", dest="no_response", action="store_true", help="Skip response generation so timing covers recall/prompt construction only (default).")
     p_sensitivity.set_defaults(no_response=True)
     p_sensitivity.add_argument("--save-research-log", action="store_true", help="Save prompt/response research logs under each trial directory. Logs may contain private conversation content.")

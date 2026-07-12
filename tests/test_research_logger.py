@@ -99,7 +99,7 @@ class ResearchLoggerTests(unittest.TestCase):
                     "--output-dir", str(out),
                     "--dimension", "prompt_view",
                     "--values", "threadgroup",
-                    "--response",
+                    "--enable-response-generation",
                     "--save-research-log",
                 ])
             self.assertEqual(rc, 0)
@@ -120,11 +120,38 @@ class ResearchLoggerTests(unittest.TestCase):
                 "sensitivity",
                 "--dimension", "prompt_view",
                 "--values", "threadgroup",
-                "--response",
+                "--enable-response-generation",
                 "--dry-run",
             ])
         self.assertEqual(rc, 0)
         self.assertIn("response_generation=enabled", stdout.getvalue())
+
+    def test_global_response_model_options_do_not_conflict_with_sensitivity_response_flag(self):
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            rc = main([
+                "--response-model", "mock-response-model",
+                "--response-include-trace",
+                "--response-trace-limit", "3",
+                "sensitivity",
+                "--dimension", "prompt_view",
+                "--values", "threadgroup",
+                "--enable-response-generation",
+                "--dry-run",
+            ])
+        self.assertEqual(rc, 0)
+        self.assertIn("response_generation=enabled", stdout.getvalue())
+
+    def test_sensitivity_short_response_flag_is_not_supported(self):
+        with self.assertRaises(SystemExit) as cm, redirect_stderr(io.StringIO()):
+            main([
+                "sensitivity",
+                "--dimension", "prompt_view",
+                "--values", "threadgroup",
+                "--response",
+                "--dry-run",
+            ])
+        self.assertEqual(cm.exception.code, 2)
 
     def test_sensitivity_response_and_no_response_are_mutually_exclusive(self):
         with tempfile.TemporaryDirectory() as td:
@@ -137,7 +164,7 @@ class ResearchLoggerTests(unittest.TestCase):
                     "--output-dir", str(tmp / "sensitivity"),
                     "--dimension", "prompt_view",
                     "--values", "threadgroup",
-                    "--response",
+                    "--enable-response-generation",
                     "--no-response",
                 ])
             self.assertEqual(cm.exception.code, 2)
