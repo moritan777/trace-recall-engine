@@ -343,6 +343,36 @@ python src/threaded_concept_memory_probe.py eval ^
   --report-md reports/participant_reference_identity.md
 ```
 
+## Saving Prompt and Response Research Logs
+
+Use `--research-log-jsonl` or `--research-log-dir` with `eval` to preserve the exact prompt sent to the LLM and the resulting response for each ask turn:
+
+```bat
+python src/threaded_concept_memory_probe.py eval ^
+  --conversation-file eval_conversations/seed_tests_public.jsonl ^
+  --db reports/research_log_eval.db ^
+  --events-jsonl reports/research_log_events.jsonl ^
+  --metrics-csv reports/research_log_metrics.csv ^
+  --report-md reports/research_log_report.md ^
+  --research-log-jsonl reports/research_log.jsonl ^
+  --research-log-dir reports/research_log
+```
+
+For sensitivity runs, use `--save-research-log` to write `research_log.jsonl` and per-turn Markdown files under each trial directory:
+
+```bat
+python src/threaded_concept_memory_probe.py sensitivity ^
+  --dimension prompt_view ^
+  --values threadgroup,recall-state,edge ^
+  --conversation-file eval_conversations/seed_tests_public.jsonl ^
+  --output-dir reports/sensitivity/prompt_view_llm_v2 ^
+  --save-research-log
+```
+
+Research logs may contain complete user inputs, prompts, recalled traces, and LLM responses. Do not publish logs containing private conversations.
+
+Research Logには入力、想起Trace、Prompt、LLM応答が含まれる。私的な会話を含むログを公開してはいけない。
+
 Evaluation output includes metrics such as:
 
 - expected hit count

@@ -2243,6 +2243,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     events: list[dict[str, Any]] = []
     metrics_rows: list[dict[str, Any]] = []
+    research_records: list[dict[str, Any]] = []
     report_lines: list[str] = []
     conversation_path = Path(args.conversation_file)
 
@@ -2269,6 +2270,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
             events.append(event)
             if event["mode"] in {"ask", "ask_no_response"}:
                 metrics = event["metrics"]
+                if getattr(args, "research_log_jsonl", None) or getattr(args, "research_log_dir", None):
+                    research_records.append(build_research_log_record(event, args))
                 metrics_rows.append(flatten_eval_metrics(event))
                 report_lines.append(
                     "| {turn} | {mode} | {response_skipped} | {expected_hit_count} | {unexpected_hit_count} | {recall_precision_like:.3f} | "
@@ -2281,12 +2284,21 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
         write_jsonl(Path(args.events_jsonl), events)
         write_metrics_csv(Path(args.metrics_csv), metrics_rows)
+        write_research_logs(
+            Path(args.research_log_jsonl) if getattr(args, "research_log_jsonl", "") else None,
+            Path(args.research_log_dir) if getattr(args, "research_log_dir", "") else None,
+            research_records,
+        )
         report_lines.extend(build_eval_report_summary(metrics_rows))
         write_text(Path(args.report_md), "\n".join(report_lines) + "\n")
 
         print(f"[Eval] events_jsonl={args.events_jsonl}")
         print(f"[Eval] metrics_csv={args.metrics_csv}")
         print(f"[Eval] report_md={args.report_md}")
+        if getattr(args, "research_log_jsonl", ""):
+            print(f"[Eval] research_log_jsonl={args.research_log_jsonl}")
+        if getattr(args, "research_log_dir", ""):
+            print(f"[Eval] research_log_dir={args.research_log_dir}")
         return 0
     finally:
         store.close()
@@ -2352,6 +2364,7 @@ def run_eval_turn(
     expected_words = [normalize_word(str(w)) for w in item.get("expected_words", []) if normalize_word(str(w))]
     unexpected_words = [normalize_word(str(w)) for w in item.get("unexpected_words", []) if normalize_word(str(w))]
     words = extract_normalized_words(args, extractor, user_text, role)
+    normalized_word_records = _research_words(words)
 
     if mode == "learn":
         thread_id = store.create_thread(words, source_text=user_text, thread_strength_mode=args.thread_strength_mode, created_by=role)
@@ -2362,17 +2375,25 @@ def run_eval_turn(
             "role": role,
             "saved_thread_id": thread_id,
             "input_words": [w.word for w in words],
+            "raw_words": normalized_word_records,
+            "normalized_words": normalized_word_records,
             "response_skipped": False,
         }
 
+    turn_start = time.perf_counter()
+    recall_start = time.perf_counter()
     activation = engine.activate(words, args.top_words, args.top_threads)
     gate = build_gate(args, store)
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
     prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
+    recall_ms = (time.perf_counter() - recall_start) * 1000.0
     response_text = ""
     response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False)
+    llm_response_ms = 0.0
     if mode == "ask" and not response_skipped:
+        llm_start = time.perf_counter()
         response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
+        llm_response_ms = (time.perf_counter() - llm_start) * 1000.0
 
     if not args.no_reinforce:
         store.reinforce_seen(activation.activated_words)
@@ -2399,17 +2420,155 @@ def run_eval_turn(
         "role": role,
         "expected_words": expected_words,
         "unexpected_words": unexpected_words,
+        "raw_words": normalized_word_records,
+        "normalized_words": normalized_word_records,
         "input_words": [w.word for w in activation.input_words],
         "activated_words": [aw.word for aw in activation.activated_words],
+        "activated_threads": [at.thread_id for at in activation.activated_threads],
         "gated_words": [gw.word for gw in gated.words],
         "selected_thread_groups": [gated_thread_group_to_dict(th) for th in gated.threads],
         "suppressed_words": [gated_word_to_dict(sw) for sw in gated.suppressed_words],
+        "prompt_text": prompt,
         "prompt_stats": prompt_stats_dict(prompt),
         "response_text": response_text,
         "response_skipped": response_skipped,
         "metrics": metrics,
+        "timing": {"recall_ms": recall_ms, "llm_response_ms": llm_response_ms, "total_ms": (time.perf_counter() - turn_start) * 1000.0},
     }
 
+
+
+# Research logging records the exact relationship between:
+# input, recalled traces, working memory, final prompt, and LLM response.
+# It must observe the existing pipeline without changing recall, gate selection,
+# prompt construction, or response generation. Research logs may contain private
+# conversation content and must not include API keys or authorization headers.
+def _research_words(words: list[Any]) -> list[dict[str, Any]]:
+    return [{"word": getattr(w, "word", str(w)), "weight": float(getattr(w, "weight", 1.0))} for w in words]
+
+
+def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    metrics = event.get("metrics", {})
+    prompt_text = event.get("prompt_text", "")
+    response_text = event.get("response_text", "")
+    return {
+        "schema_version": 1,
+        "experiment_name": getattr(args, "research_experiment_name", ""),
+        "experiment_type": getattr(args, "research_experiment_type", ""),
+        "dimension": getattr(args, "research_dimension", ""),
+        "comparison_value": getattr(args, "research_comparison_value", ""),
+        "conversation_file": str(getattr(args, "conversation_file", "")),
+        "turn": event.get("turn"),
+        "mode": event.get("mode"),
+        "role": event.get("role"),
+        "input_text": event.get("user", ""),
+        "created_by": event.get("role", "user"),
+        "extractor": {
+            "raw_words": event.get("raw_words", []),
+            "normalized_words": event.get("normalized_words", []),
+        },
+        "recall": {
+            "activated_words": event.get("activated_words", []),
+            "activated_threads": event.get("activated_threads", []),
+            "selected_thread_groups": metrics.get("selected_thread_groups", []),
+            "selected_words": metrics.get("gated_words", []),
+            "fatigue_suppressed_words": metrics.get("suppressed_words", []),
+        },
+        "working_memory": {
+            "thread_group_count": metrics.get("working_memory_group_count", 0),
+            "word_count": metrics.get("working_memory_word_count", 0),
+            "prompt_view": getattr(args, "prompt_view", "threadgroup"),
+            "origin_order": getattr(args, "origin_order", "none"),
+            "participant_reference": "disabled" if getattr(args, "disable_participant_reference", False) else "enabled",
+            "selected_thread_groups": event.get("selected_thread_groups", []),
+            "selected_words": event.get("gated_words", []),
+        },
+        "prompt": {
+            "text": prompt_text,
+            **prompt_stats_dict(prompt_text),
+            "include_trace": bool(getattr(args, "response_include_trace", False)),
+        },
+        "response": {
+            "enabled": not bool(event.get("response_skipped", False)),
+            "skipped": bool(event.get("response_skipped", False)),
+            "text": response_text,
+            "final_text": response_text,
+            "chars": len(response_text),
+        },
+        "evaluation": {
+            "expected_words": event.get("expected_words", []),
+            "unexpected_words": event.get("unexpected_words", []),
+            "expected_hit_count": metrics.get("expected_hit_count", 0),
+            "unexpected_hit_count": metrics.get("unexpected_hit_count", 0),
+            "response_used_expected_count": metrics.get("response_used_expected_count", 0),
+            "response_used_unexpected_count": metrics.get("response_used_unexpected_count", 0),
+            "precision_like": metrics.get("recall_precision_like", 0.0),
+            "recall_efficiency": metrics.get("recall_efficiency", 0.0),
+        },
+        "timing": event.get("timing", {}),
+    }
+
+
+def research_log_markdown(record: dict[str, Any]) -> str:
+    def block(value: Any) -> str:
+        if isinstance(value, str):
+            text = value
+        elif isinstance(value, list):
+            text = "\n".join(str(v) for v in value)
+        else:
+            text = json.dumps(value, ensure_ascii=False, indent=2)
+        return f"```text\n{text}\n```"
+    ev = record.get("evaluation", {})
+    wm = record.get("working_memory", {})
+    timing = record.get("timing", {})
+    lines = [
+        "# Research Log", "",
+        f"- Experiment: {record.get('experiment_name','')}",
+        f"- Experiment Type: {record.get('experiment_type','')}",
+        f"- Dimension: {record.get('dimension','')}",
+        f"- Comparison Value: {record.get('comparison_value','')}",
+        f"- Conversation File: {record.get('conversation_file','')}",
+        f"- Turn: {record.get('turn','')}",
+        f"- Mode: {record.get('mode','')}",
+        f"- Role: {record.get('role','')}",
+        f"- Prompt View: {wm.get('prompt_view','')}",
+        f"- Participant Reference: {wm.get('participant_reference','')}",
+        f"- Origin Order: {wm.get('origin_order','')}", "",
+        "## Input", "", block(record.get("input_text", "")), "",
+        "## Extracted Words", "", block(record.get("extractor", {}).get("raw_words", [])), "",
+        "## Normalized Words", "", block(record.get("extractor", {}).get("normalized_words", [])), "",
+        "## Selected Thread Groups", "", block(record.get("recall", {}).get("selected_thread_groups", [])), "",
+        "## Selected Words", "", block(record.get("recall", {}).get("selected_words", [])), "",
+        "## Working Memory", "", block(wm), "",
+        "## Final Prompt", "", block(record.get("prompt", {}).get("text", "")), "",
+        "## LLM Response", "", block(record.get("response", {}).get("text", "")), "",
+        "## Evaluation", "",
+        "| Metric | Value |", "|---|---:|",
+        f"| Expected hits | {ev.get('expected_hit_count', 0)} |",
+        f"| Unexpected hits | {ev.get('unexpected_hit_count', 0)} |",
+        f"| Response used expected | {ev.get('response_used_expected_count', 0)} |",
+        f"| Response used unexpected | {ev.get('response_used_unexpected_count', 0)} |",
+        f"| Precision-like | {float(ev.get('precision_like', 0.0)):.3f} |",
+        f"| Prompt rough tokens | {record.get('prompt', {}).get('rough_tokens', 0)} |",
+        f"| Recall time ms | {float(timing.get('recall_ms', 0.0)):.1f} |",
+        f"| LLM response time ms | {float(timing.get('llm_response_ms', 0.0)):.1f} |", "",
+        "## Human Notes", "", "<!-- Add interpretation here. -->", "",
+    ]
+    return "\n".join(lines)
+
+
+def write_research_logs(jsonl_path: Path | None, md_dir: Path | None, records: list[dict[str, Any]]) -> None:
+    try:
+        if jsonl_path is not None:
+            write_jsonl(jsonl_path, records)
+        if md_dir is not None:
+            md_dir.mkdir(parents=True, exist_ok=True)
+            for record in records:
+                turn = int(record.get("turn") or 0)
+                prefix = f"{record.get('comparison_value')}_" if record.get("comparison_value") else ""
+                (md_dir / f"{prefix}turn_{turn:04d}.md").write_text(research_log_markdown(record), encoding="utf-8")
+    except Exception as exc:
+        print(f"[warn] Research Logger write failed: {exc}", file=sys.stderr)
 
 def evaluate_recall_turn(
     turn: int,
@@ -2778,6 +2937,7 @@ def run_sensitivity_trial(args: argparse.Namespace, dimension: str, value: Any, 
 
     store, extractor, engine, generator = build_components(trial_args)
     metrics_rows: list[dict[str, Any]] = []
+    research_records: list[dict[str, Any]] = []
     recall_times_ms: list[float] = []
     try:
         turns = load_eval_conversation(Path(trial_args.conversation_file))
@@ -2790,8 +2950,17 @@ def run_sensitivity_trial(args: argparse.Namespace, dimension: str, value: Any, 
                 event = run_eval_turn(item, trial_args, store, extractor, engine, generator)
             if event["mode"] in {"ask", "ask_no_response"}:
                 metrics_rows.append(event["metrics"])
+                if getattr(trial_args, "save_research_log", False):
+                    trial_args.research_experiment_name = Path(getattr(trial_args, "output_dir", "")).name
+                    trial_args.research_experiment_type = "baseline" if dimension == "baseline" else SENSITIVITY_EXPERIMENT_TYPES[dimension]
+                    trial_args.research_dimension = dimension
+                    trial_args.research_comparison_value = str(value)
+                    research_records.append(build_research_log_record(event, trial_args))
     finally:
         store.close()
+
+    if getattr(trial_args, "save_research_log", False):
+        write_research_logs(db_path.parent / "research_log.jsonl", db_path.parent / "research_log", research_records)
 
     expected = sum(int(r["expected_hit_count"]) for r in metrics_rows)
     unexpected = sum(int(r["unexpected_hit_count"]) for r in metrics_rows)
@@ -3008,11 +3177,19 @@ def cmd_sensitivity(args: argparse.Namespace) -> int:
             rows.extend(dict(r) for r in csv.DictReader(f))
 
     for parameter, value in plan:
+        db_name = "database.db" if getattr(args, "save_research_log", False) else ("baseline.sqlite" if parameter == "baseline" else f"{parameter}_{str(value).replace('.', '_')}.sqlite")
+        if getattr(args, "save_research_log", False):
+            trial_name = "baseline" if parameter == "baseline" else str(value)
+            db_path = report_dir / "trials" / trial_name / db_name
+        else:
+            db_path = report_dir / "db" / db_name
         if parameter != "baseline" and sensitivity_run_key(parameter, value) in completed:
-            print(f"[Sensitivity] skip completed {parameter}={value}")
-            continue
-        db_name = "baseline.sqlite" if parameter == "baseline" else f"{parameter}_{str(value).replace('.', '_')}.sqlite"
-        row = run_sensitivity_trial(args, parameter, value, report_dir / "db" / db_name)
+            research_log_ok = (not getattr(args, "save_research_log", False)) or (db_path.parent / "research_log.jsonl").exists()
+            if research_log_ok:
+                print(f"[Sensitivity] skip completed {parameter}={value}")
+                continue
+            print(f"[warn] completed {parameter}={value} is missing research_log.jsonl; re-running", file=sys.stderr)
+        row = run_sensitivity_trial(args, parameter, value, db_path)
         rows = [r for r in rows if not (r.get("dimension", r["parameter"]) == parameter and str(r["value"]) == str(value))]
         rows.append(row)
         print(f"[Sensitivity] done {parameter}={value}")
@@ -3162,6 +3339,8 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--report-md", required=True)
     p_eval.add_argument("--events-jsonl", required=True)
     p_eval.add_argument("--metrics-csv", required=True)
+    p_eval.add_argument("--research-log-jsonl", default="", help="Write one prompt/response research record per ask turn as UTF-8 JSONL. May contain private conversation content.")
+    p_eval.add_argument("--research-log-dir", default="", help="Write one prompt/response research Markdown file per ask turn. May contain private conversation content.")
     p_eval.add_argument("--no-reinforce", action="store_true")
     p_eval.add_argument("--no-response", action="store_true")
     p_eval.set_defaults(func=cmd_eval)
@@ -3177,6 +3356,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_sensitivity.add_argument("--seed", type=int, default=0)
     p_sensitivity.add_argument("--no-reinforce", action="store_true")
     p_sensitivity.add_argument("--no-response", action="store_true", default=True, help="Skip response generation so timing covers recall/prompt construction only (default).")
+    p_sensitivity.add_argument("--save-research-log", action="store_true", help="Save prompt/response research logs under each trial directory. Logs may contain private conversation content.")
     p_sensitivity.set_defaults(func=cmd_sensitivity)
 
     return parser
