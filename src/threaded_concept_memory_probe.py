@@ -2005,6 +2005,139 @@ def cmd_prompt_preview(args: argparse.Namespace) -> int:
         store.close()
 
 
+
+DEFAULT_EXTRACTOR_SCENARIO_FILE = Path(__file__).resolve().parent.parent / "eval_extractors" / "extractor_core_ja.jsonl"
+
+
+def load_extractor_scenarios(path: Path) -> list[dict[str, Any]]:
+    scenarios: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line_no, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{path}:{line_no}: invalid JSONL: {exc}") from exc
+            if not item.get("scenario") or not item.get("input"):
+                raise ValueError(f"{path}:{line_no}: scenario and input are required")
+            item.setdefault("category", item["scenario"])
+            item.setdefault("role", "user")
+            item.setdefault("expected_words", [])
+            item.setdefault("forbidden_words", [])
+            item.setdefault("bridge_words", [])
+            item.setdefault("compound_words", [])
+            item.setdefault("identity_words", [])
+            item.setdefault("participant_words", [])
+            scenarios.append(item)
+    return scenarios
+
+
+def _norm_word_set(words: list[Any]) -> set[str]:
+    return {normalize_word(str(word)) for word in words if normalize_word(str(word))}
+
+
+def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor, extractor_name: str) -> dict[str, Any]:
+    started = time.perf_counter()
+    raw_extracted = extractor.extract(str(item["input"]))
+    extracted = normalize_participant_references(str(item["input"]), str(item.get("role", "user")), raw_extracted)
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    extracted_words = [normalize_word(word.word) for word in extracted if normalize_word(word.word)]
+    extracted_set = set(extracted_words)
+    expected = _norm_word_set(list(item.get("expected_words", [])))
+    forbidden = _norm_word_set(list(item.get("forbidden_words", [])))
+    bridge = _norm_word_set(list(item.get("bridge_words", [])))
+    compound = _norm_word_set(list(item.get("compound_words", [])))
+    identity = _norm_word_set(list(item.get("identity_words", [])))
+    participants = _norm_word_set(list(item.get("participant_words", [])))
+
+    expected_hit_words = sorted(extracted_set & expected)
+    missing_expected = sorted(expected - extracted_set)
+    unexpected_words = sorted(extracted_set & forbidden)
+    denom_precision = len(expected_hit_words) + len(unexpected_words)
+    precision_like = (len(expected_hit_words) / denom_precision) if denom_precision else (1.0 if not unexpected_words else 0.0)
+    recall_like = (len(expected_hit_words) / len(expected)) if expected else 1.0
+    weights = [word.weight for word in extracted]
+
+    return {
+        "scenario": item["scenario"],
+        "category": item.get("category", ""),
+        "input": item["input"],
+        "extractor": extractor_name,
+        "extracted_words": extracted_words,
+        "expected": sorted(expected),
+        "forbidden": sorted(forbidden),
+        "missing_expected": missing_expected,
+        "unexpected": unexpected_words,
+        "expected_hit": len(expected_hit_words),
+        "unexpected_hit": len(unexpected_words),
+        "precision_like": precision_like,
+        "recall_like": recall_like,
+        "bridge_hit": len(extracted_set & bridge),
+        "bridge_total": len(bridge),
+        "identity_hit": len(extracted_set & identity),
+        "identity_total": len(identity),
+        "compound_hit": len(extracted_set & compound),
+        "compound_total": len(compound),
+        "participant_hit": len(extracted_set & participants),
+        "participant_total": len(participants),
+        "empty_extraction": not extracted_words,
+        "word_count": len(extracted_words),
+        "average_weight": sum(weights) / len(weights) if weights else 0.0,
+        "elapsed_ms": elapsed_ms,
+    }
+
+
+def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fields = ["scenario", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "elapsed_ms", "word_count"]
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({
+                "scenario": row["scenario"], "extractor": row["extractor"], "expected_hit": row["expected_hit"],
+                "missing_expected": " ".join(row["missing_expected"]), "unexpected": " ".join(row["unexpected"]),
+                "bridge_hit": f"{row['bridge_hit']}/{row['bridge_total']}", "compound_hit": f"{row['compound_hit']}/{row['compound_total']}",
+                "identity_hit": f"{row['identity_hit']}/{row['identity_total']}", "participant_hit": f"{row['participant_hit']}/{row['participant_total']}",
+                "elapsed_ms": f"{row['elapsed_ms']:.3f}", "word_count": row["word_count"],
+            })
+
+
+def build_extractor_eval_report(rows: list[dict[str, Any]], scenario_file: Path, extractor_name: str) -> str:
+    n = len(rows)
+    total = lambda key: sum(float(row[key]) for row in rows)
+    avg = lambda key: (total(key) / n) if n else 0.0
+    lines = [
+        "# Extractor Evaluation Report", "", f"- Extractor: `{extractor_name}`", f"- Scenario File: `{scenario_file}`", f"- Scenario Count: {n}",
+        f"- Expected Hit: {int(total('expected_hit'))}", f"- Missing: {sum(len(row['missing_expected']) for row in rows)}", f"- Unexpected: {int(total('unexpected_hit'))}",
+        f"- Bridge: {int(total('bridge_hit'))}/{int(total('bridge_total'))}", f"- Compound: {int(total('compound_hit'))}/{int(total('compound_total'))}",
+        f"- Identity: {int(total('identity_hit'))}/{int(total('identity_total'))}", f"- Average Time: {avg('elapsed_ms'):.3f} ms", f"- Average Word Count: {avg('word_count'):.2f}", "",
+        "| scenario | expected_hit | missing | unexpected | bridge | compound | identity | elapsed_ms | word_count |",
+        "|---|---:|---|---|---:|---:|---:|---:|---:|",
+    ]
+    for row in rows:
+        lines.append(f"| {row['scenario']} | {row['expected_hit']} | {' '.join(row['missing_expected'])} | {' '.join(row['unexpected'])} | {row['bridge_hit']}/{row['bridge_total']} | {row['compound_hit']}/{row['compound_total']} | {row['identity_hit']}/{row['identity_total']} | {row['elapsed_ms']:.3f} | {row['word_count']} |")
+    failures = [row for row in rows if row["missing_expected"] or row["unexpected"] or row["empty_extraction"]]
+    lines.extend(["", "## Failure Examples"] if failures else ["", "## Failure Examples", "", "None."])
+    for row in failures[:10]:
+        lines.append(f"- `{row['scenario']}` missing=`{', '.join(row['missing_expected'])}` unexpected=`{', '.join(row['unexpected'])}` input=`{row['input']}`")
+    return "\n".join(lines) + "\n"
+
+
+def cmd_eval_extractor(args: argparse.Namespace) -> int:
+    extractor = create_extractor(args)
+    scenarios = load_extractor_scenarios(Path(args.scenario))
+    rows = [evaluate_extractor_scenario(item, extractor, args.extractor) for item in scenarios]
+    write_extractor_eval_csv(Path(args.metrics_csv), rows)
+    write_jsonl(Path(args.details_jsonl), rows)
+    write_text(Path(args.report_md), build_extractor_eval_report(rows, Path(args.scenario), args.extractor))
+    print(f"[Extractor Eval] details_jsonl={args.details_jsonl}")
+    print(f"[Extractor Eval] metrics_csv={args.metrics_csv}")
+    print(f"[Extractor Eval] report_md={args.report_md}")
+    return 0
+
 def cmd_eval(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     events: list[dict[str, Any]] = []
@@ -3084,6 +3217,20 @@ def make_parser() -> argparse.ArgumentParser:
     p_preview.add_argument("text")
     p_preview.add_argument("--show-prompt", action="store_true")
     p_preview.set_defaults(func=cmd_prompt_preview)
+
+    p_eval_extractor = sub.add_parser("eval-extractor", aliases=["extractor-eval"])
+    p_eval_extractor.add_argument("--extractor", choices=["llm", "fallback"], default="llm")
+    p_eval_extractor.add_argument("--scenario", default=str(DEFAULT_EXTRACTOR_SCENARIO_FILE))
+    p_eval_extractor.add_argument("--base-url", default=os.getenv("LLM_BASE_URL", ""))
+    p_eval_extractor.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
+    p_eval_extractor.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
+    p_eval_extractor.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""))
+    p_eval_extractor.add_argument("--timeout", type=float, default=12.0)
+    p_eval_extractor.add_argument("--debug-extractor", action="store_true")
+    p_eval_extractor.add_argument("--metrics-csv", default="reports/extractor_eval_metrics.csv")
+    p_eval_extractor.add_argument("--details-jsonl", default="reports/extractor_eval_details.jsonl")
+    p_eval_extractor.add_argument("--report-md", default="reports/extractor_eval_report.md")
+    p_eval_extractor.set_defaults(func=cmd_eval_extractor)
 
     p_eval = sub.add_parser("eval")
     p_eval.add_argument("--conversation-file", required=True)

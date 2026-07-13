@@ -1,0 +1,14 @@
+{"scenario":"identity_assistant_noriko","category":"Identity","role":"assistant","input":"私の名前はのりこです。","expected_words":["@assistant","名前","のりこ"],"bridge_words":["名前"],"identity_words":["@assistant","名前","のりこ"],"participant_words":["@assistant"],"forbidden_words":["です","は","の"]}
+{"scenario":"identity_user_mitsuki","category":"Identity","role":"user","input":"僕の名前はみつきです。","expected_words":["@user","名前","みつき"],"bridge_words":["名前"],"identity_words":["@user","名前","みつき"],"participant_words":["@user"],"forbidden_words":["です","は","の"]}
+{"scenario":"preference_cheesecake","category":"Preference","role":"user","input":"僕はチーズケーキが好きです。","expected_words":["@user","チーズケーキ","好き"],"bridge_words":["好き"],"compound_words":["チーズケーキ"],"participant_words":["@user"],"forbidden_words":["です","は"]}
+{"scenario":"preference_tea","category":"Preference","role":"assistant","input":"私は紅茶が好きです。","expected_words":["@assistant","紅茶","好き"],"bridge_words":["好き"],"participant_words":["@assistant"],"forbidden_words":["です","は","が"]}
+{"scenario":"date_birthday_next_friday","category":"Date","role":"user","input":"来週の金曜日が誕生日です。","expected_words":["来週","金曜日","誕生日"],"bridge_words":["誕生日"],"compound_words":["来週","金曜日"],"forbidden_words":["です","が","の"]}
+{"scenario":"emotion_tired_work","category":"Emotion","role":"user","input":"今日は仕事で疲れた。","expected_words":["仕事","疲れた"],"forbidden_words":["今日は","で"]}
+{"scenario":"future_plan_movie","category":"Future Plan","role":"assistant","input":"今度一緒に映画を見に行こう。","expected_words":["今度","映画","見に行く"],"bridge_words":["今度"],"compound_words":["見に行く"],"forbidden_words":["を","に"]}
+{"scenario":"compound_pet_sora","category":"Compound Word","role":"user","input":"猫のソラを飼っていた。","expected_words":["猫","ソラ"],"compound_words":["猫","ソラ"],"forbidden_words":["の","を"]}
+{"scenario":"correction_ex_girlfriend","category":"Correction","role":"user","input":"元カノの話はやめて。","expected_words":["元カノ","話","やめて"],"forbidden_words":["の","は"]}
+{"scenario":"negation_coffee_not_tea","category":"Negation","role":"assistant","input":"今日は紅茶じゃなくてコーヒーが飲みたい。","expected_words":["紅茶","コーヒー","飲みたい"],"bridge_words":["紅茶","コーヒー"],"forbidden_words":["今日は","が"]}
+{"scenario":"participant_reference_you_like_tea","category":"Participant Reference","role":"user","input":"あなたは紅茶が好きだったよね。","expected_words":["@assistant","紅茶","好き"],"bridge_words":["好き"],"participant_words":["@assistant"],"forbidden_words":["は","が"]}
+{"scenario":"third_person_agreement","category":"Third Person","role":"user","input":"私もそう思う。","expected_words":["@user","思う"],"participant_words":["@user"],"forbidden_words":["も"]}
+{"scenario":"relationship_anniversary","category":"Relationship","role":"assistant","input":"今日は記念日。","expected_words":["記念日"],"bridge_words":["記念日"],"forbidden_words":["今日は"]}
+{"scenario":"conversation_bridge_yesterday_movie","category":"Conversation Bridge","role":"user","input":"昨日話した映画。","expected_words":["昨日","話した","映画"],"bridge_words":["昨日","映画"],"forbidden_words":[]}
