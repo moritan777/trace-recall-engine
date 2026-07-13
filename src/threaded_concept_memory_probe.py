@@ -63,6 +63,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
+from trace_recall.extractors import ExtractedWord, TraceExtractor, create_extractor, fallback_extract_words
+from trace_recall.extractors.base import clamp, dedupe_extracted_words, normalize_text, normalize_word, parse_json_object
+from trace_recall.extractors.llm import LLMTraceExtractor
+
 
 # This probe does not store sentences as memories.
 # It stores unique words and links them to experience threads.
@@ -171,11 +175,6 @@ class WordThreadLink:
     weight_in_thread: float
     added_at: str
 
-
-@dataclass
-class ExtractedWord:
-    word: str
-    weight: float
 
 
 @dataclass
@@ -670,154 +669,11 @@ class ThreadedConceptMemoryStore:
         self.conn.commit()
 
 
-class WordExtractor:
+class WordExtractor(LLMTraceExtractor):
+    """Backward-compatible LLM extractor name."""
+
     def __init__(self, base_url: str = "", api_key: str = "", model: str = "local-model", timeout_sec: float = 12.0, debug: bool = False) -> None:
-        self.base_url = normalize_llm_base_url(base_url or os.getenv("LLM_BASE_URL", ""))
-        self.api_key = api_key or os.getenv("LLM_API_KEY", "")
-        self.model = model or os.getenv("LLM_MODEL", "local-model")
-        self.timeout_sec = timeout_sec
-        self.debug = debug or os.getenv("LLM_EXTRACTOR_DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}
-
-    def extract(self, text: str) -> list[ExtractedWord]:
-        if self.base_url:
-            try:
-                print(f"[llm] extracting words via {self.base_url} model={self.model}", file=sys.stderr)
-                return self._extract_with_llm(text)
-            except Exception as exc:
-                print(f"[warn] LLM word extraction failed, fallback used: {exc}", file=sys.stderr)
-        return fallback_extract_words(text)
-
-    def _extract_with_llm(self, text: str) -> list[ExtractedWord]:
-        system = (
-            "You extract Japanese memory trigger words from an utterance.\n"
-            "\n"
-            "Do not classify words.\n"
-            "Do not infer relationship labels.\n"
-            "Do not rewrite the utterance as a summary.\n"
-            "Return strict JSON only.\n"
-            "\n"
-            "Schema:\n"
-            "{\"words\":[{\"word\":\"...\",\"weight\":1.0}]}\n"
-            "\n"
-            "Extract short words that may be useful for reconnecting the experience later.\n"
-            "\n"
-            "Include:\n"
-            "- people\n"
-            "- objects\n"
-            "- actions\n"
-            "- places\n"
-            "- feelings\n"
-            "- time expressions\n"
-            "- notable nouns, verbs, and adjectives\n"
-            "- short relational bridge words when they are necessary to reconnect concrete entities later\n"
-            "\n"
-            "A relational bridge word is an ordinary word such as:\n"
-            "名前, 好き, 嫌い, 誕生日, 約束, 仕事, 家族, 予定\n"
-            "\n"
-            "Do not return only the most specific proper noun when a short bridge word is necessary to reconstruct the connection later.\n"
-            "\n"
-            "Keep words short.\n"
-            "Use base/common forms when natural.\n"
-            "Avoid full sentences and long phrases.\n"
-            "\n"
-            "Weight range: 0.4 to 1.4.\n"
-            "Important concrete words may use 1.2 to 1.4.\n"
-            "Bridge words should normally use about 0.8 to 1.1.\n"
-            "\n"
-            "Examples:\n"
-            "\n"
-            "Input:\n"
-            "私の名前はのりこです。\n"
-            "\n"
-            "Output:\n"
-            "{\"words\":[\n"
-            "  {\"word\":\"名前\",\"weight\":1.0},\n"
-            "  {\"word\":\"のりこ\",\"weight\":1.4}\n"
-            "]}\n"
-            "\n"
-            "Input:\n"
-            "僕の名前はみつきです。\n"
-            "\n"
-            "Output:\n"
-            "{\"words\":[\n"
-            "  {\"word\":\"名前\",\"weight\":1.0},\n"
-            "  {\"word\":\"みつき\",\"weight\":1.4}\n"
-            "]}\n"
-            "\n"
-            "Input:\n"
-            "僕はチーズケーキが好きです。\n"
-            "\n"
-            "Output:\n"
-            "{\"words\":[\n"
-            "  {\"word\":\"チーズケーキ\",\"weight\":1.4},\n"
-            "  {\"word\":\"好き\",\"weight\":1.0}\n"
-            "]}\n"
-            "\n"
-            "Input:\n"
-            "今度一緒に映画を見に行こうね。\n"
-            "\n"
-            "Output:\n"
-            "{\"words\":[\n"
-            "  {\"word\":\"今度\",\"weight\":0.9},\n"
-            "  {\"word\":\"映画\",\"weight\":1.3},\n"
-            "  {\"word\":\"見に行く\",\"weight\":1.0}\n"
-            "]}\n"
-            "\n"
-            "Return JSON only."
-        )
-        user_message = f"Input:\n{text}\n\nReturn JSON only."
-        if self.debug:
-            print("[LLM Extractor Debug] system prompt BEGIN", file=sys.stderr)
-            print(system, file=sys.stderr)
-            print("[LLM Extractor Debug] system prompt END", file=sys.stderr)
-            print("[LLM Extractor Debug] user message BEGIN", file=sys.stderr)
-            print(user_message, file=sys.stderr)
-            print("[LLM Extractor Debug] user message END", file=sys.stderr)
-
-        content = call_openai_compatible_chat(
-            base_url=self.base_url,
-            api_key=self.api_key,
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=0.0,
-            max_tokens=256,
-            timeout_sec=self.timeout_sec,
-        )
-        if self.debug:
-            print("[LLM Extractor Debug] raw response BEGIN", file=sys.stderr)
-            print(content, file=sys.stderr)
-            print("[LLM Extractor Debug] raw response END", file=sys.stderr)
-
-        data = parse_json_object(content)
-        words_raw = data.get("words", [])
-        if self.debug:
-            print("[LLM Extractor Debug] parsed words raw=" + json.dumps(words_raw, ensure_ascii=False), file=sys.stderr)
-        words: list[ExtractedWord] = []
-        removed_items: list[Any] = []
-        for item in words_raw:
-            if not isinstance(item, dict):
-                removed_items.append(item)
-                continue
-            word = normalize_word(str(item.get("word", "")))
-            if not word:
-                removed_items.append(item)
-                continue
-            try:
-                weight = float(item.get("weight", 1.0))
-            except Exception:
-                weight = 1.0
-            words.append(ExtractedWord(word, clamp(weight, 0.1, 2.0)))
-        deduped_words = dedupe_extracted_words(words)
-        final_words = deduped_words or fallback_extract_words(text)
-        if self.debug:
-            print("[LLM Extractor Debug] python normalized words=" + json.dumps([w.__dict__ for w in words], ensure_ascii=False), file=sys.stderr)
-            print("[LLM Extractor Debug] python removed items=" + json.dumps(removed_items, ensure_ascii=False), file=sys.stderr)
-            print("[LLM Extractor Debug] final words=" + json.dumps([w.__dict__ for w in final_words], ensure_ascii=False), file=sys.stderr)
-            print(f"[LLM Extractor Debug] contains 名前 after python filter={'名前' in {w.word for w in final_words}}", file=sys.stderr)
-        return final_words
+        super().__init__(base_url, api_key, model, timeout_sec, debug, chat_client=lambda **kwargs: call_openai_compatible_chat(**kwargs), normalize_base_url=normalize_llm_base_url)
 
 
 def normalize_participant_references(
@@ -1665,95 +1521,6 @@ def check_openai_compatible_health(base_url: str, timeout_sec: float = 3.0) -> t
     return False, last_error
 
 
-def parse_json_object(text: str) -> dict[str, Any]:
-    text = text.strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-    if not match:
-        raise ValueError("No JSON object found in LLM output.")
-    return json.loads(match.group(0))
-
-
-def fallback_extract_words(text: str) -> list[ExtractedWord]:
-    text = normalize_text(text)
-    known_terms = [
-        "チーズケーキ", "コーヒー", "紅茶", "好き",
-        "カフェ", "帰り", "食べる", "映画", "ポップコーン",
-        "カッターナイフ", "カッター", "怪我", "苦手", "昔",
-        "誕生日", "記念日", "猫", "ペット", "ギター",
-    ]
-
-    found: list[ExtractedWord] = []
-    for term in known_terms:
-        if term in text:
-            found.append(ExtractedWord(term, 1.2 if len(term) >= 4 else 1.0))
-
-    if "ケーキ" in text and "チーズケーキ" not in [w.word for w in found]:
-        found.append(ExtractedWord("ケーキ", 1.0))
-    if "カッター" in text and "カッターナイフ" not in [w.word for w in found]:
-        found.append(ExtractedWord("カッターナイフ", 0.9))
-
-    chunks = re.findall(r"[A-Za-z0-9]+|[ぁ-んァ-ン一-龥ー]{2,}", text)
-    stop = {"です", "ます", "す", "だった", "って", "これ", "それ", "今日", "明日", "昨日", "する", "した", "ある", "いる", "もの", "なもの"}
-    for ch in chunks:
-        ch = normalize_word(ch)
-        if not ch or ch in stop:
-            continue
-        should_keep_chunk = not (len(ch) >= 8 and re.search(r"[はがをにへでとてもやの]", ch))
-        if should_keep_chunk and not any(ch in term and ch != term for term in known_terms):
-            found.append(ExtractedWord(ch, 0.8))
-
-        # Lightweight fallback tokenization for unsegmented Japanese text.
-        # Split on common particles so names and other nouns enter the same
-        # normal Trace path, without any person/name dictionary or score boost.
-        # Do not split word-initial 「の」: names such as 「のりこ」 and 「のぞみ」
-        # must stay intact as ordinary words, not as special person anchors.
-        for part in split_japanese_particles(ch):
-            part = normalize_word(part)
-            if not part or part in stop or part == ch:
-                continue
-            if any(part in term and part != term for term in known_terms):
-                continue
-            found.append(ExtractedWord(part, 0.8))
-
-    return dedupe_extracted_words(found)
-
-
-def split_japanese_particles(text: str) -> list[str]:
-    """Split lightweight Japanese fallback chunks without damaging word-initial 「の」."""
-    split_particles = set("はがをにへでともや")
-    boundary_particles = split_particles | {"の"}
-    parts: list[str] = []
-    start = 0
-    for index, char in enumerate(text):
-        should_split = char in split_particles
-        if char == "の":
-            previous = text[index - 1] if index > 0 else ""
-            # Treat 「の」 as a particle only when it has a real word on its left.
-            # This preserves word-initial 「の」 after another particle, e.g.
-            # 「私の名前はのりこです」 -> 「私」/「名前」/「のりこ」.
-            should_split = index > start and previous not in boundary_particles
-        if should_split:
-            if start < index:
-                parts.append(text[start:index])
-            start = index + 1
-    if start < len(text):
-        parts.append(text[start:])
-    return parts
-
-
-def dedupe_extracted_words(words: list[ExtractedWord]) -> list[ExtractedWord]:
-    d: dict[str, float] = {}
-    for item in words:
-        word = normalize_word(item.word)
-        if not word:
-            continue
-        d[word] = max(d.get(word, 0.0), clamp(item.weight, 0.1, 2.0))
-    return [ExtractedWord(w, weight) for w, weight in sorted(d.items(), key=lambda kv: kv[1], reverse=True)]
-
 
 def match_known_words(input_word: str, known_words: list[str]) -> list[tuple[str, float]]:
     input_word = normalize_word(input_word)
@@ -1961,17 +1728,16 @@ def build_gate(args: argparse.Namespace, store: Optional[ThreadedConceptMemorySt
     )
 
 
-def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemoryStore, WordExtractor, ActivationEngine, ResponseGenerator]:
+def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemoryStore, TraceExtractor, ActivationEngine, ResponseGenerator]:
     store = ThreadedConceptMemoryStore(args.db)
-    extractor_model = getattr(args, "extractor_model", "") or args.model
     response_model = getattr(args, "response_model", "") or args.model
-    extractor = WordExtractor(args.base_url, args.api_key, extractor_model, args.timeout, debug=getattr(args, "debug_extractor", False))
+    extractor = create_extractor(args, chat_client=call_openai_compatible_chat, normalize_base_url=normalize_llm_base_url)
     engine = ActivationEngine(store, args.half_life_days, args.max_depth, args.common_bonus, args.mutual_amplification, args.thread_strength_mode)
     generator = ResponseGenerator(args.base_url, args.api_key, response_model, args.timeout)
     return store, extractor, engine, generator
 
 
-def extract_normalized_words(args: argparse.Namespace, extractor: WordExtractor, text: str, role: str) -> list[ExtractedWord]:
+def extract_normalized_words(args: argparse.Namespace, extractor: TraceExtractor, text: str, role: str) -> list[ExtractedWord]:
     words = extractor.extract(text)
     if getattr(args, "disable_participant_reference", False):
         return words
@@ -2468,6 +2234,7 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
         "input_text": event.get("user", ""),
         "created_by": event.get("role", "user"),
         "extractor": {
+            "extractor_name": getattr(args, "extractor", "llm"),
             "raw_words": event.get("raw_words", []),
             "normalized_words": event.get("normalized_words", []),
         },
@@ -3240,6 +3007,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--chat-base-url", default="")
     parser.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
     parser.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
+    parser.add_argument("--extractor", choices=["llm", "fallback"], default="llm", help="Trace extractor implementation to use; defaults to llm.")
     parser.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""), help="Optional model override for word extraction; defaults to --model.")
     parser.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""), help="Optional model override for response generation; defaults to --model.")
     parser.add_argument("--debug-extractor", action="store_true", help="Print LLM extractor prompt, raw response, parsed words, and Python-filtered words.")
@@ -3324,6 +3092,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--chat-base-url", default="")
     p_eval.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
     p_eval.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
+    p_eval.add_argument("--extractor", choices=["llm", "fallback"], default="llm")
     p_eval.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""))
     p_eval.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""))
     p_eval.add_argument("--debug-extractor", action="store_true")
