@@ -4,11 +4,16 @@ This document is a pre-implementation research plan. It does not describe an imp
 
 ## Scope
 
+### Boundary introduced in Phase 1
+
+- A common Extractor contract is defined in `src/trace_recall/extractors/base.py`.
+- The existing LLM Extractor is split into `src/trace_recall/extractors/llm.py`.
+- The existing fallback Extractor is split into `src/trace_recall/extractors/fallback.py`.
+- `src/trace_recall/extractors/factory.py` creates extractors from CLI configuration.
+- `src/trace_recall/extractors/local_rule.py` is only a placeholder for the future deterministic Trace-specific extractor.
+
 ### Planned for the next Extractor research phase
 
-- Define a common Extractor contract.
-- Split the existing LLM Extractor into an explicit module boundary.
-- Split the existing fallback Extractor into an explicit module boundary.
 - Implement a local-rule candidate.
 - Compare Extractors through the same downstream recall pipeline.
 - Run PC evaluation first.
@@ -25,7 +30,7 @@ This document is a pre-implementation research plan. It does not describe an imp
 
 ## Proposed Module Boundary
 
-The proposed structure is Not Yet Implemented:
+The Phase 1 module boundary is implemented as:
 
 ```text
 src/
@@ -40,7 +45,7 @@ src/
         └── factory.py
 ```
 
-The current code still keeps the LLM Extractor and fallback extraction path in `src/threaded_concept_memory_probe.py`.
+The engine now obtains an extractor from the factory and calls `extractor.extract(text)`. Participant Reference Normalization remains outside the extractor boundary.
 
 ## Extraction Boundary
 

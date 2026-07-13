@@ -66,9 +66,9 @@ Examples include:
 
 The extractor should remain lightweight whenever possible.
 
-The current research Baseline uses an Implemented LLM Extractor when an endpoint is configured. Without an endpoint, the implementation falls back to an Implemented diagnostic fallback extraction path.
+The current research Baseline uses an Implemented LLM Extractor when an endpoint is configured. Without an endpoint, or when `--extractor fallback` is selected, the implementation uses the Implemented diagnostic fallback extraction path.
 
-Extraction is intentionally treated as a replaceable boundary. The recall pipeline does not depend on one specific extraction method.
+Extraction is intentionally treated as a replaceable boundary under `src/trace_recall/extractors/`. The recall pipeline depends on the common extractor contract rather than one specific extraction method.
 
 The next research phase will compare the current LLM Extractor with deterministic local alternatives while keeping Trace Memory, Raw Activation, Recall Selection, Working Memory, and prompt generation fixed. A Trace-specific Local Rule Extractor is Planned; morphological-analysis-assisted extraction remains a Candidate and is not selected.
 

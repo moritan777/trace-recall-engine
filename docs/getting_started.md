@@ -142,7 +142,7 @@ The current research Baseline uses the LLM Extractor when an endpoint is configu
 
 Without an endpoint, the probe uses an Implemented fallback extraction path. The fallback path is intended for diagnostics and basic operation; it is not yet the selected production Extractor.
 
-A deterministic local Extractor is the next major research target. There is currently no `--extractor` CLI option.
+A deterministic local Extractor is the next major research target. The CLI now exposes `--extractor` with `llm` (default) and `fallback` so the existing implementations can be selected through the same boundary; `local-rule`, Sudachi, and MeCab extractors are not implemented yet.
 
 ---
 

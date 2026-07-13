@@ -21,7 +21,7 @@ Trace Recall Engine is a research prototype. It stores traces rather than recons
 
 ## Largest Open Constraint: Trace Extraction
 
-Current Trace Extraction is LLM-dependent when an endpoint is configured. This LLM Extractor is not a failure; it is useful as an Implemented research Baseline because it made rapid experimentation possible. However, it introduces important constraints:
+Current Trace Extraction is behind a replaceable extractor boundary. The default remains LLM-dependent when an endpoint is configured. This LLM Extractor is not a failure; it is useful as an Implemented research Baseline because it made rapid experimentation possible. However, it introduces important constraints:
 
 - additional LLM calls
 - communication and latency cost
@@ -31,7 +31,7 @@ Current Trace Extraction is LLM-dependent when an endpoint is configured. This L
 - possible bridge-word omissions such as missing a word that connects a name question to stored name traces
 - poor fit for fully on-device use
 
-Without an endpoint, the current implementation uses an Implemented fallback Extractor path. That path is useful for diagnostics and basic operation, but it is not yet the selected production Extractor.
+Without an endpoint, or when `--extractor fallback` is selected, the current implementation uses an Implemented fallback Extractor path. That path is useful for diagnostics and basic operation, but it is not yet the selected production Extractor.
 
 ## Next Research Hypothesis
 
