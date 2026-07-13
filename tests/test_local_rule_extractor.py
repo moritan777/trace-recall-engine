@@ -47,3 +47,40 @@ class LocalRuleTraceExtractorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class _FakeTraceVocabulary:
+    def __init__(self, words):
+        self.words = words
+        self.calls = 0
+
+    def get_trace_vocabulary(self):
+        self.calls += 1
+        return list(self.words)
+
+
+class DynamicTraceDictionaryTests(unittest.TestCase):
+    def test_trace_dictionary_longest_match_prefix_conflict(self):
+        provider = _FakeTraceVocabulary([
+            ("AI", 1.0),
+            ("AIKanojyo", 1.2),
+            ("AIKanojyo Project", 1.5),
+        ])
+        extractor = LocalRuleTraceExtractor(trace_vocabulary=provider)
+        extracted = {item.word for item in extractor.extract("AIKanojyo Projectを作る")}
+        self.assertIn("AIKanojyo Project", extracted)
+        self.assertNotIn("AIKanojyo", extracted)
+        self.assertNotIn("AI", extracted)
+        self.assertTrue(extractor.last_diagnostics["longest_match_success"])
+
+    def test_trace_dictionary_overlap_keeps_only_longest_span(self):
+        provider = _FakeTraceVocabulary([("長期", 1.0), ("長期記憶", 1.3)])
+        extractor = LocalRuleTraceExtractor(trace_vocabulary=provider)
+        extracted = {item.word for item in extractor.extract("長期記憶を実装した")}
+        self.assertIn("長期記憶", extracted)
+        self.assertNotIn("長期", extracted)
+
+    def test_unregistered_words_continue_to_local_rules(self):
+        extractor = LocalRuleTraceExtractor(trace_vocabulary=_FakeTraceVocabulary([]))
+        extracted = {item.word for item in extractor.extract("僕はチーズケーキが好きです。")}
+        self.assertTrue({"チーズケーキ", "好き"} <= extracted)

@@ -283,6 +283,7 @@ class ThreadedConceptMemoryStore:
         self.db_path = db_path
         self.conn = sqlite3.connect(db_path)
         self.conn.row_factory = sqlite3.Row
+        self._trace_vocabulary_cache: list[tuple[str, float]] | None = None
         self.init_schema()
 
     def _ensure_thread_columns(self) -> None:
@@ -437,6 +438,7 @@ class ThreadedConceptMemoryStore:
                 for word, weight in normalized.items():
                     self._upsert_word_node(cur, word, weight, now)
                 self.conn.commit()
+                self.invalidate_trace_vocabulary_cache()
                 return thread_id
 
         thread_id = "thread_" + uuid.uuid4().hex[:12]
@@ -458,6 +460,7 @@ class ThreadedConceptMemoryStore:
                 (word_id, thread_id, weight, now),
             )
         self.conn.commit()
+        self.invalidate_trace_vocabulary_cache()
         return thread_id
 
     def _upsert_word_node(self, cur: sqlite3.Cursor, word: str, weight: float, now: str) -> str:
@@ -508,6 +511,41 @@ class ThreadedConceptMemoryStore:
     def get_all_words(self) -> list[str]:
         rows = self.conn.execute("SELECT word FROM words ORDER BY word").fetchall()
         return [r["word"] for r in rows]
+
+    def invalidate_trace_vocabulary_cache(self) -> None:
+        self._trace_vocabulary_cache = None
+
+    def get_trace_vocabulary(self) -> list[tuple[str, float]]:
+        """Return a memory mirror of existing Trace DB words for protected-span detection.
+
+        This method intentionally uses the existing words table only. It performs one
+        SELECT on first use or after invalidation, then serves the local-rule
+        extractor from memory so extraction does not scan SQLite every turn.
+        """
+        if self._trace_vocabulary_cache is not None:
+            return list(self._trace_vocabulary_cache)
+        rows = self.conn.execute(
+            """
+            SELECT word, weight, seen_count, last_seen
+            FROM words
+            ORDER BY length(word) DESC, seen_count DESC, last_seen DESC, word ASC
+            """
+        ).fetchall()
+        now = now_iso()
+        self._trace_vocabulary_cache = [
+            (row["word"], self._trace_vocabulary_score(float(row["weight"]), int(row["seen_count"]), str(row["last_seen"]), now))
+            for row in rows
+        ]
+        return list(self._trace_vocabulary_cache)
+
+    def _trace_vocabulary_score(self, weight: float, seen_count: int, last_seen: str, now: str) -> float:
+        try:
+            age_days = max(0.0, (dt.datetime.fromisoformat(now) - dt.datetime.fromisoformat(last_seen)).total_seconds() / 86400.0)
+        except ValueError:
+            age_days = 0.0
+        decay = 0.5 ** (age_days / 30.0)
+        frequency = max(1, seen_count)
+        return min(2.0, max(0.1, weight * (1.0 + min(frequency, 10) / 10.0) * decay))
 
     def get_links_for_word(self, word_id: str) -> list[WordThreadLink]:
         rows = self.conn.execute(
@@ -1732,6 +1770,8 @@ def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemorySto
     store = ThreadedConceptMemoryStore(args.db)
     response_model = getattr(args, "response_model", "") or args.model
     extractor = create_extractor(args, chat_client=call_openai_compatible_chat, normalize_base_url=normalize_llm_base_url)
+    if hasattr(extractor, "set_trace_vocabulary_provider"):
+        extractor.set_trace_vocabulary_provider(store)
     engine = ActivationEngine(store, args.half_life_days, args.max_depth, args.common_bonus, args.mutual_amplification, args.thread_strength_mode)
     generator = ResponseGenerator(args.base_url, args.api_key, response_model, args.timeout)
     return store, extractor, engine, generator
@@ -2156,11 +2196,16 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         **token_diagnostics,
         **novel_diagnostics,
         "llm_fallback_used": bool(getattr(extractor, "last_fallback_used", False)),
+        "protected_match_count": getattr(extractor, "last_diagnostics", {}).get("protected_match_count", 0),
+        "protected_match_length": getattr(extractor, "last_diagnostics", {}).get("protected_match_length", 0),
+        "db_dictionary_hit_rate": getattr(extractor, "last_diagnostics", {}).get("db_dictionary_hit_rate", 0.0),
+        "longest_match_success": getattr(extractor, "last_diagnostics", {}).get("longest_match_success", True),
+        "dictionary_coverage": getattr(extractor, "last_diagnostics", {}).get("dictionary_coverage", 0.0),
     }
 
 def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "elapsed_ms", "word_count"]
+    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "protected_match_count", "protected_match_length", "db_dictionary_hit_rate", "longest_match_success", "dictionary_coverage", "elapsed_ms", "word_count"]
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -2174,6 +2219,9 @@ def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                 "long_token_count": row["long_token_count"], "very_long_token_count": row["very_long_token_count"],
                 "average_token_length": f"{row['average_token_length']:.2f}", "max_token_length": row["max_token_length"],
                 "whole_sentence_like_token_count": row["whole_sentence_like_token_count"],
+                "protected_match_count": row.get("protected_match_count", 0), "protected_match_length": row.get("protected_match_length", 0),
+                "db_dictionary_hit_rate": f"{float(row.get('db_dictionary_hit_rate', 0.0)):.3f}", "longest_match_success": row.get('longest_match_success', True),
+                "dictionary_coverage": f"{float(row.get('dictionary_coverage', 0.0)):.3f}",
                 "elapsed_ms": f"{row['elapsed_ms']:.3f}", "word_count": row["word_count"],
             })
 
@@ -2225,7 +2273,7 @@ def build_extractor_eval_report(rows: list[dict[str, Any]], scenario_file: Path,
     ]
     for row in _build_category_summary(rows):
         lines.append(f"| {row['category']} | {row['scenario_count']} | {row['expected_hit']} | {row['missing']} | {row['unexpected']} | {row['empty']} | {_ratio(row['bridge_hit'], row['bridge_total'])} | {_ratio(row['compound_hit'], row['compound_total'])} | {_ratio(row['novel_hit'], row['novel_total'])} | {row['average_word_count']:.2f} | {row['average_elapsed_ms']:.3f} |")
-    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
+    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Protected Span Diagnostics", "", f"- Protected Match Count: {int(total('protected_match_count'))}", f"- Protected Match Length: {int(total('protected_match_length'))}", f"- Average DB Dictionary Hit Rate: {avg('db_dictionary_hit_rate'):.3f}", f"- Longest Match Success: {sum(1 for row in rows if row.get('longest_match_success', True))}/{n}", f"- Average Dictionary Coverage: {avg('dictionary_coverage'):.3f}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
     for row in rows:
         missing = list(row["missing_expected"]) + ["/".join(group) for group in row.get("missing_expected_any_groups", [])]
         lines.append(f"| {row['scenario']} | {row['expected_hit']} | {' '.join(missing)} | {' '.join(row['unexpected'])} | {row['bridge_hit']}/{row['bridge_total']} | {row['compound_hit']}/{row['compound_total']} | {row['novel_term_exact_hit_count']}/{row['novel_term_total']} | {row['elapsed_ms']:.3f} | {row['word_count']} |")
