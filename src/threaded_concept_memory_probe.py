@@ -2020,8 +2020,12 @@ def load_extractor_scenarios(path: Path) -> list[dict[str, Any]]:
                 item = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise ValueError(f"{path}:{line_no}: invalid JSONL: {exc}") from exc
+            if not item.get("scenario") and item.get("id"):
+                item["scenario"] = item["id"]
+            if not item.get("input") and item.get("text"):
+                item["input"] = item["text"]
             if not item.get("scenario") or not item.get("input"):
-                raise ValueError(f"{path}:{line_no}: scenario and input are required")
+                raise ValueError(f"{path}:{line_no}: scenario/id and input/text are required")
             item.setdefault("category", item["scenario"])
             item.setdefault("role", "user")
             item.setdefault("expected_words", [])
@@ -2030,6 +2034,8 @@ def load_extractor_scenarios(path: Path) -> list[dict[str, Any]]:
             item.setdefault("compound_words", [])
             item.setdefault("identity_words", [])
             item.setdefault("participant_words", [])
+            item.setdefault("expected_any_groups", [])
+            item.setdefault("novel_terms", [])
             scenarios.append(item)
     return scenarios
 
@@ -2038,11 +2044,64 @@ def _norm_word_set(words: list[Any]) -> set[str]:
     return {normalize_word(str(word)) for word in words if normalize_word(str(word))}
 
 
+def _count_expected_any_group_hits(extracted_set: set[str], groups: list[Any]) -> tuple[int, int, list[list[str]]]:
+    normalized_groups: list[list[str]] = []
+    for group in groups:
+        if not isinstance(group, list):
+            continue
+        normalized = [normalize_word(str(word)) for word in group if normalize_word(str(word))]
+        if normalized:
+            normalized_groups.append(normalized)
+    missing = [group for group in normalized_groups if not (set(group) & extracted_set)]
+    return len(normalized_groups) - len(missing), len(normalized_groups), missing
+
+
+def _token_length_diagnostics(words: list[str], source_text: str) -> dict[str, Any]:
+    lengths = [len(word) for word in words]
+    source_len = len(normalize_text(source_text))
+    whole_sentence_threshold = source_len * 0.70 if source_len else 0
+    return {
+        "long_token_count": sum(1 for length in lengths if length >= 8),
+        "very_long_token_count": sum(1 for length in lengths if length >= 16),
+        "average_token_length": (sum(lengths) / len(lengths)) if lengths else 0.0,
+        "max_token_length": max(lengths) if lengths else 0,
+        "whole_sentence_like_token_count": sum(1 for length in lengths if source_len and length >= whole_sentence_threshold),
+    }
+
+
+def _novel_term_diagnostics(words: list[str], novel_terms: list[Any]) -> dict[str, Any]:
+    normalized_terms = [normalize_word(str(term)) for term in novel_terms if normalize_word(str(term))]
+    exact_hits: list[str] = []
+    partial_hits: list[str] = []
+    missing: list[str] = []
+    word_set = set(words)
+    for term in normalized_terms:
+        if term in word_set:
+            exact_hits.append(term)
+        elif any(term in word or word in term for word in words):
+            partial_hits.append(term)
+        else:
+            missing.append(term)
+    total = len(normalized_terms)
+    return {
+        "novel_terms": normalized_terms,
+        "novel_term_total": total,
+        "novel_term_exact_hit_count": len(exact_hits),
+        "novel_term_partial_hit_count": len(partial_hits),
+        "novel_term_missing_count": len(missing),
+        "novel_term_exact_retention_rate": (len(exact_hits) / total) if total else 1.0,
+        "novel_term_exact_hits": exact_hits,
+        "novel_term_partial_hits": partial_hits,
+        "novel_term_missing": missing,
+    }
+
+
 def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor, extractor_name: str) -> dict[str, Any]:
     started = time.perf_counter()
     raw_extracted = extractor.extract(str(item["input"]))
     extracted = normalize_participant_references(str(item["input"]), str(item.get("role", "user")), raw_extracted)
     elapsed_ms = (time.perf_counter() - started) * 1000.0
+    raw_extracted_words = [normalize_word(word.word) for word in raw_extracted if normalize_word(word.word)]
     extracted_words = [normalize_word(word.word) for word in extracted if normalize_word(word.word)]
     extracted_set = set(extracted_words)
     expected = _norm_word_set(list(item.get("expected_words", [])))
@@ -2051,26 +2110,34 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
     compound = _norm_word_set(list(item.get("compound_words", [])))
     identity = _norm_word_set(list(item.get("identity_words", [])))
     participants = _norm_word_set(list(item.get("participant_words", [])))
+    any_hit, any_total, missing_any_groups = _count_expected_any_group_hits(extracted_set, list(item.get("expected_any_groups", [])))
 
     expected_hit_words = sorted(extracted_set & expected)
     missing_expected = sorted(expected - extracted_set)
     unexpected_words = sorted(extracted_set & forbidden)
-    denom_precision = len(expected_hit_words) + len(unexpected_words)
-    precision_like = (len(expected_hit_words) / denom_precision) if denom_precision else (1.0 if not unexpected_words else 0.0)
-    recall_like = (len(expected_hit_words) / len(expected)) if expected else 1.0
+    denom_precision = len(expected_hit_words) + any_hit + len(unexpected_words)
+    precision_like = ((len(expected_hit_words) + any_hit) / denom_precision) if denom_precision else (1.0 if not unexpected_words else 0.0)
+    recall_denominator = len(expected) + any_total
+    recall_like = ((len(expected_hit_words) + any_hit) / recall_denominator) if recall_denominator else 1.0
     weights = [word.weight for word in extracted]
+    token_diagnostics = _token_length_diagnostics(extracted_words, str(item["input"]))
+    novel_diagnostics = _novel_term_diagnostics(extracted_words, list(item.get("novel_terms", [])))
 
     return {
         "scenario": item["scenario"],
         "category": item.get("category", ""),
         "input": item["input"],
         "extractor": extractor_name,
-        "extracted_words": extracted_words,
+        "extracted_words": raw_extracted_words,
+        "normalized_words": extracted_words,
         "expected": sorted(expected),
         "forbidden": sorted(forbidden),
         "missing_expected": missing_expected,
+        "missing_expected_any_groups": missing_any_groups,
         "unexpected": unexpected_words,
-        "expected_hit": len(expected_hit_words),
+        "expected_hit": len(expected_hit_words) + any_hit,
+        "expected_any_group_hit": any_hit,
+        "expected_any_group_total": any_total,
         "unexpected_hit": len(unexpected_words),
         "precision_like": precision_like,
         "recall_like": recall_like,
@@ -2086,45 +2153,88 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         "word_count": len(extracted_words),
         "average_weight": sum(weights) / len(weights) if weights else 0.0,
         "elapsed_ms": elapsed_ms,
+        **token_diagnostics,
+        **novel_diagnostics,
+        "llm_fallback_used": bool(getattr(extractor, "last_fallback_used", False)),
     }
-
 
 def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["scenario", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "elapsed_ms", "word_count"]
+    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "elapsed_ms", "word_count"]
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for row in rows:
             writer.writerow({
-                "scenario": row["scenario"], "extractor": row["extractor"], "expected_hit": row["expected_hit"],
+                "scenario": row["scenario"], "category": row.get("category", ""), "extractor": row["extractor"], "expected_hit": row["expected_hit"],
                 "missing_expected": " ".join(row["missing_expected"]), "unexpected": " ".join(row["unexpected"]),
                 "bridge_hit": f"{row['bridge_hit']}/{row['bridge_total']}", "compound_hit": f"{row['compound_hit']}/{row['compound_total']}",
                 "identity_hit": f"{row['identity_hit']}/{row['identity_total']}", "participant_hit": f"{row['participant_hit']}/{row['participant_total']}",
+                "novel_term_hit": f"{row['novel_term_exact_hit_count']}/{row['novel_term_total']}",
+                "long_token_count": row["long_token_count"], "very_long_token_count": row["very_long_token_count"],
+                "average_token_length": f"{row['average_token_length']:.2f}", "max_token_length": row["max_token_length"],
+                "whole_sentence_like_token_count": row["whole_sentence_like_token_count"],
                 "elapsed_ms": f"{row['elapsed_ms']:.3f}", "word_count": row["word_count"],
             })
+
+
+def _ratio(hit: float, total_value: float) -> str:
+    return f"{(hit / total_value * 100.0):.1f}%" if total_value else "n/a"
+
+
+def _build_category_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    categories = sorted({str(row.get("category", "")) for row in rows})
+    summary: list[dict[str, Any]] = []
+    for category in categories:
+        subset = [row for row in rows if str(row.get("category", "")) == category]
+        n = len(subset)
+        summary.append({
+            "category": category,
+            "scenario_count": n,
+            "expected_hit": sum(int(row["expected_hit"]) for row in subset),
+            "missing": sum(len(row["missing_expected"]) + len(row.get("missing_expected_any_groups", [])) for row in subset),
+            "unexpected": sum(int(row["unexpected_hit"]) for row in subset),
+            "empty": sum(1 for row in subset if row["empty_extraction"]),
+            "bridge_hit": sum(int(row["bridge_hit"]) for row in subset),
+            "bridge_total": sum(int(row["bridge_total"]) for row in subset),
+            "compound_hit": sum(int(row["compound_hit"]) for row in subset),
+            "compound_total": sum(int(row["compound_total"]) for row in subset),
+            "novel_hit": sum(int(row["novel_term_exact_hit_count"]) for row in subset),
+            "novel_total": sum(int(row["novel_term_total"]) for row in subset),
+            "average_word_count": sum(float(row["word_count"]) for row in subset) / n if n else 0.0,
+            "average_elapsed_ms": sum(float(row["elapsed_ms"]) for row in subset) / n if n else 0.0,
+        })
+    return summary
 
 
 def build_extractor_eval_report(rows: list[dict[str, Any]], scenario_file: Path, extractor_name: str) -> str:
     n = len(rows)
     total = lambda key: sum(float(row[key]) for row in rows)
     avg = lambda key: (total(key) / n) if n else 0.0
+    missing_count = sum(len(row["missing_expected"]) + len(row.get("missing_expected_any_groups", [])) for row in rows)
+    novel_hit = int(total("novel_term_exact_hit_count"))
+    novel_total = int(total("novel_term_total"))
     lines = [
         "# Extractor Evaluation Report", "", f"- Extractor: `{extractor_name}`", f"- Scenario File: `{scenario_file}`", f"- Scenario Count: {n}",
-        f"- Expected Hit: {int(total('expected_hit'))}", f"- Missing: {sum(len(row['missing_expected']) for row in rows)}", f"- Unexpected: {int(total('unexpected_hit'))}",
+        f"- Expected Hit: {int(total('expected_hit'))}", f"- Missing: {missing_count}", f"- Unexpected: {int(total('unexpected_hit'))}",
         f"- Bridge: {int(total('bridge_hit'))}/{int(total('bridge_total'))}", f"- Compound: {int(total('compound_hit'))}/{int(total('compound_total'))}",
+        f"- Novel Term Exact Retention: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})",
         f"- Identity: {int(total('identity_hit'))}/{int(total('identity_total'))}", f"- Average Time: {avg('elapsed_ms'):.3f} ms", f"- Average Word Count: {avg('word_count'):.2f}", "",
-        "| scenario | expected_hit | missing | unexpected | bridge | compound | identity | elapsed_ms | word_count |",
-        "|---|---:|---|---|---:|---:|---:|---:|---:|",
+        "## Generalization Scope", "", "This report treats the scenario file as a fixed benchmark. Local-rule, fallback, and LLM extractors are scored against the same expected words; LLM output is not treated as ground truth.", "",
+        "## Category Summary", "", "| category | scenario_count | expected_hit | missing | unexpected | empty | bridge_retention | compound_retention | novel_term_retention | average_word_count | average_elapsed_ms |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
+    for row in _build_category_summary(rows):
+        lines.append(f"| {row['category']} | {row['scenario_count']} | {row['expected_hit']} | {row['missing']} | {row['unexpected']} | {row['empty']} | {_ratio(row['bridge_hit'], row['bridge_total'])} | {_ratio(row['compound_hit'], row['compound_total'])} | {_ratio(row['novel_hit'], row['novel_total'])} | {row['average_word_count']:.2f} | {row['average_elapsed_ms']:.3f} |")
+    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
     for row in rows:
-        lines.append(f"| {row['scenario']} | {row['expected_hit']} | {' '.join(row['missing_expected'])} | {' '.join(row['unexpected'])} | {row['bridge_hit']}/{row['bridge_total']} | {row['compound_hit']}/{row['compound_total']} | {row['identity_hit']}/{row['identity_total']} | {row['elapsed_ms']:.3f} | {row['word_count']} |")
-    failures = [row for row in rows if row["missing_expected"] or row["unexpected"] or row["empty_extraction"]]
+        missing = list(row["missing_expected"]) + ["/".join(group) for group in row.get("missing_expected_any_groups", [])]
+        lines.append(f"| {row['scenario']} | {row['expected_hit']} | {' '.join(missing)} | {' '.join(row['unexpected'])} | {row['bridge_hit']}/{row['bridge_total']} | {row['compound_hit']}/{row['compound_total']} | {row['novel_term_exact_hit_count']}/{row['novel_term_total']} | {row['elapsed_ms']:.3f} | {row['word_count']} |")
+    failures = [row for row in rows if row["missing_expected"] or row.get("missing_expected_any_groups") or row["unexpected"] or row["empty_extraction"]]
     lines.extend(["", "## Failure Examples"] if failures else ["", "## Failure Examples", "", "None."])
     for row in failures[:10]:
-        lines.append(f"- `{row['scenario']}` missing=`{', '.join(row['missing_expected'])}` unexpected=`{', '.join(row['unexpected'])}` input=`{row['input']}`")
+        missing = list(row["missing_expected"]) + ["/".join(group) for group in row.get("missing_expected_any_groups", [])]
+        lines.append(f"- `{row['scenario']}` missing=`{', '.join(missing)}` unexpected=`{', '.join(row['unexpected'])}` input=`{row['input']}`")
     return "\n".join(lines) + "\n"
-
 
 def cmd_eval_extractor(args: argparse.Namespace) -> int:
     extractor = create_extractor(args)
