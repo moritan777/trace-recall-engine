@@ -84,3 +84,7 @@ Current state:
 - Local deterministic Extractor research Planned, not yet implemented
 
 The next question is whether LLM-dependent Trace Extraction can be replaced with a local deterministic method while preserving downstream recall quality.
+
+## Extractor Evaluation Separation
+
+Conversation evaluation came first because the project needed to verify trace recall behavior end to end. The next research step separates extractor evaluation so LLM and fallback extraction can be compared under identical extraction-boundary scenarios before any activation or conversation effects are introduced.

@@ -745,3 +745,20 @@ After the first successful run:
 6. Compare activation, Working Memory, prompt size, and response behavior
 
 Trace Recall Engine is an active research prototype. CLI options, file names, and evaluation metrics may change as experiments continue.
+
+---
+
+## 9. Extractor Evaluation
+
+Extractor evaluation is separate from conversation evaluation. It compares extractors at the extraction boundary using the same scenario JSONL, metrics CSV, detailed JSONL, and Markdown report.
+
+```bash
+python src/threaded_concept_memory_probe.py eval-extractor \
+  --extractor fallback \
+  --scenario eval_extractors/extractor_core_ja.jsonl \
+  --metrics-csv reports/extractor_fallback.csv \
+  --details-jsonl reports/extractor_fallback.jsonl \
+  --report-md reports/extractor_fallback.md
+```
+
+Use `--extractor llm` with `--base-url` and `--model` to run the LLM extractor against the same scenarios.
