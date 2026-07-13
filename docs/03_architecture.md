@@ -75,3 +75,23 @@ This keeps extractor comparison independent from activation, gates, Working Memo
 ## Dynamic Trace Dictionary
 
 The local-rule extractor can protect known spans using existing Trace DB words without creating an additional dictionary DB. See [Dynamic Trace Dictionary](architecture/dynamic_trace_dictionary.md).
+
+## Japanese Trace Tokenizer Layer
+
+The local-rule extraction path now has an explicit tokenizer layer before local rule selection:
+
+```text
+Surface Normalize
+↓
+Protected Span
+↓
+Japanese Trace Tokenizer
+↓
+Local Rule Selection
+↓
+Noise Filter
+↓
+Participant Reference
+```
+
+The tokenizer generates Trace candidate chunks only. It is not a Japanese morphological analyzer and does not perform meaning inference, part-of-speech tagging, intent classification, sentiment analysis, preference detection, person classification, or relationship classification.

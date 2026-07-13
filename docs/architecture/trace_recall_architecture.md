@@ -241,3 +241,25 @@ Every new feature should strengthen one layer without expanding its responsibili
 ## Local Rule Extractor v0 Status
 
 LLM Extractor is the current baseline; fallback remains a diagnostic path. Local Rule Extractor v0 is now an experimental deterministic local candidate: it uses no morphological analyzer, no external API, and is not integrated with Android yet.
+
+## Japanese Trace Tokenizer Layer
+
+The local deterministic extraction path separates token candidate generation from local-rule selection:
+
+```text
+Surface Normalize
+↓
+Protected Span
+↓
+Japanese Trace Tokenizer
+↓
+Local Rule Selection
+↓
+Noise Filter
+↓
+Participant Reference
+```
+
+`JapaneseTraceTokenizer` is not a morphological analyzer. It does not infer meaning, part of speech, intent, emotion, preferences, people, or relationships. Its responsibility is only to preserve protected spans and propose recall-oriented surface chunks from sentence, clause, and phrase boundaries. Local rules then choose final Trace words from those candidates.
+
+The tokenizer is intentionally recall-oriented: when a boundary is uncertain, it prefers keeping a longer unknown phrase over breaking a possible Trace name or compound.

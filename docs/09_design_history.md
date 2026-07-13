@@ -98,3 +98,9 @@ LLM Extractor is the current baseline; fallback remains a diagnostic path. Local
 Core Benchmark = development-facing baseline (`eval_extractors/extractor_core_ja.jsonl`). Generalization Benchmark = unseen-expression evaluation (`eval_extractors/extractor_generalization_ja.jsonl`). Local Rule v0 is not adopted yet; generalization results determine the next improvement scope.
 
 The generalization benchmark is for observation, not extractor improvement in the same change. It keeps Local Rule, fallback, and LLM comparison conditions fixed, separates raw extractor output from participant-reference-normalized output, and records category summaries, novel-term retention, and long-token diagnostics so possible overfitting to the core fixture can be reviewed by humans.
+
+## Local Rule v1: Japanese Trace Tokenizer
+
+Generalization evaluation showed that Dynamic Trace Dictionary and longest-match protection were working, while many remaining failures were concentrated in cutting useful Trace candidates out of unknown Japanese sentences. The next design step therefore separates token candidate generation from local-rule extraction instead of adding more ad-hoc regexes.
+
+`JapaneseTraceTokenizer` is introduced as an independent component. It preserves Protected Spans, proposes recall-oriented chunks by sentence, connective, and particle-like boundaries, and leaves final word choice to the Local Rule Extractor. This creates a cleaner four-layer development path: Tokenizer → Extractor → Trace → Recall.
