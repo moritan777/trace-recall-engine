@@ -1,6 +1,6 @@
 # Threaded Concept Memory Probe Evaluation
 
-- conversation_file: `eval_conversations\long_3000t_trace_recall_stress.jsonl`
+- conversation_file: `eval_conversations/long_3000t_trace_recall_stress.jsonl`
 - db: `eval_long3000_count.db`
 - storage_mode: `count`
 - weighted_mode: excluded from current evaluation scope

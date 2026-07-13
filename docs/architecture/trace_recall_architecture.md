@@ -18,7 +18,7 @@ Instead, it progressively transforms conversational traces into a small Working 
 Conversation
         │
         ▼
-Trace Extraction
+Trace Extraction [replaceable]
         │
         ▼
 Trace Memory
@@ -66,9 +66,11 @@ Examples include:
 
 The extractor should remain lightweight whenever possible.
 
-Current implementation uses an LLM.
+The current research Baseline uses an Implemented LLM Extractor when an endpoint is configured. Without an endpoint, the implementation falls back to an Implemented diagnostic fallback extraction path.
 
-Future work includes local extractors.
+Extraction is intentionally treated as a replaceable boundary. The recall pipeline does not depend on one specific extraction method.
+
+The next research phase will compare the current LLM Extractor with deterministic local alternatives while keeping Trace Memory, Raw Activation, Recall Selection, Working Memory, and prompt generation fixed. A Trace-specific Local Rule Extractor is Planned; morphological-analysis-assisted extraction remains a Candidate and is not selected.
 
 ---
 

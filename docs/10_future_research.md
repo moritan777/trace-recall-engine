@@ -1,72 +1,87 @@
 # Future Research
 
-The current architecture has completed its initial storage and long-term scalability validation.
-
-Future work focuses less on **how traces are stored**, and more on **how recalled traces contribute to conversation**.
+The current architecture has completed its initial storage and long-scale recall validation. Future work now focuses on the extraction boundary and on later integration-quality evaluation.
 
 ---
 
-## Phase 1 — Recall Quality
+## Completed or Moved Out of Primary Future Scope
 
-The storage model is now considered sufficiently stable.
+The following are no longer primary future items because they have already been evaluated or moved into supporting infrastructure:
 
-Current research focuses on improving recall itself.
+- 3000-turn stress test
+- 10000-turn stress test
+- Count-mode long-scale baseline evaluation
+- Activation Gate and ThreadGroup compression for bounded Working Memory
+- Conversation Fatigue as an implemented policy layer
+- Prompt View comparison infrastructure
+- Participant Reference feature-ablation infrastructure
+- Research Logger outputs for prompt/response inspection
 
-- Improve Recall Selection
-- Improve Working Memory policy
-- Improve Explainable Recall
-- Improve response-aware Recall Efficiency
-- Add long-distance recall scenarios
-- Add multi-person confusion tests
-
----
-
-## Phase 2 — Trace Extraction
-
-Current trace extraction relies on an LLM.
-
-Future work will investigate lighter alternatives.
-
-- Compare LLM extraction with local keyword extraction
-- Evaluate rule-assisted extraction
-- Explore language-independent extraction interfaces
-- Reduce inference cost while preserving recall quality
-
-The goal is not to eliminate the LLM, but to reduce unnecessary dependence on it.
+These results do not make the project finished. They only move the main bottleneck from storage-scale validation to Extractor and integration research.
 
 ---
 
-## Phase 3 — Conversation
+## Current Priority Order
 
-Recall is only useful if it improves conversation.
-
-Future evaluation will measure:
-
-- Whether recalled traces are actually used by the LLM
-- Whether recalled traces improve conversational consistency
-- Whether Topic Fatigue produces more natural dialogue
-- Whether Working Memory remains compact during long conversations
+1. Extractor replacement boundary
+2. Deterministic local extraction
+3. Extractor comparison through downstream recall
+4. Android feasibility evaluation
+5. AIKanojyo integration design
+6. Long-term storage and performance after local extraction
+7. Conversation-quality evaluation after integration
 
 ---
 
-## Phase 4 — Applications
+## 1. Extractor Replacement Boundary
 
-Trace Recall Engine is intended to become a reusable recall architecture.
+Current trace extraction relies on an LLM when an endpoint is configured. The LLM Extractor remains the Implemented research Baseline, but it adds latency, non-determinism, endpoint dependency, and cost.
 
-Possible applications include:
+The next research phase should define an Extractor contract and compare the current LLM Extractor with the fallback path and planned local alternatives.
 
-- AIKanojyo
-- Standalone conversational companions
-- Experimental conversational memory systems
-- Research platforms for explainable recall
+---
+
+## 2. Deterministic Local Extraction
+
+A Trace-specific Local Rule Extractor is Planned. Morphological-analysis-assisted extraction is a Candidate, not a selected approach.
+
+The goal is not to match the LLM Extractor word-for-word. The goal is to preserve downstream recall quality while reducing dependence on additional LLM calls.
+
+---
+
+## 3. Downstream Recall Comparison
+
+Extractor candidates should be evaluated through the same recall pipeline and public scenarios where possible.
+
+Important measures include expected hits, unexpected hits, empty extraction rate, compound retention, bridge-word retention, latency, DB growth, and downstream prompt size.
+
+---
+
+## 4. Android Feasibility
+
+AIKanojyo integration requires eventual mobile feasibility. Android evaluation is Future Work and should follow PC-side Extractor comparison.
+
+---
+
+## 5. AIKanojyo Integration Design
+
+Trace Recall Engine is the generalizing recall research base. AIKanojyo is the first intended practical integration target.
+
+Immediate integration into AIKanojyo is not part of the current repository task. Integration design should happen after the Extractor boundary is better understood.
+
+---
+
+## Supporting Research
+
+Prompt View experiments remain useful, but they are supporting research rather than the main line. Current Prompt Views affect prompt representation and response behavior; they do not replace recall evaluation and no single winner has been selected.
 
 ---
 
 ## Long-Term Vision
 
-The long-term goal is not to reproduce human memory.
+The long-term goal is not to reproduce human memory or prove that Trace Recall Engine replaces RAG.
 
-The goal is to explore whether conversational memory can emerge from:
+The goal is to explore whether conversational recall can emerge from:
 
 ```text
 Trace
@@ -80,6 +95,4 @@ Working Memory
 LLM
 ```
 
-rather than traditional document retrieval.
-
-Future work will continue to evaluate this hypothesis through reproducible benchmarks and open research discussions.
+rather than relying only on stored document retrieval.

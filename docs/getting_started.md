@@ -8,7 +8,7 @@ The current implementation is a research prototype optimized for Japanese conver
 
 ## 1. Requirements
 
-- Python 3.11 or later
+- Python 3.10 or later
 - Git
 - Optional: an OpenAI-compatible LLM endpoint
 
@@ -18,7 +18,7 @@ Check Python:
 python --version
 ```
 
-No `pip install` step is required for the current prototype.
+No `pip install` step is required for the current prototype. Python 3.10 compatibility was verified with the standard-library `unittest` suite; the default development environment may use a newer Python.
 
 ---
 
@@ -136,7 +136,17 @@ Prompt
 
 ---
 
-## 5. Run With an OpenAI-Compatible LLM
+## 5. Current Extraction Status
+
+The current research Baseline uses the LLM Extractor when an endpoint is configured through `--base-url`.
+
+Without an endpoint, the probe uses an Implemented fallback extraction path. The fallback path is intended for diagnostics and basic operation; it is not yet the selected production Extractor.
+
+A deterministic local Extractor is the next major research target. There is currently no `--extractor` CLI option.
+
+---
+
+## 6. Run With an OpenAI-Compatible LLM
 
 For the intended research path, connect an OpenAI-compatible chat endpoint.
 
@@ -194,7 +204,7 @@ python src/threaded_concept_memory_probe.py ^
 
 ---
 
-## 6. Separate Extractor and Response Models
+## 7. Separate Extractor and Response Models
 
 The prototype can use separate model names for trace extraction and response generation.
 
@@ -221,7 +231,7 @@ python src/threaded_concept_memory_probe.py ^
 
 ---
 
-## 7. Initial Participant Recognition
+## 8. Initial Participant Recognition
 
 The two-party conversation model uses canonical participant references:
 
@@ -280,7 +290,7 @@ Expected selection:
 
 ---
 
-## 8. Interactive Chat
+## 9. Interactive Chat
 
 Start an interactive session:
 
@@ -300,7 +310,7 @@ python src/threaded_concept_memory_probe.py chat --help
 
 ---
 
-## 9. Run an Evaluation
+## 10. Run an Evaluation
 
 Evaluation scenarios are stored as JSONL files under:
 
@@ -389,7 +399,7 @@ Evaluation output includes metrics such as:
 
 ---
 
-## 10. JSONL Scenario Format
+## 11. JSONL Scenario Format
 
 A simple learn turn:
 
@@ -426,7 +436,7 @@ Common modes:
 
 ---
 
-## 11. Inspect Stored Data
+## 12. Inspect Stored Data
 
 ### List threads
 
@@ -450,7 +460,7 @@ Use each command's `--help` output for current inspection options.
 
 ---
 
-## 12. Prompt Views
+## 13. Prompt Views
 
 The project supports experimental prompt representations:
 
@@ -482,7 +492,7 @@ python src/threaded_concept_memory_probe.py ^
 
 ---
 
-## 13. Speaker-Origin Display
+## 14. Speaker-Origin Display
 
 Trace threads may store:
 
@@ -507,7 +517,7 @@ The default is:
 
 ---
 
-## 14. Debug LLM Extraction
+## 15. Debug LLM Extraction
 
 Use extractor diagnostics when an expected word is missing:
 
@@ -535,7 +545,7 @@ This helps distinguish an LLM extraction omission from Python-side filtering.
 
 ---
 
-## 15. Resetting an Experiment
+## 16. Resetting an Experiment
 
 Each experiment should normally use a fresh SQLite database.
 
@@ -555,17 +565,15 @@ Do not reuse a database when comparing configurations unless reuse is intentiona
 
 ---
 
-## 16. Running Tests
+## 17. Running Tests
 
-The repository test suite uses `pytest`.
-
-If `pytest` is installed:
+The repository test suite is runnable with the standard-library `unittest` runner:
 
 ```bash
-python -m pytest -q
+python -m unittest discover -s tests
 ```
 
-The runtime prototype itself has no third-party dependencies, but running the developer test suite requires `pytest`.
+The runtime prototype itself has no third-party dependencies. Some developers may also run pytest if it is available, but pytest is not required for the documented test command.
 
 Syntax check:
 
@@ -575,7 +583,7 @@ python -m py_compile src/threaded_concept_memory_probe.py
 
 ---
 
-## 17. Common Problems
+## 18. Common Problems
 
 ### `eval: error: the following arguments are required`
 
@@ -658,7 +666,7 @@ For comparisons, record:
 
 ---
 
-## 18. Recommended First Experiments
+## 19. Recommended First Experiments
 
 ### Experiment A: Basic preference recall
 
@@ -702,7 +710,7 @@ These three experiments cover:
 
 ---
 
-## 19. Reproducibility Checklist
+## 20. Reproducibility Checklist
 
 Before sharing a benchmark result, record:
 
@@ -725,7 +733,7 @@ A benchmark result without these details may be difficult to reproduce.
 
 ---
 
-## 20. Next Steps
+## 21. Next Steps
 
 After the first successful run:
 

@@ -17,9 +17,20 @@ The 10,000-turn benchmark suggests that the recall pipeline remains stable at lo
 - Avg ThreadGroups: 1.78
 - Fatigue Suppressed: 764
 
+See the [benchmark history and evaluation conditions](docs/benchmarks/README.md) for the benchmark sequence, scope, and limitations.
+
+## Start Here
+
+- [Getting Started](docs/getting_started.md)
+- [Architecture](docs/architecture/trace_recall_architecture.md)
+- [Benchmark History](docs/benchmarks/README.md)
+- [Documentation Index](docs/README.md)
+- [Current Research Direction](docs/research/current_research_direction.md)
+- [Extractor Research Plan](docs/research/extractor_research_plan.md)
+
 ## Requirements
 
-- Python 3.11 or later
+- Python 3.10 or later
 - No third-party dependencies
 
 The current research prototype intentionally relies only on Python's standard library to keep experiments simple and reproducible.
@@ -221,10 +232,20 @@ This distinction led to the introduction of:
 
 ### Evaluation
 
-- Fixed conversation scenarios
+- Fixed JSONL evaluation scenarios
 - Explainable logs
 - Long conversation benchmarks
 - Recall Precision metrics
+
+### Research Infrastructure
+
+- Participant Reference Normalization for user/assistant pronouns
+- Speaker Origin metadata through `created_by`
+- Prompt Views: `threadgroup`, `recall-state`, and `edge`
+- Parameter sensitivity sweeps, including categorical experiment dimensions
+- Feature ablation for Participant Reference and Origin Order
+- Reproducibility manifests for sensitivity runs
+- Prompt-response Research Logger outputs for evaluation and sensitivity experiments
 
 ---
 
@@ -261,6 +282,23 @@ The current goal is improving:
 - Working Memory quality
 - Conversation quality
 - Long-term conversational recall
+
+## Current Research Direction
+
+The recall pipeline has been evaluated from short scenarios through 10,000-turn stress tests.
+
+The next major research question is the extraction boundary. The current prototype uses an LLM Extractor when an endpoint is configured. This is useful as a research Baseline, but it introduces latency, non-determinism, API dependency, and an additional model dependency. Without an endpoint, the current implementation uses an implemented fallback extraction path for diagnostics and basic operation.
+
+The next phase will compare:
+
+- the current LLM Extractor
+- the existing fallback Extractor
+- a planned deterministic Trace-specific local Extractor
+- morphological-analysis-assisted approaches, if necessary
+
+The goal is not to reproduce the LLM Extractor word-for-word. The goal is to determine whether local extraction can preserve downstream recall quality well enough for future AIKanojyo integration.
+
+See [Current Research Direction](docs/research/current_research_direction.md) and the [Extractor Research Plan](docs/research/extractor_research_plan.md).
 
 ---
 
