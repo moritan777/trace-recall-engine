@@ -7,12 +7,15 @@ from typing import Any, Callable
 from .base import TraceExtractor
 from .fallback import FallbackTraceExtractor
 from .llm import LLMTraceExtractor
+from .local_rule import LocalRuleTraceExtractor
 
 
 def create_extractor(args: Any, chat_client: Callable[..., str] | None = None, normalize_base_url: Callable[[str], str] | None = None) -> TraceExtractor:
     extractor_name = getattr(args, "extractor", "llm")
     if extractor_name == "fallback":
         return FallbackTraceExtractor()
+    if extractor_name == "local-rule":
+        return LocalRuleTraceExtractor(debug=getattr(args, "debug_extractor", False))
     if extractor_name == "llm":
         extractor_model = getattr(args, "extractor_model", "") or getattr(args, "model", "local-model")
         return LLMTraceExtractor(

@@ -426,3 +426,7 @@ Instead, it became:
 "How should past experiences become part of a new conversation?"
 
 This repository documents that ongoing exploration.
+
+## Local Rule Extractor v0 Status
+
+LLM Extractor is the current baseline; fallback remains a diagnostic path. Local Rule Extractor v0 is now an experimental deterministic local candidate: it uses no morphological analyzer, no external API, and is not integrated with Android yet.

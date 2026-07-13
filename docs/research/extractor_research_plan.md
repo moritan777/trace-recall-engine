@@ -77,3 +77,7 @@ Thresholds are provisional and should be set after baseline measurement. Candida
 ## Comparison Method
 
 The comparison should hold Trace Memory, Raw Activation, Recall Selection, Working Memory, Prompt View, and evaluation scenarios fixed where possible. The measured question is not whether a local Extractor exactly matches the LLM Extractor, but whether the recall pipeline still surfaces the expected traces.
+
+## Local Rule Extractor v0 Status
+
+LLM Extractor is the current baseline; fallback remains a diagnostic path. Local Rule Extractor v0 is now an experimental deterministic local candidate: it uses no morphological analyzer, no external API, and is not integrated with Android yet.

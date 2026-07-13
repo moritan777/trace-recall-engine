@@ -100,3 +100,7 @@ rather than relying only on stored document retrieval.
 ## Extractor Evaluation Before New Extractors
 
 Local Rule, Sudachi, MeCab, and other extractor research should follow the standalone Extractor Evaluation framework first. Only extractors that are understood at this boundary should move into full conversation evaluation.
+
+## Local Rule Extractor v0 Status
+
+LLM Extractor is the current baseline; fallback remains a diagnostic path. Local Rule Extractor v0 is now an experimental deterministic local candidate: it uses no morphological analyzer, no external API, and is not integrated with Android yet.

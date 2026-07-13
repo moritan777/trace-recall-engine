@@ -71,3 +71,7 @@ Extractor replacement should be judged by downstream recall, not by word-for-wor
 Trace Recall Engine is the generalizing recall research base. AIKanojyo is the first intended practical integration target.
 
 The final goal is AIKanojyo integration, but this repository should first test whether the extraction boundary can be replaced while preserving downstream recall behavior. Android feasibility and conversation-quality evaluation after integration remain Future Work.
+
+## Local Rule Extractor v0 Status
+
+LLM Extractor is the current baseline; fallback remains a diagnostic path. Local Rule Extractor v0 is now an experimental deterministic local candidate: it uses no morphological analyzer, no external API, and is not integrated with Android yet.

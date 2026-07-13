@@ -88,3 +88,7 @@ The next question is whether LLM-dependent Trace Extraction can be replaced with
 ## Extractor Evaluation Separation
 
 Conversation evaluation came first because the project needed to verify trace recall behavior end to end. The next research step separates extractor evaluation so LLM and fallback extraction can be compared under identical extraction-boundary scenarios before any activation or conversation effects are introduced.
+
+## Local Rule Extractor v0 Status
+
+LLM Extractor is the current baseline; fallback remains a diagnostic path. Local Rule Extractor v0 is now an experimental deterministic local candidate: it uses no morphological analyzer, no external API, and is not integrated with Android yet.

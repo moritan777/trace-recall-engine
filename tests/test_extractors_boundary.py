@@ -10,6 +10,7 @@ from threaded_concept_memory_probe import WordExtractor  # noqa: E402
 from trace_recall.extractors import ExtractedWord, TraceExtractor, create_extractor, fallback_extract_words  # noqa: E402
 from trace_recall.extractors.fallback import FallbackTraceExtractor  # noqa: E402
 from trace_recall.extractors.llm import LLMTraceExtractor  # noqa: E402
+from trace_recall.extractors.local_rule import LocalRuleTraceExtractor  # noqa: E402
 
 REPRESENTATIVE_CASES = [
     "私の名前はのりこです。",
@@ -58,9 +59,11 @@ class ExtractorBoundaryTests(unittest.TestCase):
         common = dict(base_url="http://example.test/v1", api_key="", model="test-model", extractor_model="", timeout=12.0, debug_extractor=False)
         fallback = create_extractor(argparse.Namespace(extractor="fallback", **common))
         llm = create_extractor(argparse.Namespace(extractor="llm", **common), chat_client=lambda **kwargs: '{"words":[]}')
+        local_rule = create_extractor(argparse.Namespace(extractor="local-rule", **common))
 
         self.assertIsInstance(fallback, FallbackTraceExtractor)
         self.assertIsInstance(llm, LLMTraceExtractor)
+        self.assertIsInstance(local_rule, LocalRuleTraceExtractor)
 
     def test_fallback_representative_outputs_are_fixed(self):
         for text in REPRESENTATIVE_CASES:
