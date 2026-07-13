@@ -70,3 +70,8 @@ Conversation Evaluation
 ```
 
 This keeps extractor comparison independent from activation, gates, Working Memory, prompt views, response generation, and conversation scoring.
+
+
+## Dynamic Trace Dictionary
+
+The local-rule extractor can protect known spans using existing Trace DB words without creating an additional dictionary DB. See [Dynamic Trace Dictionary](architecture/dynamic_trace_dictionary.md).
