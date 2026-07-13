@@ -110,3 +110,13 @@ Generalization evaluation showed that Dynamic Trace Dictionary and longest-match
 The post-Generalization Benchmark research phase adds measurement before selector changes. `JapaneseTraceTokenizer` keeps returning existing Primary Chunks to the Local Rule Extractor, but also records bounded Alternate Spans for oracle analysis. The extractor evaluation report and details JSONL now attribute each expected word to final output, primary-only generation, alternate-only generation, or missing generation.
 
 This intentionally does not add scoring, ranking, embeddings, LLM selection, or a new selector. The goal is to decide from data whether the next improvement should focus on tokenizer candidate coverage or selector retention.
+
+## Oracle Replay Evaluator
+
+Oracle Replay is an offline evaluator, not a production selector. It replays saved extractor Oracle details JSONL to compare fixed virtual selection strategies before implementation.
+
+It does not alter Trace storage, Recall, or current extractor behavior. It does not change candidate generation, tokenization, gates, activation, working memory, or local-rule selection.
+
+Its purpose is to estimate selector trade-offs before implementing them: expected-hit gain, word-count growth, unmatched added words, and counterexample risk. AIKanojyo integration remains the practical end goal; the next step after a useful replay result is to implement only the smallest promising extractor strategy and verify it downstream.
+
+Dictionary coverage diagnostics keep DB vocabulary coverage separate from built-in protected patterns, mixed-script spans, dates, URLs, email, and other protected-span sources. If DB-derived protected matches are zero, DB dictionary coverage of zero is correct rather than a replay-adjusted score.

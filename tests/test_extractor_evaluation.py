@@ -145,5 +145,69 @@ class ExtractorEvaluationTests(unittest.TestCase):
                 self.assertIn("Oracle Summary", report)
 
 
+class OracleReplayTests(unittest.TestCase):
+    def _row(self):
+        return {
+            "scenario": "replay_case",
+            "category": "counterexample",
+            "input": "せつなが来た",
+            "expected_words": ["せつな"],
+            "forbidden_words": [],
+            "final_words": ["来た"],
+            "primary_chunks": ["せつな", "来た"],
+            "alternate_spans": ["せつな", "せつ", "つな", "せつなが来た"],
+            "protected_span_words": ["せつなが来た"],
+        }
+
+    def test_oracle_replay_strategies_and_baseline(self):
+        from threaded_concept_memory_probe import REPLAY_STRATEGIES, replay_select_words
+        row = self._row()
+        self.assertEqual(replay_select_words(row, "current-final"), ["来た"])
+        for strategy in REPLAY_STRATEGIES:
+            self.assertIsInstance(replay_select_words(row, strategy), list)
+        self.assertIn("せつな", replay_select_words(row, "final-plus-primary"))
+        self.assertIn("せつな", replay_select_words(row, "final-plus-alternate"))
+        self.assertIn("せつなが来た", replay_select_words(row, "protected-first"))
+
+    def test_oracle_replay_dedupe_and_no_label_leakage(self):
+        from threaded_concept_memory_probe import evaluate_oracle_replay_row, replay_select_words
+        row = self._row()
+        row["expected_words"] = ["正解ラベルだけ"]
+        row["primary_chunks"] = ["来た", "来た"]
+        selected = replay_select_words(row, "final-plus-primary")
+        self.assertNotIn("正解ラベルだけ", selected)
+        self.assertEqual(selected.count("来た"), 1)
+        result = evaluate_oracle_replay_row(row, "unit", "final-plus-primary")
+        self.assertEqual(result["added_candidate_count"], 0)
+
+    def test_oracle_replay_outputs(self):
+        from threaded_concept_memory_probe import cmd_oracle_replay
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            details = out / "details.jsonl"
+            details.write_text(json.dumps(self._row(), ensure_ascii=False) + "\n", encoding="utf-8")
+            args = argparse.Namespace(
+                details_jsonl=str(details), core_details_jsonl="", holdout_details_jsonl="",
+                output_csv=str(out / "replay.csv"), output_jsonl=str(out / "replay.jsonl"), report_md=str(out / "replay.md")
+            )
+            self.assertEqual(cmd_oracle_replay(args), 0)
+            self.assertTrue((out / "replay.csv").exists())
+            self.assertTrue((out / "replay.jsonl").exists())
+            self.assertIn("Oracle Replay Report", (out / "replay.md").read_text(encoding="utf-8"))
+
+    def test_oracle_replay_holdout_dataset(self):
+        scenarios = load_extractor_scenarios(Path("eval_extractors/oracle_replay_holdout_ja.jsonl"))
+        core_inputs = {item["input"] for item in load_extractor_scenarios(Path("eval_extractors/extractor_core_ja.jsonl"))}
+        generalization_inputs = {item["input"] for item in load_extractor_scenarios(Path("eval_extractors/extractor_generalization_ja.jsonl"))}
+        required = {"identity_variation","unknown_name","mixed_script","compound_word","conversation_bridge","future_plan","time_expression","boundary","emotion","preference","negation","correction","colloquial","kansai","ellipsis","long_chunk","short_utterance","counterexample"}
+        self.assertGreaterEqual(len(scenarios), 80)
+        self.assertTrue(required.issubset({item["category"] for item in scenarios}))
+        self.assertFalse({item["input"] for item in scenarios} & core_inputs)
+        self.assertFalse({item["input"] for item in scenarios} & generalization_inputs)
+        counter_inputs = {item["input"] for item in scenarios if item["category"] == "counterexample"}
+        for text in ["せつなが来た", "きずなを大事にしたい", "バナナが好き", "映画館へ行った", "もののけ姫を見た"]:
+            self.assertIn(text, counter_inputs)
+
+
 if __name__ == "__main__":
     unittest.main()

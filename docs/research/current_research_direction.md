@@ -87,3 +87,13 @@ The generalization benchmark is for observation, not extractor improvement in th
 The current research direction is to measure candidate recall before changing selection. Generalization failures are now separated into tokenizer loss, selection loss, and transformation loss using Primary Chunks, Alternate Spans, Final Words, and per-expected-word Oracle Results in extractor evaluation output.
 
 Decision rule: if Oracle Coverage is high enough, selector optimization becomes the next research step; if Oracle Coverage remains low, tokenizer candidate generation must improve first. This keeps future algorithm work grounded in observable bottlenecks rather than expected-hit totals alone.
+
+## Oracle Replay Evaluator
+
+Oracle Replay is an offline evaluator, not a production selector. It replays saved extractor Oracle details JSONL to compare fixed virtual selection strategies before implementation.
+
+It does not alter Trace storage, Recall, or current extractor behavior. It does not change candidate generation, tokenization, gates, activation, working memory, or local-rule selection.
+
+Its purpose is to estimate selector trade-offs before implementing them: expected-hit gain, word-count growth, unmatched added words, and counterexample risk. AIKanojyo integration remains the practical end goal; the next step after a useful replay result is to implement only the smallest promising extractor strategy and verify it downstream.
+
+Dictionary coverage diagnostics keep DB vocabulary coverage separate from built-in protected patterns, mixed-script spans, dates, URLs, email, and other protected-span sources. If DB-derived protected matches are zero, DB dictionary coverage of zero is correct rather than a replay-adjusted score.
