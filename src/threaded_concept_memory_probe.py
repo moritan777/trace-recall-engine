@@ -2220,8 +2220,8 @@ def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                 "average_token_length": f"{row['average_token_length']:.2f}", "max_token_length": row["max_token_length"],
                 "whole_sentence_like_token_count": row["whole_sentence_like_token_count"],
                 "protected_match_count": row.get("protected_match_count", 0), "protected_match_length": row.get("protected_match_length", 0),
-                "db_dictionary_hit_rate": f"{float(row.get("db_dictionary_hit_rate", 0.0)):.3f}", "longest_match_success": row.get("longest_match_success", True),
-                "dictionary_coverage": f"{float(row.get("dictionary_coverage", 0.0)):.3f}",
+                "db_dictionary_hit_rate": f"{float(row.get('db_dictionary_hit_rate', 0.0)):.3f}", "longest_match_success": row.get('longest_match_success', True),
+                "dictionary_coverage": f"{float(row.get('dictionary_coverage', 0.0)):.3f}",
                 "elapsed_ms": f"{row['elapsed_ms']:.3f}", "word_count": row["word_count"],
             })
 
