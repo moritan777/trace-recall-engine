@@ -114,6 +114,7 @@ class LocalRuleTraceExtractor:
             "longest_match_success": self._longest_match_success(normalized, protected_spans),
             "dictionary_coverage": self._dictionary_coverage(normalized),
             "protected_spans": [(s.word, s.start, s.end, s.source) for s in protected_spans],
+            "oracle_primary_chunks": [s.word for s in protected_spans] + [t.text for t in tokenizer_tokens],
             **self.tokenizer.last_diagnostics,
             "chunks_accepted": len(words),
             "chunks_rejected": len(removed),

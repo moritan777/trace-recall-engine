@@ -93,6 +93,25 @@ class ExtractorEvaluationTests(unittest.TestCase):
         self.assertIn("whole_sentence_like_token_count", row)
 
 
+
+    def test_oracle_attribution_statuses(self):
+        item = {
+            "scenario": "oracle_case",
+            "category": "future_plan",
+            "role": "user",
+            "input": "俺の名前、みつきな",
+            "expected_words": ["俺", "みつき", "存在しない"],
+            "forbidden_words": [],
+        }
+        from trace_recall.extractors.local_rule import LocalRuleTraceExtractor
+        row = evaluate_extractor_scenario(item, LocalRuleTraceExtractor(), "local-rule")
+        statuses = {entry["word"]: entry["status"] for entry in row["oracle_result"]}
+        self.assertEqual(statuses["俺"], "final")
+        self.assertEqual(statuses["みつき"], "alternate_only")
+        self.assertEqual(statuses["存在しない"], "missing")
+        self.assertIn("primary_chunks", row)
+        self.assertIn("alternate_spans", row)
+
     def test_cli_generates_csv_markdown_and_jsonl_for_fallback_and_llm(self):
         scenario = Path("eval_extractors/extractor_core_ja.jsonl")
         for extractor in ("fallback", "llm", "local-rule"):
@@ -123,6 +142,7 @@ class ExtractorEvaluationTests(unittest.TestCase):
                 report = (out / "report.md").read_text(encoding="utf-8")
                 self.assertIn("Extractor Evaluation Report", report)
                 self.assertIn("Category Summary", report)
+                self.assertIn("Oracle Summary", report)
 
 
 if __name__ == "__main__":

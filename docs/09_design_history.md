@@ -104,3 +104,9 @@ The generalization benchmark is for observation, not extractor improvement in th
 Generalization evaluation showed that Dynamic Trace Dictionary and longest-match protection were working, while many remaining failures were concentrated in cutting useful Trace candidates out of unknown Japanese sentences. The next design step therefore separates token candidate generation from local-rule extraction instead of adding more ad-hoc regexes.
 
 `JapaneseTraceTokenizer` is introduced as an independent component. It preserves Protected Spans, proposes recall-oriented chunks by sentence, connective, and particle-like boundaries, and leaves final word choice to the Local Rule Extractor. This creates a cleaner four-layer development path: Tokenizer → Extractor → Trace → Recall.
+
+## Span Candidate Oracle Evaluation
+
+The post-Generalization Benchmark research phase adds measurement before selector changes. `JapaneseTraceTokenizer` keeps returning existing Primary Chunks to the Local Rule Extractor, but also records bounded Alternate Spans for oracle analysis. The extractor evaluation report and details JSONL now attribute each expected word to final output, primary-only generation, alternate-only generation, or missing generation.
+
+This intentionally does not add scoring, ranking, embeddings, LLM selection, or a new selector. The goal is to decide from data whether the next improvement should focus on tokenizer candidate coverage or selector retention.

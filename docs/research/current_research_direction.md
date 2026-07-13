@@ -81,3 +81,9 @@ LLM Extractor is the current baseline; fallback remains a diagnostic path. Local
 Core Benchmark = development-facing baseline (`eval_extractors/extractor_core_ja.jsonl`). Generalization Benchmark = unseen-expression evaluation (`eval_extractors/extractor_generalization_ja.jsonl`). Local Rule v0 is not adopted yet; generalization results determine the next improvement scope.
 
 The generalization benchmark is for observation, not extractor improvement in the same change. It keeps Local Rule, fallback, and LLM comparison conditions fixed, separates raw extractor output from participant-reference-normalized output, and records category summaries, novel-term retention, and long-token diagnostics so possible overfitting to the core fixture can be reviewed by humans.
+
+## Candidate Oracle Before Selector Optimization
+
+The current research direction is to measure candidate recall before changing selection. Generalization failures are now separated into tokenizer loss, selection loss, and transformation loss using Primary Chunks, Alternate Spans, Final Words, and per-expected-word Oracle Results in extractor evaluation output.
+
+Decision rule: if Oracle Coverage is high enough, selector optimization becomes the next research step; if Oracle Coverage remains low, tokenizer candidate generation must improve first. This keeps future algorithm work grounded in observable bottlenecks rather than expected-hit totals alone.
