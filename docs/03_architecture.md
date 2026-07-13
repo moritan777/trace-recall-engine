@@ -56,3 +56,17 @@ The system does not pass every activated item to the LLM.
 Activation may be broad.
 
 Working Memory must be narrow.
+
+## Extractor Evaluation Layer
+
+Extractor research now has a standalone evaluation layer before full conversation evaluation:
+
+```text
+Extraction Boundary
+↓
+Extractor Evaluation
+↓
+Conversation Evaluation
+```
+
+This keeps extractor comparison independent from activation, gates, Working Memory, prompt views, response generation, and conversation scoring.
