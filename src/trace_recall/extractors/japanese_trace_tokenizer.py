@@ -26,7 +26,12 @@ class ProtectedSpanLike(Protocol):
 
 
 class JapaneseTraceTokenizer:
-    """Rule-and-character-type tokenizer for Japanese Trace candidates."""
+    """Rule-and-character-type tokenizer for Japanese Trace candidates.
+
+    ``tokenize`` continues to return only primary chunks.  Alternate spans are
+    generated as diagnostics for oracle evaluation and are intentionally not
+    consumed by the local-rule selector.
+    """
 
     CONNECTIVE_BOUNDARIES = ("だけど", "じゃ", "それで", "すると", "だから", "なので", "でも", "けど", "のに")
     PARTICLE_BOUNDARIES = ("から", "まで", "など", "は", "が", "を", "に", "へ", "で", "と", "も", "の")
@@ -34,9 +39,13 @@ class JapaneseTraceTokenizer:
     SURFACE_RE = re.compile(r"[A-Za-z0-9ぁ-んァ-ン一-龥ー._+\-/]+(?:\s+[A-Za-z0-9][A-Za-z0-9._+\-/]*)*")
     SHORT_KEEP_LENGTH = 4
     MIN_SPLIT_LENGTH = 5
+    MAX_ALTERNATE_LENGTH = 12
+    MAX_ALTERNATES_PER_START = 3
 
     def __init__(self) -> None:
         self.last_diagnostics: dict[str, object] = {}
+        self.last_primary_chunks: list[TokenCandidate] = []
+        self.last_alternate_spans: list[TokenCandidate] = []
 
     def tokenize(self, text: str, protected_spans: list[ProtectedSpanLike] | None = None) -> list[TokenCandidate]:
         protected_ranges = [(s.start, s.end) for s in (protected_spans or [])]
@@ -49,14 +58,83 @@ class JapaneseTraceTokenizer:
                     pieces = self._split_phrase(phrase, seg_start, protected_ranges)
                     split_count += max(0, len(pieces) - 1)
                     tokens.extend(pieces)
+        alternates = self._alternate_spans(text, tokens, protected_ranges)
+        self.last_primary_chunks = tokens
+        self.last_alternate_spans = alternates
         lengths = [len(t.text) for t in tokens]
+        alt_lengths = [len(t.text) for t in alternates]
         self.last_diagnostics = {
             "tokenizer_candidate_count": len(tokens),
             "average_candidate_length": (sum(lengths) / len(lengths)) if lengths else 0.0,
             "tokenizer_split_count": split_count,
             "average_chunk_length": (sum(lengths) / len(lengths)) if lengths else 0.0,
+            "tokenizer_primary_chunks": [t.text for t in tokens],
+            "tokenizer_alternate_spans": [t.text for t in alternates],
+            "tokenizer_alternate_count": len(alternates),
+            "average_alternate_length": (sum(alt_lengths) / len(alt_lengths)) if alt_lengths else 0.0,
         }
         return tokens
+
+
+    def _alternate_spans(self, text: str, primary: list[TokenCandidate], protected_ranges: list[tuple[int, int]]) -> list[TokenCandidate]:
+        spans: dict[tuple[int, int, str], TokenCandidate] = {}
+        def add(raw: str, start: int) -> None:
+            cleaned = raw.strip(" 　、,.;:()（）[]【】『』\"'").lstrip("はがをにへでもや").rstrip("はがをにへでもやの")
+            if not cleaned or len(cleaned) > self.MAX_ALTERNATE_LENGTH:
+                return
+            local = raw.find(cleaned)
+            real_start = start + (local if local >= 0 else 0)
+            key = (real_start, real_start + len(cleaned), cleaned)
+            # Bound the generator: at most three alternates sharing the same start.
+            if sum(1 for s, _e, _w in spans if s == real_start) >= self.MAX_ALTERNATES_PER_START:
+                return
+            spans[key] = TokenCandidate(cleaned, key[0], key[1], "alternate")
+
+        for token in primary:
+            self._alternate_from_chunk(token.text, token.start, add)
+
+        # Also inspect residual surface spans so alternates can explain words lost
+        # inside a long primary chunk without enumerating all start/end pairs.
+        for start, end in self._sentence_segments(text):
+            for surf in self.SURFACE_RE.finditer(text, start, end):
+                for seg_start, seg_end in self._residual_segments(surf.start(), surf.end(), protected_ranges):
+                    self._alternate_from_chunk(text[seg_start:seg_end], seg_start, add)
+        return sorted(spans.values(), key=lambda t: (t.start, t.end, t.text))
+
+    def _alternate_from_chunk(self, chunk: str, offset: int, add) -> None:
+        if not chunk:
+            return
+        trimmed = re.sub(r"(っていう|って|やで|かな|だよ|だね|です|ます|なんだ)$", "", chunk)
+        if trimmed != chunk:
+            add(trimmed, offset)
+        if len(chunk) > 2 and chunk[-1] in "なねよわで" and not chunk[-2:].isascii():
+            add(chunk[:-1], offset)
+
+        for m in re.finditer(r"[A-Za-z0-9]+|[ァ-ンー]+|[一-龥]+|[ぁ-ん]+", chunk):
+            part = m.group(0)
+            if 1 < len(part) <= self.MAX_ALTERNATE_LENGTH:
+                add(part, offset + m.start())
+
+        # Limited boundary-derived windows; no all-start x all-end enumeration.
+        starts = {0}
+        for marker in ("うち", "前", "後", "末"):
+            idx = chunk.find(marker)
+            if idx >= 0:
+                starts.add(idx)
+                starts.add(idx + len(marker))
+        for i in range(1, len(chunk)):
+            prev, cur = chunk[i - 1], chunk[i]
+            if prev.isascii() != cur.isascii() or cur in "見観迎":
+                starts.add(i)
+        for st in sorted(x for x in starts if 0 <= x < len(chunk)):
+            emitted = 0
+            for pat in (r"(?:近いうち|今週末|この前|仕事帰り)", r"[A-Za-z0-9]+[ぁ-んァ-ン一-龥ー]+", r"[ァ-ンー一-龥]{2,}", r"[見観迎]にい?こ(?:う)?"):
+                m = re.match(pat, chunk[st:])
+                if m:
+                    add(m.group(0), offset + st)
+                    emitted += 1
+                    if emitted >= self.MAX_ALTERNATES_PER_START:
+                        break
 
     def _sentence_segments(self, text: str) -> list[tuple[int, int]]:
         segments: list[tuple[int, int]] = []

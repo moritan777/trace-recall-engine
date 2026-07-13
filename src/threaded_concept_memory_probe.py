@@ -2136,6 +2136,46 @@ def _novel_term_diagnostics(words: list[str], novel_terms: list[Any]) -> dict[st
     }
 
 
+
+def _oracle_evaluation(expected_words: set[str], final_words: list[str], diagnostics: dict[str, Any]) -> dict[str, Any]:
+    primary = {normalize_word(w) for w in diagnostics.get("oracle_primary_chunks", diagnostics.get("tokenizer_primary_chunks", [])) if normalize_word(w)}
+    alternate = {normalize_word(w) for w in diagnostics.get("tokenizer_alternate_spans", []) if normalize_word(w)}
+    final = {normalize_word(w) for w in final_words if normalize_word(w)}
+    results: list[dict[str, str]] = []
+    counts = {
+        "candidate_oracle_hit": 0,
+        "primary_hit": 0,
+        "alternate_hit": 0,
+        "final_hit": 0,
+        "not_generated": 0,
+        "generated_but_not_selected": 0,
+        "generated_then_transformed": 0,
+    }
+    for word in sorted(expected_words):
+        in_primary = word in primary
+        in_alternate = word in alternate
+        in_final = word in final
+        if in_final:
+            status = "final"
+            counts["final_hit"] += 1
+        elif in_primary:
+            status = "primary_only"
+            counts["generated_but_not_selected"] += 1
+        elif in_alternate:
+            status = "alternate_only"
+            counts["generated_but_not_selected"] += 1
+        else:
+            status = "missing"
+            counts["not_generated"] += 1
+        if in_primary or in_alternate or in_final:
+            counts["candidate_oracle_hit"] += 1
+        if in_primary:
+            counts["primary_hit"] += 1
+        if in_alternate:
+            counts["alternate_hit"] += 1
+        results.append({"word": word, "status": status})
+    return {"oracle_result": results, **counts}
+
 def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor, extractor_name: str) -> dict[str, Any]:
     started = time.perf_counter()
     raw_extracted = extractor.extract(str(item["input"]))
@@ -2162,6 +2202,8 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
     weights = [word.weight for word in extracted]
     token_diagnostics = _token_length_diagnostics(extracted_words, str(item["input"]))
     novel_diagnostics = _novel_term_diagnostics(extracted_words, list(item.get("novel_terms", [])))
+    extractor_diagnostics = getattr(extractor, "last_diagnostics", {})
+    oracle_diagnostics = _oracle_evaluation(expected, extracted_words, extractor_diagnostics)
 
     return {
         "scenario": item["scenario"],
@@ -2176,6 +2218,7 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         "missing_expected_any_groups": missing_any_groups,
         "unexpected": unexpected_words,
         "expected_hit": len(expected_hit_words) + any_hit,
+        **oracle_diagnostics,
         "expected_any_group_hit": any_hit,
         "expected_any_group_total": any_total,
         "unexpected_hit": len(unexpected_words),
@@ -2196,6 +2239,10 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         **token_diagnostics,
         **novel_diagnostics,
         "llm_fallback_used": bool(getattr(extractor, "last_fallback_used", False)),
+        "protected_span_words": [s[0] if isinstance(s, (list, tuple)) and s else s for s in extractor_diagnostics.get("protected_spans", [])],
+        "primary_chunks": extractor_diagnostics.get("oracle_primary_chunks", extractor_diagnostics.get("tokenizer_primary_chunks", [])),
+        "alternate_spans": extractor_diagnostics.get("tokenizer_alternate_spans", []),
+        "final_words": extracted_words,
         "protected_match_count": getattr(extractor, "last_diagnostics", {}).get("protected_match_count", 0),
         "protected_match_length": getattr(extractor, "last_diagnostics", {}).get("protected_match_length", 0),
         "db_dictionary_hit_rate": getattr(extractor, "last_diagnostics", {}).get("db_dictionary_hit_rate", 0.0),
@@ -2205,13 +2252,15 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         "average_candidate_length": getattr(extractor, "last_diagnostics", {}).get("average_candidate_length", 0.0),
         "tokenizer_split_count": getattr(extractor, "last_diagnostics", {}).get("tokenizer_split_count", 0),
         "average_chunk_length": getattr(extractor, "last_diagnostics", {}).get("average_chunk_length", 0.0),
+        "tokenizer_alternate_count": getattr(extractor, "last_diagnostics", {}).get("tokenizer_alternate_count", 0),
+        "average_alternate_length": getattr(extractor, "last_diagnostics", {}).get("average_alternate_length", 0.0),
         "chunks_rejected": getattr(extractor, "last_diagnostics", {}).get("chunks_rejected", 0),
         "chunks_accepted": getattr(extractor, "last_diagnostics", {}).get("chunks_accepted", 0),
     }
 
 def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "protected_match_count", "protected_match_length", "db_dictionary_hit_rate", "longest_match_success", "dictionary_coverage", "tokenizer_candidate_count", "average_candidate_length", "tokenizer_split_count", "average_chunk_length", "chunks_rejected", "chunks_accepted", "elapsed_ms", "word_count"]
+    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "protected_match_count", "protected_match_length", "db_dictionary_hit_rate", "longest_match_success", "dictionary_coverage", "tokenizer_candidate_count", "average_candidate_length", "tokenizer_split_count", "average_chunk_length", "tokenizer_alternate_count", "candidate_oracle_hit", "primary_hit", "alternate_hit", "final_hit", "not_generated", "generated_but_not_selected", "generated_then_transformed", "chunks_rejected", "chunks_accepted", "elapsed_ms", "word_count"]
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -2230,6 +2279,7 @@ def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                 "dictionary_coverage": f"{float(row.get('dictionary_coverage', 0.0)):.3f}",
                 "tokenizer_candidate_count": row.get("tokenizer_candidate_count", 0), "average_candidate_length": f"{float(row.get('average_candidate_length', 0.0)):.2f}",
                 "tokenizer_split_count": row.get("tokenizer_split_count", 0), "average_chunk_length": f"{float(row.get('average_chunk_length', 0.0)):.2f}",
+                "tokenizer_alternate_count": row.get("tokenizer_alternate_count", 0), "candidate_oracle_hit": row.get("candidate_oracle_hit", 0), "primary_hit": row.get("primary_hit", 0), "alternate_hit": row.get("alternate_hit", 0), "final_hit": row.get("final_hit", 0), "not_generated": row.get("not_generated", 0), "generated_but_not_selected": row.get("generated_but_not_selected", 0), "generated_then_transformed": row.get("generated_then_transformed", 0),
                 "chunks_rejected": row.get("chunks_rejected", 0), "chunks_accepted": row.get("chunks_accepted", 0),
                 "elapsed_ms": f"{row['elapsed_ms']:.3f}", "word_count": row["word_count"],
             })
@@ -2260,6 +2310,9 @@ def _build_category_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "novel_total": sum(int(row["novel_term_total"]) for row in subset),
             "average_word_count": sum(float(row["word_count"]) for row in subset) / n if n else 0.0,
             "average_elapsed_ms": sum(float(row["elapsed_ms"]) for row in subset) / n if n else 0.0,
+            "candidate_oracle_hit": sum(int(row.get("candidate_oracle_hit", 0)) for row in subset),
+            "final_hit": sum(int(row.get("final_hit", 0)) for row in subset),
+            "expected_total": sum(len(row.get("expected", [])) for row in subset),
         })
     return summary
 
@@ -2278,11 +2331,27 @@ def build_extractor_eval_report(rows: list[dict[str, Any]], scenario_file: Path,
         f"- Novel Term Exact Retention: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})",
         f"- Identity: {int(total('identity_hit'))}/{int(total('identity_total'))}", f"- Average Time: {avg('elapsed_ms'):.3f} ms", f"- Average Word Count: {avg('word_count'):.2f}", "",
         "## Generalization Scope", "", "This report treats the scenario file as a fixed benchmark. Local-rule, fallback, and LLM extractors are scored against the same expected words; LLM output is not treated as ground truth.", "",
+        "## Oracle Summary", "",
+        f"- Oracle Coverage: {int(total('candidate_oracle_hit'))}/{sum(len(row.get('expected', [])) for row in rows)} ({_ratio(total('candidate_oracle_hit'), sum(len(row.get('expected', [])) for row in rows))})",
+        f"- Primary Coverage: {int(total('primary_hit'))}",
+        f"- Alternate Coverage: {int(total('alternate_hit'))}",
+        f"- Final Coverage: {int(total('final_hit'))}",
+        f"- Selection Loss: {int(total('generated_but_not_selected'))}",
+        f"- Transformation Loss: {int(total('generated_then_transformed'))}",
+        f"- Tokenizer Loss: {int(total('not_generated'))}", "",
+        "## Generalization Oracle Coverage", "",
+        "| category | expected_total | oracle_coverage | final_coverage |", "|---|---:|---:|---:|",
+        "__ORACLE_CATEGORY_ROWS__", "",
         "## Category Summary", "", "| category | scenario_count | expected_hit | missing | unexpected | empty | bridge_retention | compound_retention | novel_term_retention | average_word_count | average_elapsed_ms |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
-    for row in _build_category_summary(rows):
+    category_summary = _build_category_summary(rows)
+    oracle_rows = [f"| {row['category']} | {row['expected_total']} | {_ratio(row['candidate_oracle_hit'], row['expected_total'])} | {_ratio(row['final_hit'], row['expected_total'])} |" for row in category_summary]
+    lines = [line for line in lines if line != "__ORACLE_CATEGORY_ROWS__"]
+    insert_at = lines.index("## Category Summary") - 1
+    lines[insert_at:insert_at] = oracle_rows
+    for row in category_summary:
         lines.append(f"| {row['category']} | {row['scenario_count']} | {row['expected_hit']} | {row['missing']} | {row['unexpected']} | {row['empty']} | {_ratio(row['bridge_hit'], row['bridge_total'])} | {_ratio(row['compound_hit'], row['compound_total'])} | {_ratio(row['novel_hit'], row['novel_total'])} | {row['average_word_count']:.2f} | {row['average_elapsed_ms']:.3f} |")
-    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Protected Span Diagnostics", "", f"- Protected Match Count: {int(total('protected_match_count'))}", f"- Protected Match Length: {int(total('protected_match_length'))}", f"- Average DB Dictionary Hit Rate: {avg('db_dictionary_hit_rate'):.3f}", f"- Longest Match Success: {sum(1 for row in rows if row.get('longest_match_success', True))}/{n}", f"- Average Dictionary Coverage: {avg('dictionary_coverage'):.3f}", "", "## Tokenizer Diagnostics", "", f"- Tokenizer Candidate Count: {int(total('tokenizer_candidate_count'))}", f"- Average Candidate Length: {avg('average_candidate_length'):.2f}", f"- Tokenizer Split Count: {int(total('tokenizer_split_count'))}", f"- Average Chunk Length: {avg('average_chunk_length'):.2f}", f"- Chunks Rejected: {int(total('chunks_rejected'))}", f"- Chunks Accepted: {int(total('chunks_accepted'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
+    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Protected Span Diagnostics", "", f"- Protected Match Count: {int(total('protected_match_count'))}", f"- Protected Match Length: {int(total('protected_match_length'))}", f"- Average DB Dictionary Hit Rate: {avg('db_dictionary_hit_rate'):.3f}", f"- Longest Match Success: {sum(1 for row in rows if row.get('longest_match_success', True))}/{n}", f"- Average Dictionary Coverage: {avg('dictionary_coverage'):.3f}", "", "## Tokenizer Diagnostics", "", f"- Tokenizer Candidate Count: {int(total('tokenizer_candidate_count'))}", f"- Average Candidate Length: {avg('average_candidate_length'):.2f}", f"- Tokenizer Split Count: {int(total('tokenizer_split_count'))}", f"- Average Chunk Length: {avg('average_chunk_length'):.2f}", f"- Alternate Span Count: {int(total('tokenizer_alternate_count'))}", f"- Chunks Rejected: {int(total('chunks_rejected'))}", f"- Chunks Accepted: {int(total('chunks_accepted'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
     for row in rows:
         missing = list(row["missing_expected"]) + ["/".join(group) for group in row.get("missing_expected_any_groups", [])]
         lines.append(f"| {row['scenario']} | {row['expected_hit']} | {' '.join(missing)} | {' '.join(row['unexpected'])} | {row['bridge_hit']}/{row['bridge_total']} | {row['compound_hit']}/{row['compound_total']} | {row['novel_term_exact_hit_count']}/{row['novel_term_total']} | {row['elapsed_ms']:.3f} | {row['word_count']} |")
