@@ -2362,6 +2362,232 @@ def build_extractor_eval_report(rows: list[dict[str, Any]], scenario_file: Path,
         lines.append(f"- `{row['scenario']}` missing=`{', '.join(missing)}` unexpected=`{', '.join(row['unexpected'])}` input=`{row['input']}`")
     return "\n".join(lines) + "\n"
 
+
+REPLAY_STRATEGIES = [
+    "current-final",
+    "final-plus-primary",
+    "final-plus-alternate",
+    "final-plus-all-candidates",
+    "protected-first",
+    "bounded-alternate",
+    "bounded-primary-and-alternate",
+]
+REPLAY_STOP_WORDS = {"は", "が", "を", "に", "へ", "で", "と", "も", "の", "や", "です", "ます", "だ", "ね", "よ", "だった", "でした", "じゃなくて", "なくて", "一緒", "そう", "す"}
+
+
+def _replay_candidate_text(value: Any) -> str:
+    if isinstance(value, dict):
+        for key in ("word", "text", "span", "value"):
+            if key in value:
+                return str(value[key])
+    if isinstance(value, (list, tuple)) and value:
+        return str(value[0])
+    return str(value)
+
+
+def _replay_norm_list(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        word = normalize_word(_replay_candidate_text(value))
+        if word and word not in seen:
+            seen.add(word)
+            out.append(word)
+    return out
+
+
+def _dedupe_words(words: list[str]) -> list[str]:
+    return [item.word for item in dedupe_extracted_words([ExtractedWord(word, 1.0) for word in words])]
+
+
+def _bounded_alternates(row: dict[str, Any], final_words: list[str]) -> list[str]:
+    source_len = len(normalize_text(str(row.get("input", ""))))
+    final_set = set(final_words)
+    bounded: list[str] = []
+    for word in _replay_norm_list(row.get("alternate_spans", [])):
+        if word in final_set:
+            continue
+        if len(word) < 2 or len(word) > 12:
+            continue
+        if word in REPLAY_STOP_WORDS:
+            continue
+        if source_len and len(word) >= source_len * 0.70:
+            continue
+        bounded.append(word)
+    return _dedupe_words(bounded)
+
+
+def replay_select_words(row: dict[str, Any], strategy: str) -> list[str]:
+    """Apply fixed replay strategies without reading expected labels."""
+    final_words = _replay_norm_list(row.get("final_words", row.get("normalized_words", row.get("extracted_words", []))))
+    primary = _replay_norm_list(row.get("primary_chunks", []))
+    alternate = _replay_norm_list(row.get("alternate_spans", []))
+    protected = _replay_norm_list(row.get("protected_span_words", []))
+    bounded = _bounded_alternates(row, final_words)
+    if strategy == "current-final":
+        selected = final_words
+    elif strategy == "final-plus-primary":
+        selected = final_words + primary
+    elif strategy == "final-plus-alternate":
+        selected = final_words + alternate
+    elif strategy == "final-plus-all-candidates":
+        selected = final_words + primary + alternate + protected
+    elif strategy == "protected-first":
+        selected = final_words + protected
+    elif strategy == "bounded-alternate":
+        selected = final_words + bounded
+    elif strategy == "bounded-primary-and-alternate":
+        selected = final_words + primary + bounded
+    else:
+        raise ValueError(f"unknown replay strategy: {strategy}")
+    return _dedupe_words(selected)
+
+
+def _replay_allowed_set(row: dict[str, Any]) -> set[str]:
+    allowed = set()
+    for key in ("expected_words", "expected", "bridge_words", "compound_words", "identity_words", "novel_terms", "allowed_extra_words"):
+        allowed |= _norm_word_set(list(row.get(key, [])))
+    for group in row.get("expected_any_groups", []):
+        if isinstance(group, list):
+            allowed |= _norm_word_set(group)
+    return allowed
+
+
+def evaluate_oracle_replay_row(row: dict[str, Any], dataset: str, strategy: str, baseline_words: list[str] | None = None) -> dict[str, Any]:
+    words = replay_select_words(row, strategy)
+    baseline_words = baseline_words if baseline_words is not None else replay_select_words(row, "current-final")
+    word_set = set(words)
+    baseline_set = set(baseline_words)
+    expected = _norm_word_set(list(row.get("expected_words", row.get("expected", []))))
+    forbidden = _norm_word_set(list(row.get("forbidden_words", row.get("forbidden", []))))
+    any_hit, any_total, missing_any = _count_expected_any_group_hits(word_set, list(row.get("expected_any_groups", [])))
+    baseline_expected_hit = len(baseline_set & expected) + _count_expected_any_group_hits(baseline_set, list(row.get("expected_any_groups", [])))[0]
+    expected_hit = len(word_set & expected) + any_hit
+    added = [word for word in words if word not in baseline_set]
+    baseline_missing = expected - baseline_set
+    added_expected = sorted((word_set & baseline_missing))
+    allowed = _replay_allowed_set(row)
+    unmatched = [word for word in added if word not in allowed]
+    source_len = len(normalize_text(str(row.get("input", ""))))
+    return {
+        "dataset": dataset,
+        "scenario": row.get("scenario", row.get("id", "")),
+        "category": row.get("category", ""),
+        "input": row.get("input", row.get("text", "")),
+        "strategy": strategy,
+        "words": words,
+        "added_words": added,
+        "unmatched_added_words": unmatched,
+        "expected_hit_count": expected_hit,
+        "missing_expected_count": len(expected - word_set) + len(missing_any),
+        "forbidden_hit_count": len(word_set & forbidden),
+        "unexpected_count": len(word_set & forbidden),
+        "final_word_count": len(words),
+        "word_count": len(words),
+        "empty_output_count": 0 if words else 1,
+        "added_candidate_count": len(added),
+        "added_expected_hit_count": max(0, expected_hit - baseline_expected_hit),
+        "added_expected_words": added_expected,
+        "added_non_expected_count": len(unmatched),
+        "marginal_precision": (max(0, expected_hit - baseline_expected_hit) / len(added)) if added else 0.0,
+        "marginal_recall_gain": max(0, expected_hit - baseline_expected_hit),
+        "word_count_growth": len(words) - len(baseline_words),
+        "long_added_word_count": sum(1 for word in added if len(word) >= 8),
+        "whole_sentence_like_added_count": sum(1 for word in added if source_len and len(word) >= source_len * 0.70),
+        "single_character_added_count": sum(1 for word in added if len(word) == 1),
+    }
+
+
+def load_jsonl_rows(path: Path) -> list[dict[str, Any]]:
+    rows=[]
+    with path.open(encoding="utf-8") as f:
+        for line_no,line in enumerate(f,1):
+            line=line.strip()
+            if not line: continue
+            item=json.loads(line)
+            item.setdefault("scenario", item.get("id", f"row_{line_no}"))
+            item.setdefault("input", item.get("text", ""))
+            rows.append(item)
+    return rows
+
+
+def _summarize_replay(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    keys=sorted({(r["dataset"], r["strategy"]) for r in rows})
+    out=[]
+    for dataset,strategy in keys:
+        sub=[r for r in rows if r["dataset"]==dataset and r["strategy"]==strategy]
+        n=len(sub)
+        out.append({
+            "dataset":dataset,"strategy":strategy,"scenario_count":n,
+            "expected_hit":sum(r["expected_hit_count"] for r in sub),
+            "missing":sum(r["missing_expected_count"] for r in sub),
+            "forbidden":sum(r["forbidden_hit_count"] for r in sub),
+            "added_candidates":sum(r["added_candidate_count"] for r in sub),
+            "added_expected_hit":sum(r["added_expected_hit_count"] for r in sub),
+            "unmatched_added":sum(len(r["unmatched_added_words"]) for r in sub),
+            "average_word_count":sum(r["word_count"] for r in sub)/n if n else 0.0,
+            "word_growth":sum(r["word_count_growth"] for r in sub),
+            "marginal_precision":(sum(r["added_expected_hit_count"] for r in sub)/sum(r["added_candidate_count"] for r in sub)) if sum(r["added_candidate_count"] for r in sub) else 0.0,
+            "empty":sum(r["empty_output_count"] for r in sub),
+        })
+    return out
+
+
+def write_oracle_replay_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fields=["dataset","strategy","scenario","category","expected_hit_count","missing_expected_count","forbidden_hit_count","unexpected_count","final_word_count","added_candidate_count","added_expected_hit_count","added_non_expected_count","marginal_precision","marginal_recall_gain","word_count_growth","long_added_word_count","whole_sentence_like_added_count","single_character_added_count","unmatched_added_words"]
+    with path.open("w",encoding="utf-8",newline="") as f:
+        w=csv.DictWriter(f,fieldnames=fields); w.writeheader()
+        for r in rows:
+            d={k:r.get(k,"") for k in fields}; d["unmatched_added_words"]=" ".join(r.get("unmatched_added_words",[])); w.writerow(d)
+
+
+def build_oracle_replay_report(rows: list[dict[str, Any]], inputs: dict[str, Path]) -> str:
+    summary=_summarize_replay(rows)
+    lines=["# Oracle Replay Report","","## Scope","","Oracle Replay is an offline evaluator, not a production selector. It does not alter Trace storage, Recall, or current extractor behavior. Its purpose is to estimate selector trade-offs before implementing them. AIKanojyo integration remains the practical end goal.","","## Input Datasets"]
+    for name,path in inputs.items(): lines.append(f"- {name}: `{path}`")
+    lines += ["","## Compared Strategies",""] + [f"- `{s}`" for s in REPLAY_STRATEGIES]
+    lines += ["","## Overall Results","","| Dataset | Strategy | Expected Hit | Gain | Missing | Added Candidates | Marginal Precision | Avg Words | Word Growth | Unmatched Added |","|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    base={r["dataset"]:r["expected_hit"] for r in summary if r["strategy"]=="current-final"}
+    for r in summary:
+        gain=r["expected_hit"]-base.get(r["dataset"],0)
+        lines.append(f"| {r['dataset']} | {r['strategy']} | {r['expected_hit']} | {gain} | {r['missing']} | {r['added_candidates']} | {r['marginal_precision']:.3f} | {r['average_word_count']:.2f} | {r['word_growth']} | {r['unmatched_added']} |")
+    lines += ["","## Marginal Gain vs Baseline","","See `Gain` and `Marginal Precision` above.","","## Word Count Growth","","See `Word Growth` above.","","## Unmatched Added Words",""]
+    for r in rows[:200]:
+        if r.get("unmatched_added_words"):
+            lines.append(f"- {r['dataset']}/{r['strategy']}/{r['scenario']}: {', '.join(r['unmatched_added_words'][:10])}")
+    lines += ["","## Category Results","","| Dataset | Category | Strategy | Expected Hit | Added | Unmatched | Word Growth |","|---|---|---|---:|---:|---:|---:|"]
+    for key in sorted({(r['dataset'],r['category'],r['strategy']) for r in rows}):
+        sub=[r for r in rows if (r['dataset'],r['category'],r['strategy'])==key]
+        lines.append(f"| {key[0]} | {key[1]} | {key[2]} | {sum(r['expected_hit_count'] for r in sub)} | {sum(r['added_candidate_count'] for r in sub)} | {sum(len(r['unmatched_added_words']) for r in sub)} | {sum(r['word_count_growth'] for r in sub)} |")
+    lines += ["","## Counterexample Results"]
+    for r in [x for x in rows if x.get('category')=='counterexample'][:80]:
+        lines.append(f"- {r['strategy']} `{r['scenario']}` added={r['added_words']} unmatched={r['unmatched_added_words']}")
+    lines += ["","## Core vs Generalization vs Holdout","","Review dataset rows in Overall Results; do not adopt a strategy that only improves core.","","## Strategy Trade-offs","","Broad strategies expose oracle upper-bound and over-extraction risk; bounded strategies are closer to a minimal AIKanojyo extractor change.","","## AIKanojyo Integration Interpretation","","Prefer the smallest strategy that improves both generalization and holdout while keeping counterexample unmatched growth low.","","## Decision","","This report is advisory only; it does not auto-adopt a selector."]
+    return "\n".join(lines)+"\n"
+
+
+def cmd_oracle_replay(args: argparse.Namespace) -> int:
+    datasets={"generalization":Path(args.details_jsonl)}
+    if getattr(args,"core_details_jsonl",None): datasets["core"]=Path(args.core_details_jsonl)
+    if getattr(args,"holdout_details_jsonl",None): datasets["replay_holdout"]=Path(args.holdout_details_jsonl)
+    all_rows=[]
+    for dataset,path in datasets.items():
+        source=load_jsonl_rows(path)
+        for row in source:
+            baseline=replay_select_words(row,"current-final")
+            for strategy in REPLAY_STRATEGIES:
+                all_rows.append(evaluate_oracle_replay_row(row,dataset,strategy,baseline))
+    write_oracle_replay_csv(Path(args.output_csv), all_rows)
+    write_jsonl(Path(args.output_jsonl), all_rows)
+    write_text(Path(args.report_md), build_oracle_replay_report(all_rows,datasets))
+    print(f"[Oracle Replay] output_csv={args.output_csv}")
+    print(f"[Oracle Replay] output_jsonl={args.output_jsonl}")
+    print(f"[Oracle Replay] report_md={args.report_md}")
+    return 0
+
 def cmd_eval_extractor(args: argparse.Namespace) -> int:
     extractor = create_extractor(args)
     scenarios = load_extractor_scenarios(Path(args.scenario))
@@ -3467,6 +3693,15 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval_extractor.add_argument("--details-jsonl", default="reports/extractor_eval_details.jsonl")
     p_eval_extractor.add_argument("--report-md", default="reports/extractor_eval_report.md")
     p_eval_extractor.set_defaults(func=cmd_eval_extractor)
+
+    p_oracle_replay = sub.add_parser("oracle-replay")
+    p_oracle_replay.add_argument("--details-jsonl", required=True)
+    p_oracle_replay.add_argument("--core-details-jsonl", default="")
+    p_oracle_replay.add_argument("--holdout-details-jsonl", default="")
+    p_oracle_replay.add_argument("--output-csv", default="reports/oracle_replay.csv")
+    p_oracle_replay.add_argument("--output-jsonl", default="reports/oracle_replay.jsonl")
+    p_oracle_replay.add_argument("--report-md", default="reports/oracle_replay.md")
+    p_oracle_replay.set_defaults(func=cmd_oracle_replay)
 
     p_eval = sub.add_parser("eval")
     p_eval.add_argument("--conversation-file", required=True)
