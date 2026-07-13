@@ -2140,6 +2140,11 @@ def _novel_term_diagnostics(words: list[str], novel_terms: list[Any]) -> dict[st
 def _oracle_evaluation(expected_words: set[str], final_words: list[str], diagnostics: dict[str, Any]) -> dict[str, Any]:
     primary = {normalize_word(w) for w in diagnostics.get("oracle_primary_chunks", diagnostics.get("tokenizer_primary_chunks", [])) if normalize_word(w)}
     alternate = {normalize_word(w) for w in diagnostics.get("tokenizer_alternate_spans", []) if normalize_word(w)}
+    candidate_spans = diagnostics.get("candidate_spans", []) if isinstance(diagnostics.get("candidate_spans", []), list) else []
+    by_source = {
+        "mixed-script": {normalize_word(c.get("text", "")) for c in candidate_spans if isinstance(c, dict) and c.get("source") == "mixed-script"},
+        "terminal-boundary": {normalize_word(c.get("text", "")) for c in candidate_spans if isinstance(c, dict) and c.get("source") == "terminal-boundary"},
+    }
     final = {normalize_word(w) for w in final_words if normalize_word(w)}
     results: list[dict[str, str]] = []
     counts = {
@@ -2150,6 +2155,10 @@ def _oracle_evaluation(expected_words: set[str], final_words: list[str], diagnos
         "not_generated": 0,
         "generated_but_not_selected": 0,
         "generated_then_transformed": 0,
+        "mixed_script_oracle_hit_count": 0,
+        "terminal_boundary_oracle_hit_count": 0,
+        "mixed_script_unmatched_count": len(by_source["mixed-script"] - expected_words),
+        "terminal_boundary_unmatched_count": len(by_source["terminal-boundary"] - expected_words),
     }
     for word in sorted(expected_words):
         in_primary = word in primary
@@ -2173,6 +2182,10 @@ def _oracle_evaluation(expected_words: set[str], final_words: list[str], diagnos
             counts["primary_hit"] += 1
         if in_alternate:
             counts["alternate_hit"] += 1
+        if word in by_source["mixed-script"]:
+            counts["mixed_script_oracle_hit_count"] += 1
+        if word in by_source["terminal-boundary"]:
+            counts["terminal_boundary_oracle_hit_count"] += 1
         results.append({"word": word, "status": status})
     return {"oracle_result": results, **counts}
 
@@ -2242,6 +2255,7 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         "protected_span_words": [s[0] if isinstance(s, (list, tuple)) and s else s for s in extractor_diagnostics.get("protected_spans", [])],
         "primary_chunks": extractor_diagnostics.get("oracle_primary_chunks", extractor_diagnostics.get("tokenizer_primary_chunks", [])),
         "alternate_spans": extractor_diagnostics.get("tokenizer_alternate_spans", []),
+        "candidate_spans": extractor_diagnostics.get("candidate_spans", []),
         "final_words": extracted_words,
         "protected_match_count": getattr(extractor, "last_diagnostics", {}).get("protected_match_count", 0),
         "protected_match_length": getattr(extractor, "last_diagnostics", {}).get("protected_match_length", 0),
@@ -2254,13 +2268,17 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         "average_chunk_length": getattr(extractor, "last_diagnostics", {}).get("average_chunk_length", 0.0),
         "tokenizer_alternate_count": getattr(extractor, "last_diagnostics", {}).get("tokenizer_alternate_count", 0),
         "average_alternate_length": getattr(extractor, "last_diagnostics", {}).get("average_alternate_length", 0.0),
+        "mixed_script_candidate_count": getattr(extractor, "last_diagnostics", {}).get("mixed_script_candidate_count", 0),
+        "terminal_boundary_candidate_count": getattr(extractor, "last_diagnostics", {}).get("terminal_boundary_candidate_count", 0),
+        "mixed_script_unmatched_count": oracle_diagnostics.get("mixed_script_unmatched_count", 0),
+        "terminal_boundary_unmatched_count": oracle_diagnostics.get("terminal_boundary_unmatched_count", 0),
         "chunks_rejected": getattr(extractor, "last_diagnostics", {}).get("chunks_rejected", 0),
         "chunks_accepted": getattr(extractor, "last_diagnostics", {}).get("chunks_accepted", 0),
     }
 
 def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "protected_match_count", "protected_match_length", "db_dictionary_hit_rate", "longest_match_success", "dictionary_coverage", "tokenizer_candidate_count", "average_candidate_length", "tokenizer_split_count", "average_chunk_length", "tokenizer_alternate_count", "candidate_oracle_hit", "primary_hit", "alternate_hit", "final_hit", "not_generated", "generated_but_not_selected", "generated_then_transformed", "chunks_rejected", "chunks_accepted", "elapsed_ms", "word_count"]
+    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "protected_match_count", "protected_match_length", "db_dictionary_hit_rate", "longest_match_success", "dictionary_coverage", "tokenizer_candidate_count", "average_candidate_length", "tokenizer_split_count", "average_chunk_length", "tokenizer_alternate_count", "mixed_script_candidate_count", "terminal_boundary_candidate_count", "mixed_script_oracle_hit_count", "terminal_boundary_oracle_hit_count", "mixed_script_unmatched_count", "terminal_boundary_unmatched_count", "candidate_oracle_hit", "primary_hit", "alternate_hit", "final_hit", "not_generated", "generated_but_not_selected", "generated_then_transformed", "chunks_rejected", "chunks_accepted", "elapsed_ms", "word_count"]
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -2279,7 +2297,7 @@ def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                 "dictionary_coverage": f"{float(row.get('dictionary_coverage', 0.0)):.3f}",
                 "tokenizer_candidate_count": row.get("tokenizer_candidate_count", 0), "average_candidate_length": f"{float(row.get('average_candidate_length', 0.0)):.2f}",
                 "tokenizer_split_count": row.get("tokenizer_split_count", 0), "average_chunk_length": f"{float(row.get('average_chunk_length', 0.0)):.2f}",
-                "tokenizer_alternate_count": row.get("tokenizer_alternate_count", 0), "candidate_oracle_hit": row.get("candidate_oracle_hit", 0), "primary_hit": row.get("primary_hit", 0), "alternate_hit": row.get("alternate_hit", 0), "final_hit": row.get("final_hit", 0), "not_generated": row.get("not_generated", 0), "generated_but_not_selected": row.get("generated_but_not_selected", 0), "generated_then_transformed": row.get("generated_then_transformed", 0),
+                "tokenizer_alternate_count": row.get("tokenizer_alternate_count", 0), "mixed_script_candidate_count": row.get("mixed_script_candidate_count", 0), "terminal_boundary_candidate_count": row.get("terminal_boundary_candidate_count", 0), "mixed_script_oracle_hit_count": row.get("mixed_script_oracle_hit_count", 0), "terminal_boundary_oracle_hit_count": row.get("terminal_boundary_oracle_hit_count", 0), "mixed_script_unmatched_count": row.get("mixed_script_unmatched_count", 0), "terminal_boundary_unmatched_count": row.get("terminal_boundary_unmatched_count", 0), "candidate_oracle_hit": row.get("candidate_oracle_hit", 0), "primary_hit": row.get("primary_hit", 0), "alternate_hit": row.get("alternate_hit", 0), "final_hit": row.get("final_hit", 0), "not_generated": row.get("not_generated", 0), "generated_but_not_selected": row.get("generated_but_not_selected", 0), "generated_then_transformed": row.get("generated_then_transformed", 0),
                 "chunks_rejected": row.get("chunks_rejected", 0), "chunks_accepted": row.get("chunks_accepted", 0),
                 "elapsed_ms": f"{row['elapsed_ms']:.3f}", "word_count": row["word_count"],
             })
@@ -2351,7 +2369,7 @@ def build_extractor_eval_report(rows: list[dict[str, Any]], scenario_file: Path,
     lines[insert_at:insert_at] = oracle_rows
     for row in category_summary:
         lines.append(f"| {row['category']} | {row['scenario_count']} | {row['expected_hit']} | {row['missing']} | {row['unexpected']} | {row['empty']} | {_ratio(row['bridge_hit'], row['bridge_total'])} | {_ratio(row['compound_hit'], row['compound_total'])} | {_ratio(row['novel_hit'], row['novel_total'])} | {row['average_word_count']:.2f} | {row['average_elapsed_ms']:.3f} |")
-    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Protected Span Diagnostics", "", f"- Protected Match Count: {int(total('protected_match_count'))}", f"- Protected Match Length: {int(total('protected_match_length'))}", f"- Average DB Dictionary Hit Rate: {avg('db_dictionary_hit_rate'):.3f}", f"- Longest Match Success: {sum(1 for row in rows if row.get('longest_match_success', True))}/{n}", f"- Average Dictionary Coverage: {avg('dictionary_coverage'):.3f}", "", "## Tokenizer Diagnostics", "", f"- Tokenizer Candidate Count: {int(total('tokenizer_candidate_count'))}", f"- Average Candidate Length: {avg('average_candidate_length'):.2f}", f"- Tokenizer Split Count: {int(total('tokenizer_split_count'))}", f"- Average Chunk Length: {avg('average_chunk_length'):.2f}", f"- Alternate Span Count: {int(total('tokenizer_alternate_count'))}", f"- Chunks Rejected: {int(total('chunks_rejected'))}", f"- Chunks Accepted: {int(total('chunks_accepted'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
+    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Protected Span Diagnostics", "", f"- Protected Match Count: {int(total('protected_match_count'))}", f"- Protected Match Length: {int(total('protected_match_length'))}", f"- Average DB Dictionary Hit Rate: {avg('db_dictionary_hit_rate'):.3f}", f"- Longest Match Success: {sum(1 for row in rows if row.get('longest_match_success', True))}/{n}", f"- Average Dictionary Coverage: {avg('dictionary_coverage'):.3f}", "", "## Tokenizer Diagnostics", "", f"- Tokenizer Candidate Count: {int(total('tokenizer_candidate_count'))}", f"- Average Candidate Length: {avg('average_candidate_length'):.2f}", f"- Tokenizer Split Count: {int(total('tokenizer_split_count'))}", f"- Average Chunk Length: {avg('average_chunk_length'):.2f}", f"- Alternate Span Count: {int(total('tokenizer_alternate_count'))}", f"- Mixed Script Candidate Count: {int(total('mixed_script_candidate_count'))}", f"- Terminal Boundary Candidate Count: {int(total('terminal_boundary_candidate_count'))}", f"- Mixed Script Oracle Hits: {int(total('mixed_script_oracle_hit_count'))}", f"- Terminal Boundary Oracle Hits: {int(total('terminal_boundary_oracle_hit_count'))}", f"- Chunks Rejected: {int(total('chunks_rejected'))}", f"- Chunks Accepted: {int(total('chunks_accepted'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
     for row in rows:
         missing = list(row["missing_expected"]) + ["/".join(group) for group in row.get("missing_expected_any_groups", [])]
         lines.append(f"| {row['scenario']} | {row['expected_hit']} | {' '.join(missing)} | {' '.join(row['unexpected'])} | {row['bridge_hit']}/{row['bridge_total']} | {row['compound_hit']}/{row['compound_total']} | {row['novel_term_exact_hit_count']}/{row['novel_term_total']} | {row['elapsed_ms']:.3f} | {row['word_count']} |")

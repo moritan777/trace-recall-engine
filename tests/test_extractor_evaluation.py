@@ -99,7 +99,7 @@ class ExtractorEvaluationTests(unittest.TestCase):
             "scenario": "oracle_case",
             "category": "future_plan",
             "role": "user",
-            "input": "俺の名前、みつきな",
+            "input": "俺の名前、みつきっていうの",
             "expected_words": ["俺", "みつき", "存在しない"],
             "forbidden_words": [],
         }
