@@ -11,6 +11,8 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
+from .candidate_span_generator import CandidateSpanGenerator
+
 
 @dataclass(frozen=True)
 class TokenCandidate:
@@ -46,6 +48,7 @@ class JapaneseTraceTokenizer:
         self.last_diagnostics: dict[str, object] = {}
         self.last_primary_chunks: list[TokenCandidate] = []
         self.last_alternate_spans: list[TokenCandidate] = []
+        self.candidate_span_generator = CandidateSpanGenerator()
 
     def tokenize(self, text: str, protected_spans: list[ProtectedSpanLike] | None = None) -> list[TokenCandidate]:
         protected_ranges = [(s.start, s.end) for s in (protected_spans or [])]
@@ -59,6 +62,10 @@ class JapaneseTraceTokenizer:
                     split_count += max(0, len(pieces) - 1)
                     tokens.extend(pieces)
         alternates = self._alternate_spans(text, tokens, protected_ranges)
+        v2_candidates = self.candidate_span_generator.generate(text, tokens, protected_spans or [])
+        for cand in v2_candidates:
+            alternates.append(TokenCandidate(cand.text, cand.start, cand.end, cand.source))
+        alternates = sorted({(a.start, a.end, a.text): a for a in alternates}.values(), key=lambda t: (t.start, t.end, t.text))
         self.last_primary_chunks = tokens
         self.last_alternate_spans = alternates
         lengths = [len(t.text) for t in tokens]
@@ -70,6 +77,8 @@ class JapaneseTraceTokenizer:
             "average_chunk_length": (sum(lengths) / len(lengths)) if lengths else 0.0,
             "tokenizer_primary_chunks": [t.text for t in tokens],
             "tokenizer_alternate_spans": [t.text for t in alternates],
+            "candidate_spans": [c.__dict__ for c in v2_candidates],
+            **self.candidate_span_generator.last_diagnostics,
             "tokenizer_alternate_count": len(alternates),
             "average_alternate_length": (sum(alt_lengths) / len(alt_lengths)) if alt_lengths else 0.0,
         }
@@ -107,9 +116,6 @@ class JapaneseTraceTokenizer:
         trimmed = re.sub(r"(っていう|って|やで|かな|だよ|だね|です|ます|なんだ)$", "", chunk)
         if trimmed != chunk:
             add(trimmed, offset)
-        if len(chunk) > 2 and chunk[-1] in "なねよわで" and not chunk[-2:].isascii():
-            add(chunk[:-1], offset)
-
         for m in re.finditer(r"[A-Za-z0-9]+|[ァ-ンー]+|[一-龥]+|[ぁ-ん]+", chunk):
             part = m.group(0)
             if 1 < len(part) <= self.MAX_ALTERNATE_LENGTH:
