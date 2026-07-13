@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from .base import ExtractedWord, normalize_word
+from .japanese_trace_tokenizer import JapaneseTraceTokenizer
 
 
 # LocalRuleTraceExtractor is intentionally incomplete.
@@ -85,6 +86,7 @@ class LocalRuleTraceExtractor:
     def __init__(self, debug: bool = False, trace_vocabulary: TraceVocabularyProvider | None = None) -> None:
         self.debug = debug
         self.trace_vocabulary = trace_vocabulary
+        self.tokenizer = JapaneseTraceTokenizer()
         self.last_diagnostics: dict[str, object] = {}
 
     def set_trace_vocabulary_provider(self, provider: TraceVocabularyProvider | None) -> None:
@@ -95,7 +97,8 @@ class LocalRuleTraceExtractor:
         normalized = self._normalize_text(text)
         protected_spans = self._protected_spans(normalized)
         candidates: list[_Candidate] = [_Candidate(s.word, s.weight, s.start, s.source) for s in protected_spans]
-        candidates.extend(self._chunk_candidates(normalized, protected_spans))
+        tokenizer_tokens = self.tokenizer.tokenize(normalized, protected_spans)
+        candidates.extend(self._chunk_candidates(normalized, protected_spans, tokenizer_tokens))
         words, removed = self._dedupe(candidates)
         self.last_diagnostics = {
             "extractor_name": self.name,
@@ -111,6 +114,9 @@ class LocalRuleTraceExtractor:
             "longest_match_success": self._longest_match_success(normalized, protected_spans),
             "dictionary_coverage": self._dictionary_coverage(normalized),
             "protected_spans": [(s.word, s.start, s.end, s.source) for s in protected_spans],
+            **self.tokenizer.last_diagnostics,
+            "chunks_accepted": len(words),
+            "chunks_rejected": len(removed),
         }
         return words
 
@@ -206,27 +212,13 @@ class LocalRuleTraceExtractor:
                 covered.update(range(m.start(), m.end()))
         return len(covered) / len(text)
 
-    def _chunk_candidates(self, text: str, protected_spans: list[_ProtectedSpan] | None = None) -> list[_Candidate]:
+    def _chunk_candidates(self, text: str, protected_spans: list[_ProtectedSpan] | None = None, tokenizer_tokens: list[object] | None = None) -> list[_Candidate]:
         out: list[_Candidate] = []
         protected_spans = protected_spans or []
-        protected_ranges = [(s.start, s.end) for s in protected_spans]
-        spans = re.finditer(r"[A-Za-z0-9ぁ-んァ-ン一-龥ー]+", text)
-        for span in spans:
-            residuals = self._residual_segments(span.start(), span.end(), protected_ranges)
-            for seg_start, seg_end in residuals:
-                chunk = text[seg_start:seg_end]
-                parts = self._split_chunk(chunk)
-                cursor = 0
-                for part in parts:
-                    local = chunk.find(part, cursor)
-                    cursor = local + len(part) if local >= 0 else cursor
-                    pos = seg_start + (local if local >= 0 else 0)
-                    cleaned = self._clean_surface(part)
-                    if cleaned:
-                        for sub in cleaned.split("|"):
-                            sub = self._clean_surface(sub)
-                            if sub:
-                                out.append(_Candidate(sub, 0.8, pos, "chunk"))
+        for token in tokenizer_tokens or self.tokenizer.tokenize(text, protected_spans):
+            cleaned = self._clean_surface(getattr(token, "text", ""))
+            if cleaned:
+                out.append(_Candidate(cleaned, 0.8, int(getattr(token, "start", 0)), "tokenizer"))
         return out
 
 
