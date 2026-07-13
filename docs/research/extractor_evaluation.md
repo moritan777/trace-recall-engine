@@ -84,3 +84,7 @@ python src/threaded_concept_memory_probe.py eval-extractor \
 ## Future Research
 
 After this evaluation infrastructure is stable, research can move to Local Rule, Sudachi, MeCab, and other extractor implementations. Those implementations should be compared here before being evaluated in full conversation benchmarks.
+
+## Local Rule Extractor v0 Status
+
+LLM Extractor is the current baseline; fallback remains a diagnostic path. Local Rule Extractor v0 is now an experimental deterministic local candidate: it uses no morphological analyzer, no external API, and is not integrated with Android yet.
