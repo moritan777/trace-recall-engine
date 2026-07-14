@@ -8,6 +8,10 @@
 - [AIKanojyo Integration Handover](handover/README.md)
 - [Extractor Research Plan](research/extractor_research_plan.md)
 
+## Cross-Repository Integration
+
+- [AIKanojyo Trace Memory Integration Package](../integration_packages/aikanojyo_trace_memory/README.md)
+
 ## Handover
 
 - [Memory Engine Bible](handover/AIKANOJYO_MEMORY_ENGINE_BIBLE.md)

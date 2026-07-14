@@ -1,0 +1,143 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/threaded_concept_memory_probe.py
+Original Line Range: 1266-1398
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: Prompt formatter views and response prompt construction.
+Do not edit this snapshot as source of truth.
+
+        if self.base_url:
+            try:
+                print(f"[llm] generating response via {self.base_url} model={self.model}", file=sys.stderr)
+                return call_openai_compatible_chat(
+                    base_url=self.base_url,
+                    api_key=self.api_key,
+                    model=self.model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "あなたは日本語で自然に短く返す会話相手です。\n"
+                                "Activated Words and Threads are associative memory traces.\n"
+                                "They are not exact quoted memories.\n"
+                                "Use them as hints for natural recall.\n"
+                                "返答は1〜3文。"
+                            ),
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.7,
+                    max_tokens=256,
+                    timeout_sec=self.timeout_sec,
+                ).strip()
+            except Exception as exc:
+                print(f"[warn] LLM response generation failed, fallback used: {exc}", file=sys.stderr)
+        return fallback_generate_response(user_input, activation)
+
+
+def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadgroup", origin_order: str = "none") -> list[str]:
+    prompt_view = normalize_prompt_view(prompt_view)
+    lines: list[str] = []
+    lines.append("")
+    lines.append("[Gated Recall Context]")
+    lines.append(gated.summary)
+    lines.append("Only this gated context should be used for the response.")
+
+    if prompt_view == "threadgroup":
+        lines.extend(format_threadgroup_view(gated, origin_order))
+    elif prompt_view == "recall-state":
+        lines.extend(format_recall_state_view(gated, origin_order))
+    elif prompt_view == "edge":
+        lines.extend(format_edge_view(gated))
+    else:
+        raise ValueError(f"unsupported prompt_view: {prompt_view}")
+
+    if gated.suppressed_words:
+        lines.append("")
+        lines.append("[Suppressed Words]")
+        lines.append("These were activated internally but should not drive the response.")
+        for sw in gated.suppressed_words[:10]:
+            lines.append(f"- {sw.word} score={sw.score:.3f} depth={sw.depth}")
+    return lines
+
+
+def format_threadgroup_view(gated: GatedContext, origin_order: str = "none") -> list[str]:
+    lines: list[str] = ["", "[Gated Thread Groups]"]
+    for th in ordered_thread_groups(gated.threads, origin_order):
+        direct = ", ".join(th.direct_words) if th.direct_words else "-"
+        core = " / ".join(th.core_words) if th.core_words else "-"
+        support = " / ".join(th.support_words) if th.support_words else "-"
+        bonus = f" common_bonus={th.common_bonus:.3f}" if th.common_bonus > 0 else ""
+        lines.append(
+            f"key={th.canonical_key} occurrence={th.occurrence_count} origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)} representative={th.representative_thread_id} "
+            f"score={th.score:.3f} group_score={th.group_score:.3f} base={th.base_score:.3f}{bonus} "
+            f"eff={th.effective_strength:.3f} direct={direct} core={core} support={support}"
+        )
+
+    lines.append("")
+    lines.append("[Gated Words]")
+    for gw in gated.words:
+        lines.append(f"- {gw.word} score={gw.score:.3f} depth={gw.depth} role={gw.role} fatigue={gw.fatigue} reason={gw.reason}")
+    return lines
+
+
+def format_recall_state_view(gated: GatedContext, origin_order: str = "none") -> list[str]:
+    lines: list[str] = ["", "[Recall State]"]
+    ordered = ordered_thread_groups(gated.threads, origin_order)
+    if normalize_origin_order(origin_order) == "group":
+        current_origin = None
+        for th in ordered:
+            origin = th.dominant_created_by or "user"
+            if origin != current_origin:
+                lines.append("")
+                lines.append(f"{origin}-origin traces:")
+                current_origin = origin
+            words = " / ".join(th.core_words or th.words)
+            direct = " / ".join(th.direct_words) if th.direct_words else "-"
+            lines.append(f"- {words}")
+            lines.append(f"  occurrence={th.occurrence_count}")
+            lines.append(f"  origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)}")
+            lines.append(f"  score={th.group_score:.2f}")
+            lines.append(f"  direct={direct}")
+        return lines
+    for th in ordered:
+        words = " / ".join(th.core_words or th.words)
+        direct = " / ".join(th.direct_words) if th.direct_words else "-"
+        lines.append(f"- {words}")
+        lines.append(f"  occurrence={th.occurrence_count}")
+        lines.append(f"  origin={format_origin_counts(th.created_by_counts, th.dominant_created_by)}")
+        lines.append(f"  score={th.group_score:.2f}")
+        lines.append(f"  direct={direct}")
+    return lines
+
+
+def format_edge_view(gated: GatedContext) -> list[str]:
+    edge_counts: dict[tuple[str, str], int] = {}
+    edge_scores: dict[tuple[str, str], float] = {}
+    for th in gated.threads:
+        words = th.core_words or th.words
+        for left, right in zip(words, words[1:]):
+            key = (left, right)
+            edge_counts[key] = edge_counts.get(key, 0) + th.occurrence_count
+            edge_scores[key] = edge_scores.get(key, 0.0) + th.group_score
+
+    lines: list[str] = ["", "[Edge Activation]"]
+    for (left, right), count in sorted(edge_counts.items(), key=lambda item: (edge_scores[item[0]], item[1]), reverse=True):
+        lines.append(f"- {left} -- {right} count={count}")
+    return lines
+
+
+def build_response_prompt(user_input: str, activation: ActivationResult, include_trace: bool = False, trace_limit: int = 10, gated: Optional[GatedContext] = None, prompt_view: str = "threadgroup", origin_order: str = "none") -> str:
+    lines: list[str] = []
+    lines.append("[Current Input]")
+    lines.append(user_input)
+
+    lines.append("")
+    lines.append("[Extracted Input Words]")
+    for w in activation.input_words:
+        lines.append(f"- {w.word} ({w.weight:.2f})")
+    lines.append("@user and @assistant are conversational participant references.")
+    lines.append("They indicate who first-person or second-person expressions referred to in the original utterance.")
+

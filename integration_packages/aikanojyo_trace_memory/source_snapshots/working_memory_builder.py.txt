@@ -1,0 +1,145 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/threaded_concept_memory_probe.py
+Original Line Range: 145-279
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: Working-memory dataclasses and gated DTOs.
+Do not edit this snapshot as source of truth.
+
+@dataclass
+class WordNode:
+    word_id: str
+    word: str
+    strength: float
+    weight: float
+    seen_count: int
+    first_seen: str
+    last_seen: str
+
+
+@dataclass
+class Thread:
+    thread_id: str
+    date: str
+    source_text: str | None
+    words: list[str]
+    canonical_key: str = ""
+    strength: float = 1.0
+    created_at: str = ""
+    last_seen: str = ""
+    seen_count: int = 1
+    created_by: str = "user"
+
+
+@dataclass
+class WordThreadLink:
+    word_id: str
+    word: str
+    thread_id: str
+    weight_in_thread: float
+    added_at: str
+
+
+
+@dataclass
+class ActivationTrace:
+    from_type: str
+    from_id: str
+    to_type: str
+    to_id: str
+    depth: int
+    score: float
+    reason: str
+
+
+@dataclass
+class ActivatedWord:
+    word: str
+    score: float
+    best_depth: int
+    thread_ids: list[str]
+    activated_by: list[str]
+
+
+@dataclass
+class ActivatedThread:
+    thread_id: str
+    score: float
+    base_score: float
+    common_bonus: float
+    words: list[str]
+    matched_words: list[str]
+    activated_by: list[str]
+    date: str
+    canonical_key: str = ""
+    thread_strength: float = 1.0
+    effective_strength: float = 1.0
+    same_key_thread_count: int = 1
+    created_by: str = "user"
+
+
+@dataclass
+class ActivationResult:
+    input_words: list[ExtractedWord]
+    activated_words: list[ActivatedWord]
+    activated_threads: list[ActivatedThread]
+    traces: list[ActivationTrace]
+
+
+@dataclass
+class GatedWord:
+    word: str
+    score: float
+    depth: int
+    role: str
+    reason: str
+    fatigue: int = 0
+    suppressed_by_fatigue: bool = False
+
+
+@dataclass
+class GatedThread:
+    thread_id: str
+    score: float
+    base_score: float
+    common_bonus: float
+    words: list[str]
+    direct_words: list[str]
+    core_words: list[str]
+    support_words: list[str]
+    suppressed_words: list[str]
+    canonical_key: str = ""
+    effective_strength: float = 1.0
+    same_key_thread_count: int = 1
+    created_by: str = "user"
+
+
+@dataclass
+class GatedThreadGroup:
+    canonical_key: str
+    representative_thread_id: str
+    occurrence_count: int
+    score: float
+    group_score: float
+    base_score: float
+    common_bonus: float
+    effective_strength: float
+    words: list[str]
+    direct_words: list[str]
+    core_words: list[str]
+    support_words: list[str]
+    suppressed_words: list[str]
+    member_thread_ids: list[str]
+    created_by_counts: dict[str, int]
+    dominant_created_by: str | None
+
+
+@dataclass
+class GatedContext:
+    threads: list[GatedThreadGroup]
+    words: list[GatedWord]
+    suppressed_words: list[GatedWord]
+    summary: str
+

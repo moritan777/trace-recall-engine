@@ -1,0 +1,80 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/threaded_concept_memory_probe.py
+Original Line Range: 1399-1468
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: Console diagnostics for raw activation, gate, fatigue, and WM candidate.
+Do not edit this snapshot as source of truth.
+
+    if gated is not None:
+        lines.extend(format_gated_recall_context(gated, prompt_view, origin_order))
+    else:
+        lines.append("")
+        lines.append("[Activated Words]")
+        for aw in activation.activated_words:
+            by = ", ".join(aw.activated_by[:3])
+            threads = ", ".join(aw.thread_ids[:5])
+            lines.append(f"- {aw.word} score={aw.score:.3f} depth={aw.best_depth} activated_by={by} threads={threads}")
+
+        lines.append("")
+        lines.append("[Activated Experience Threads]")
+        lines.append("These are not quoted memories. They are experience threads activated by overlapping words.")
+        for th in activation.activated_threads:
+            words = " / ".join(th.words)
+            matched = ", ".join(th.matched_words)
+            direct_hint = ""
+            if th.common_bonus > 0:
+                direct_hint = f" common_bonus={th.common_bonus:.3f}"
+            lines.append(
+                f"{th.thread_id} origin={th.created_by} score={th.score:.3f} base={th.base_score:.3f}{direct_hint} matched={matched}: {words}"
+            )
+
+    if include_trace:
+        lines.append("")
+        lines.append("[Activation Trace]")
+        for tr in activation.traces[:trace_limit]:
+            lines.append(f"- d{tr.depth}: {tr.from_type}:{tr.from_id} -> {tr.to_type}:{tr.to_id} score={tr.score:.3f}")
+    else:
+        lines.append("")
+        lines.append("[Activation Trace]")
+        lines.append("(omitted from LLM prompt; visible in console log only)")
+
+    lines.append("")
+    lines.append("[Instruction]")
+    lines.append("励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。")
+    lines.append("複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。")
+    lines.append("Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。")
+    lines.append("回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。")
+    lines.append("断定しすぎず、自然な想起として短く返す。")
+    return "\n".join(lines)
+
+
+def print_activation(result: ActivationResult, trace_limit: int = 80) -> None:
+    print("\n[Raw Activation]")
+    print("- Input Words")
+    for w in result.input_words:
+        print(f"  - {w.word} weight={w.weight:.2f}")
+
+    print("- Activated Words")
+    for aw in result.activated_words:
+        tids = ", ".join(aw.thread_ids[:5])
+        by = ", ".join(aw.activated_by[:4]) if aw.activated_by else "-"
+        print(f"  - {aw.word} score={aw.score:.4f} depth={aw.best_depth} activated_by={by} threads={tids}")
+
+    print("- Activated Threads")
+    for th in result.activated_threads:
+        matched = ", ".join(th.matched_words) if th.matched_words else "-"
+        by = ", ".join(th.activated_by[:4]) if th.activated_by else "-"
+        bonus = f" bonus={th.common_bonus:.4f}" if th.common_bonus > 0 else ""
+        print(f"  - {th.thread_id} score={th.score:.4f} base={th.base_score:.4f}{bonus} key={th.canonical_key} origin={th.created_by} same_key_thread_count={th.same_key_thread_count} effective_strength={th.effective_strength:.4f} matched={matched} activated_by={by} date={th.date}: {' / '.join(th.words)}")
+
+    print("\n[Activation Trace]")
+    if not result.traces:
+        print("- (no trace)")
+    for tr in result.traces[:trace_limit]:
+        print(f"- d{tr.depth}: {tr.from_type}:{tr.from_id} -> {tr.to_type}:{tr.to_id} score={tr.score:.4f} reason={tr.reason}")
+
+
+def print_gated_context(gated: GatedContext) -> None:

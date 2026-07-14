@@ -1,0 +1,251 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/threaded_concept_memory_probe.py
+Original Line Range: 767-1007
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: Raw activation core from entry words through activated words/threads.
+Do not edit this snapshot as source of truth.
+
+    def __init__(
+        self,
+        store: ThreadedConceptMemoryStore,
+        half_life_days: float = DEFAULT_HALF_LIFE_DAYS,
+        max_depth: int = DEFAULT_MAX_DEPTH,
+        common_bonus_multiplier: float = 0.45,
+        mutual_amplification: float = 0.12,
+        thread_strength_mode: str = "count",
+    ) -> None:
+        self.store = store
+        self.half_life_days = half_life_days
+        self.max_depth = max_depth
+        self.common_bonus_multiplier = common_bonus_multiplier
+        self.mutual_amplification = mutual_amplification
+        self.thread_strength_mode = normalize_thread_strength_mode(thread_strength_mode)
+
+    def activate(self, input_words: list[ExtractedWord], top_words: int = 20, top_threads: int = 8) -> ActivationResult:
+        now = now_iso()
+        known_words = self.store.get_all_words()
+        direct_input_word_set = {normalize_word(w.word) for w in input_words if normalize_word(w.word)}
+
+        word_scores: dict[str, float] = {}
+        word_best_depth: dict[str, int] = {}
+        word_threads: dict[str, set[str]] = {}
+        word_activated_by: dict[str, list[str]] = {}
+
+        # base thread score comes directly from propagation.
+        # final thread score = base + common activation bonus.
+        thread_base_scores: dict[str, float] = {}
+        thread_scores: dict[str, float] = {}
+        thread_matched_words: dict[str, set[str]] = {}
+        thread_direct_matched_words: dict[str, set[str]] = {}
+        thread_activated_by: dict[str, list[str]] = {}
+        thread_common_bonus: dict[str, float] = {}
+
+        traces: list[ActivationTrace] = []
+
+        # Queue: node_type, node_id, score, depth
+        queue: list[tuple[str, str, float, int]] = []
+
+        # Use max-score visited, not once-only, because a later intersection may be stronger.
+        visited_word_score: dict[str, float] = {}
+        visited_thread_score: dict[str, float] = {}
+
+        def record_trace(from_type: str, from_id: str, to_type: str, to_id: str, depth: int, score: float, reason: str) -> None:
+            traces.append(ActivationTrace(from_type, from_id, to_type, to_id, depth, score, reason))
+
+        # depth0: input word -> unique Word node.
+        for iw in input_words:
+            for matched_word, sim in match_known_words(iw.word, known_words):
+                node = self.store.get_word_by_text(matched_word)
+                if node is None:
+                    continue
+                score = self._word_score(node, iw.weight * sim, depth=0, now=now)
+
+                add_word_activation(
+                    word_scores, word_best_depth, word_threads, word_activated_by,
+                    node.word, [], score, 0, f"input:{iw.word}"
+                )
+                record_trace("input", iw.word, "word", node.word, 0, score, f"matched sim={sim:.2f}")
+
+                if score > visited_word_score.get(node.word_id, 0.0):
+                    visited_word_score[node.word_id] = score
+                    queue.append(("word", node.word_id, score, 0))
+
+        while queue:
+            node_type, node_id, score, depth = queue.pop(0)
+            if depth >= self.max_depth:
+                continue
+
+            next_depth = depth + 1
+
+            if node_type == "word":
+                node = self.store.get_word_by_id(node_id)
+                if node is None:
+                    continue
+
+                # Word -> all linked Threads.
+                for link in self.store.get_links_for_word(node_id):
+                    thread = self.store.get_thread(link.thread_id)
+                    if thread is None:
+                        continue
+                    effective_strength = self._thread_effective_strength(thread, now)
+                    thread_score = score * link.weight_in_thread * effective_strength * DEPTH_DECAY.get(next_depth, 0.03)
+                    if thread_score <= 0.001:
+                        continue
+
+                    # Important:
+                    # If multiple activated words point to the same thread,
+                    # the thread score is accumulated.
+                    thread_base_scores[link.thread_id] = thread_base_scores.get(link.thread_id, 0.0) + thread_score
+                    thread_matched_words.setdefault(link.thread_id, set()).add(node.word)
+                    if node.word in {w for w in known_words if w in direct_input_word_set} or node.word in direct_input_word_set:
+                        thread_direct_matched_words.setdefault(link.thread_id, set()).add(node.word)
+                    add_activated_by(thread_activated_by, link.thread_id, f"word:{node.word}")
+                    record_trace("word", node.word, "thread", link.thread_id, next_depth, thread_score, "word->thread")
+
+                    # Continue BFS only when this path is stronger than previous route.
+                    if thread_score > visited_thread_score.get(link.thread_id, 0.0):
+                        visited_thread_score[link.thread_id] = thread_score
+                        queue.append(("thread", link.thread_id, thread_score, next_depth))
+
+            elif node_type == "thread":
+                thread_id = node_id
+
+                # Thread -> all linked Words.
+                for link in self.store.get_links_for_thread(thread_id):
+                    node = self.store.get_word_by_id(link.word_id)
+                    if node is None:
+                        continue
+                    word_score = self._word_score(node, score * link.weight_in_thread, depth=next_depth, now=now)
+                    if word_score <= 0.001:
+                        continue
+
+                    add_word_activation(
+                        word_scores, word_best_depth, word_threads, word_activated_by,
+                        node.word, [thread_id], word_score, next_depth, f"thread:{thread_id}"
+                    )
+                    record_trace("thread", thread_id, "word", node.word, next_depth, word_score, "thread->word")
+
+                    if word_score > visited_word_score.get(node.word_id, 0.0):
+                        visited_word_score[node.word_id] = word_score
+                        queue.append(("word", node.word_id, word_score, next_depth))
+
+        # v0.7: Common activation bonus.
+        # Threads supported by multiple directly activated/input words get a strong boost.
+        # This prefers traces where the current input words intersect, without
+        # privileging any word category.
+        for thread_id, base in thread_base_scores.items():
+            direct_count = len(thread_direct_matched_words.get(thread_id, set()))
+            if direct_count >= 2:
+                # quadratic-ish but controlled:
+                # 2 direct words => + common_bonus_multiplier * base
+                # 3 direct words => + 4x multiplier factor on base
+                common_bonus = base * self.common_bonus_multiplier * ((direct_count - 1) ** 2)
+            else:
+                common_bonus = 0.0
+            thread_common_bonus[thread_id] = common_bonus
+            thread_scores[thread_id] = base + common_bonus
+            if common_bonus > 0:
+                record_trace(
+                    "thread",
+                    thread_id,
+                    "thread",
+                    thread_id,
+                    0,
+                    common_bonus,
+                    f"common-bonus direct_matches={direct_count}",
+                )
+
+        # v0.7: Mutual amplification.
+        # Strong threads softly amplify words inside them.
+        # This is intentionally small; it should not turn weak noise into a main answer.
+        for thread_id, final_score in thread_scores.items():
+            if final_score <= 0:
+                continue
+            direct_count = len(thread_direct_matched_words.get(thread_id, set()))
+            if direct_count <= 0:
+                continue
+
+            thread = self.store.get_thread(thread_id)
+            if thread is None:
+                continue
+
+            # Only strong / jointly-supported threads should amplify noticeably.
+            joint_factor = 1.0 + max(0, direct_count - 1)
+            for link in self.store.get_links_for_thread(thread_id):
+                node = self.store.get_word_by_id(link.word_id)
+                if node is None:
+                    continue
+                # Avoid overboosting words that were already direct input anchors.
+                if node.word in direct_input_word_set:
+                    continue
+                boost = final_score * self.mutual_amplification * link.weight_in_thread * 0.10 * joint_factor
+                if boost <= 0.001:
+                    continue
+                add_word_activation(
+                    word_scores,
+                    word_best_depth,
+                    word_threads,
+                    word_activated_by,
+                    node.word,
+                    [thread_id],
+                    boost,
+                    2,
+                    f"mutual:{thread_id}",
+                )
+                record_trace("thread", thread_id, "word", node.word, 2, boost, "mutual-amplification")
+
+        activated_words = [
+            ActivatedWord(
+                word=w,
+                score=s,
+                best_depth=word_best_depth.get(w, 99),
+                thread_ids=sorted(word_threads.get(w, set())),
+                activated_by=word_activated_by.get(w, [])[:6],
+            )
+            for w, s in sorted(word_scores.items(), key=lambda kv: kv[1], reverse=True)
+            if s > 0.001
+        ][:top_words]
+
+        activated_threads: list[ActivatedThread] = []
+        for thread_id, score in sorted(thread_scores.items(), key=lambda kv: kv[1], reverse=True)[:top_threads]:
+            thread = self.store.get_thread(thread_id)
+            if thread is None:
+                continue
+            activated_threads.append(
+                ActivatedThread(
+                    thread_id=thread_id,
+                    score=score,
+                    base_score=thread_base_scores.get(thread_id, 0.0),
+                    common_bonus=thread_common_bonus.get(thread_id, 0.0),
+                    words=thread.words,
+                    matched_words=sorted(thread_matched_words.get(thread_id, set())),
+                    activated_by=thread_activated_by.get(thread_id, [])[:8],
+                    date=thread.date,
+                    canonical_key=thread.canonical_key,
+                    thread_strength=thread.strength,
+                    effective_strength=self._thread_effective_strength(thread, now),
+                    same_key_thread_count=self.store.count_threads_by_canonical_key(thread.canonical_key),
+                    created_by=thread.created_by,
+                )
+            )
+
+        return ActivationResult(input_words, activated_words, activated_threads, traces)
+
+    def _thread_effective_strength(self, thread: Thread, now: str) -> float:
+        days = max(days_between_iso(thread.last_seen, now), 0.0)
+        time_decay = math.exp(-days / self.half_life_days)
+        if self.thread_strength_mode == "weighted":
+            return thread.strength * time_decay
+        return 1.0 * time_decay
+
+    def _word_score(self, node: WordNode, activation: float, depth: int, now: str) -> float:
+        days = max(days_between_iso(node.last_seen, now), 0.0)
+        time_decay = math.exp(-days / self.half_life_days)
+        return activation * node.weight * node.strength * DEPTH_DECAY.get(depth, 0.03) * time_decay
+
+
+
+class ActivationGate:

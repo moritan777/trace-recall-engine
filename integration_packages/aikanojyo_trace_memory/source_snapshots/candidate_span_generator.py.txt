@@ -1,0 +1,163 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/trace_recall/extractors/candidate_span_generator.py
+Original Line Range: 1-153
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: Diagnostic candidate span generation.
+Do not edit this snapshot as source of truth.
+
+"""Structural diagnostic span candidates for Japanese trace tokenization.
+
+Candidate Span Generator v2 intentionally uses only character classes,
+connectors, particles, protected-span boundaries, and a small list of
+conversational terminal expressions. It does not contain product-name or
+person-name dictionaries, and its output remains oracle-diagnostic only.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from typing import Protocol, Sequence
+
+
+@dataclass(frozen=True)
+class CandidateSpan:
+    text: str
+    start: int
+    end: int
+    source: str
+    reason: str
+
+
+class SpanLike(Protocol):
+    text: str
+    start: int
+    end: int
+
+
+class ProtectedSpanLike(Protocol):
+    start: int
+    end: int
+
+
+class CandidateSpanGenerator:
+    MAX_SPAN_LENGTH = 24
+    MAX_ALTERNATES_PER_PRIMARY_CHUNK = 4
+    MAX_MIXED_SCRIPT_SPANS_PER_SEGMENT = 8
+    MAX_TOTAL_ALTERNATE_SPANS_PER_INPUT = 16
+    CONNECTORS = "#+.-_/:"
+    PARTICLES = ("から", "まで", "など", "より", "だけ", "ほど", "は", "が", "を", "に", "へ", "で", "と", "も", "の")
+    STOP_WORDS = {"は", "が", "を", "に", "へ", "で", "と", "も", "の", "や", "です", "ます", "だ", "ね", "よ", "かな"}
+    # Functional conversational endings, not lexical/person dictionaries.
+    TERMINAL_PATTERNS = (
+        "っていうんだ", "っていうの", "なんだよ", "やねん", "なんだ", "だよ", "だね",
+        "かな", "かも", "やん", "やで", "よね", "ねん",
+    )
+    MIXED_RE = re.compile(
+        r"(?:[.]?[A-Za-z]+[A-Za-z0-9]*[#]?(?:[+._/:\-][A-Za-z0-9]+)*|[A-Za-z0-9]+[#]?(?:[+._/:\-][A-Za-z0-9]+)*)(?: [A-Za-z0-9]+[#]?(?:[+._/:\-][A-Za-z0-9]+)*)?"
+    )
+    JP_NOUN_TAIL_RE = re.compile(r"(?:[一-龥][ぁ-ん]|[ァ-ンー一-龥]{1,6})")
+    JP_NOUN_HEAD_RE = re.compile(r"[ァ-ンー一-龥]{1,6}$")
+
+    def __init__(self) -> None:
+        self.last_diagnostics: dict[str, object] = {}
+
+    def generate(self, text: str, primary_chunks: Sequence[SpanLike], protected_spans: Sequence[ProtectedSpanLike] | None = None) -> list[CandidateSpan]:
+        protected_ranges = [(s.start, s.end) for s in (protected_spans or [])]
+        spans: dict[tuple[int, int, str], CandidateSpan] = {}
+        discarded = 0
+        limit_reached = False
+
+        def add(span: CandidateSpan) -> None:
+            nonlocal discarded, limit_reached
+            if len(spans) >= self.MAX_TOTAL_ALTERNATE_SPANS_PER_INPUT:
+                discarded += 1; limit_reached = True; return
+            if not self._valid(span, text, protected_ranges):
+                return
+            spans.setdefault((span.start, span.end, span.text), span)
+
+        mixed_count = 0
+        for cand in self._mixed_script_candidates(text, protected_ranges):
+            if mixed_count >= self.MAX_MIXED_SCRIPT_SPANS_PER_SEGMENT:
+                discarded += 1; limit_reached = True; continue
+            before = len(spans); add(cand)
+            if len(spans) > before: mixed_count += 1
+
+        per_chunk: dict[tuple[int, int], int] = {}
+        terminal_units = list(primary_chunks)
+        for m in re.finditer(r"[^、。！？…\n\s]+", text):
+            terminal_units.append(CandidateSpan(m.group(0), m.start(), m.end(), "existing-tokenizer", "surface"))
+        for token in terminal_units:
+            for cand in self._terminal_boundary_candidates(text, token, protected_ranges):
+                key = (token.start, token.end)
+                if per_chunk.get(key, 0) >= self.MAX_ALTERNATES_PER_PRIMARY_CHUNK:
+                    discarded += 1; limit_reached = True; continue
+                before = len(spans); add(cand)
+                if len(spans) > before: per_chunk[key] = per_chunk.get(key, 0) + 1
+
+        out = sorted(spans.values(), key=lambda s: (s.start, s.end, s.text, s.source))
+        self.last_diagnostics = {
+            "candidate_limit_reached": limit_reached,
+            "discarded_candidate_count": discarded,
+            "mixed_script_candidate_count": sum(1 for s in out if s.source == "mixed-script"),
+            "terminal_boundary_candidate_count": sum(1 for s in out if s.source == "terminal-boundary"),
+        }
+        return out
+
+    def _mixed_script_candidates(self, text: str, protected_ranges: list[tuple[int, int]]) -> list[CandidateSpan]:
+        out: list[CandidateSpan] = []
+        for m in self.MIXED_RE.finditer(text):
+            start, end = m.span(); base = m.group(0)
+            prev = text[start - 1] if start > 0 else ""
+            if prev and (prev.isascii() and (prev.isalnum() or prev in ".%+-_")):
+                continue
+            if "@" in base or "://" in text[max(0, start-5):end+5] or self._overlaps_partial(start, end, protected_ranges):
+                continue
+            if start > 0:
+                head = self.JP_NOUN_HEAD_RE.search(text[:start])
+                if head and not any(text.startswith(p, head.start()) for p in self.PARTICLES):
+                    start = head.start(); base = text[start:end]
+            if end < len(text):
+                tail = self.JP_NOUN_TAIL_RE.match(text[end:])
+                tail_end = end + tail.end() if tail else end
+                if tail and (tail_end == len(text) or any(text.startswith(p, tail_end) for p in self.PARTICLES)):
+                    end = tail_end; base = text[start:end]
+            reason = "latin-space-alnum" if " " in base else "latin-japanese-adjacent" if re.search(r"[ぁ-んァ-ン一-龥]", base) else "latin-or-connector"
+            out.append(CandidateSpan(base, start, end, "mixed-script", reason))
+        for m in re.finditer(r"[ァ-ンー一-龥]{1,6}[A-Za-z][A-Za-z0-9]*#?", text):
+            start, end = m.span()
+            if end < len(text) and not any(text.startswith(p, end) for p in self.PARTICLES):
+                continue
+            out.append(CandidateSpan(m.group(0), start, end, "mixed-script", "japanese-latin-adjacent"))
+        return out
+
+    def _terminal_boundary_candidates(self, text: str, token: SpanLike, protected_ranges: list[tuple[int, int]]) -> list[CandidateSpan]:
+        chunk = token.text
+        out: list[CandidateSpan] = []
+        for pat in self.TERMINAL_PATTERNS:
+            if chunk.endswith(pat) and len(pat) > 1:
+                body = chunk[:-len(pat)]
+                end = token.end - len(pat)
+                if len(body) >= 2 and body not in self.STOP_WORDS and not re.fullmatch(r"[\W_]+", body):
+                    if text[token.start:end] == body and not self._overlaps_partial(token.start, end, protected_ranges):
+                        out.append(CandidateSpan(body, token.start, end, "terminal-boundary", f"trimmed:{pat}"))
+                break
+        return out
+
+    def _valid(self, span: CandidateSpan, text: str, protected_ranges: list[tuple[int, int]]) -> bool:
+        if not span.text or span.end <= span.start or len(span.text) > self.MAX_SPAN_LENGTH:
+            return False
+        if text[span.start:span.end] != span.text or span.text in self.STOP_WORDS:
+            return False
+        if re.fullmatch(r"[\W_]+", span.text):
+            return False
+        return not self._overlaps_partial(span.start, span.end, protected_ranges)
+
+    def _overlaps_partial(self, start: int, end: int, ranges: list[tuple[int, int]]) -> bool:
+        for a, b in ranges:
+            if a < end and b > start and not (start <= a and b <= end) and not (a <= start and end <= b):
+                return True
+        return False

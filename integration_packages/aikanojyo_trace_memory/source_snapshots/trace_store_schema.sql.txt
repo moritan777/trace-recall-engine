@@ -1,0 +1,446 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/threaded_concept_memory_probe.py
+Original Line Range: 281-716
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: SQLite store schema, repository boundary, vocabulary cache, fatigue exposure storage.
+Do not edit this snapshot as source of truth.
+
+class ThreadedConceptMemoryStore:
+    def __init__(self, db_path: str = DEFAULT_DB_PATH) -> None:
+        self.db_path = db_path
+        self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row
+        self._trace_vocabulary_cache: list[tuple[str, float]] | None = None
+        self.init_schema()
+
+    def _ensure_thread_columns(self) -> None:
+        cur = self.conn.cursor()
+        cols = {row["name"] for row in cur.execute("PRAGMA table_info(threads)").fetchall()}
+        migrations = {
+            "canonical_key": "ALTER TABLE threads ADD COLUMN canonical_key TEXT",
+            "strength": "ALTER TABLE threads ADD COLUMN strength REAL NOT NULL DEFAULT 1.0",
+            "created_at": "ALTER TABLE threads ADD COLUMN created_at TEXT",
+            "last_seen": "ALTER TABLE threads ADD COLUMN last_seen TEXT",
+            "seen_count": "ALTER TABLE threads ADD COLUMN seen_count INTEGER NOT NULL DEFAULT 1",
+            "created_by": "ALTER TABLE threads ADD COLUMN created_by TEXT NOT NULL DEFAULT 'user'",
+        }
+        for col, sql in migrations.items():
+            if col not in cols:
+                cur.execute(sql)
+        self.conn.commit()
+
+
+    def _ensure_exposure_columns(self) -> None:
+        cur = self.conn.cursor()
+        cols = {row["name"] for row in cur.execute("PRAGMA table_info(conversation_exposures)").fetchall()}
+        migrations = {
+            "canonical_key": "ALTER TABLE conversation_exposures ADD COLUMN canonical_key TEXT",
+            "exposure_type": "ALTER TABLE conversation_exposures ADD COLUMN exposure_type TEXT NOT NULL DEFAULT 'prompt'",
+        }
+        for col, sql in migrations.items():
+            if col not in cols:
+                cur.execute(sql)
+        self.conn.commit()
+
+    def close(self) -> None:
+        self.conn.close()
+
+    def init_schema(self) -> None:
+        cur = self.conn.cursor()
+
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS words (
+                word_id TEXT PRIMARY KEY,
+                word TEXT UNIQUE NOT NULL,
+                strength REAL NOT NULL DEFAULT 1.0,
+                weight REAL NOT NULL DEFAULT 1.0,
+                seen_count INTEGER NOT NULL DEFAULT 1,
+                first_seen TEXT NOT NULL,
+                last_seen TEXT NOT NULL
+            )
+            """
+        )
+
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS threads (
+                thread_id TEXT PRIMARY KEY,
+                date TEXT NOT NULL,
+                source_text TEXT,
+                canonical_key TEXT,
+                strength REAL NOT NULL DEFAULT 1.0,
+                created_at TEXT,
+                last_seen TEXT,
+                seen_count INTEGER NOT NULL DEFAULT 1,
+                created_by TEXT NOT NULL DEFAULT 'user'
+            )
+            """
+        )
+
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversation_exposures (
+                id TEXT PRIMARY KEY,
+                word TEXT,
+                thread_id TEXT,
+                canonical_key TEXT,
+                exposure_type TEXT NOT NULL DEFAULT 'prompt',
+                exposed_at TEXT NOT NULL,
+                turn_no INTEGER NOT NULL
+            )
+            """
+        )
+
+        self._ensure_thread_columns()
+        self._ensure_exposure_columns()
+
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS word_threads (
+                word_id TEXT NOT NULL,
+                thread_id TEXT NOT NULL,
+                weight_in_thread REAL NOT NULL DEFAULT 1.0,
+                added_at TEXT NOT NULL,
+                PRIMARY KEY (word_id, thread_id),
+                FOREIGN KEY (word_id) REFERENCES words(word_id),
+                FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
+            )
+            """
+        )
+
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_words_word ON words(word)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_word_threads_word ON word_threads(word_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_word_threads_thread ON word_threads(thread_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_threads_canonical_key ON threads(canonical_key)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_conversation_exposures_turn ON conversation_exposures(turn_no)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_conversation_exposures_word ON conversation_exposures(word)")
+        self.conn.commit()
+
+    def create_thread(self, words: list[ExtractedWord], source_text: str | None, thread_strength_mode: str = "count", created_by: str = "user") -> str:
+        now = now_iso()
+        date = now[:10]
+        thread_strength_mode = normalize_thread_strength_mode(thread_strength_mode)
+        created_by = normalize_created_by(created_by)
+
+        # created_by records who produced the utterance that created this trace.
+        # It is not a semantic label for who the trace is about.
+        # The recall score must not be boosted only because a trace was created by user or assistant.
+        # created_by は、このTraceを生んだ発話者を記録する。
+        # それは「誰についての記憶か」という意味ラベルではない。
+        # user / assistant 由来であることだけを理由にRecall scoreを加点してはいけない。
+
+        normalized: dict[str, float] = {}
+        for item in words:
+            word = normalize_word(item.word)
+            if not word:
+                continue
+            weight = clamp(float(item.weight), 0.1, 2.0)
+            normalized[word] = max(normalized.get(word, 0.0), weight)
+
+        canonical_key = make_canonical_key(normalized.keys())
+        cur = self.conn.cursor()
+
+        if thread_strength_mode == "weighted" and canonical_key:
+            existing = cur.execute(
+                """
+                SELECT thread_id, strength, seen_count
+                FROM threads
+                WHERE canonical_key = ?
+                ORDER BY created_at ASC, rowid ASC
+                LIMIT 1
+                """,
+                (canonical_key,),
+            ).fetchone()
+            if existing is not None:
+                thread_id = existing["thread_id"]
+                cur.execute(
+                    """
+                    UPDATE threads
+                    SET strength = ?, seen_count = ?, last_seen = ?, created_by = ?
+                    WHERE thread_id = ?
+                    """,
+                    (min(float(existing["strength"]) + 0.45, 4.0), int(existing["seen_count"]) + 1, now, created_by, thread_id),
+                )
+                for word, weight in normalized.items():
+                    self._upsert_word_node(cur, word, weight, now)
+                self.conn.commit()
+                self.invalidate_trace_vocabulary_cache()
+                return thread_id
+
+        thread_id = "thread_" + uuid.uuid4().hex[:12]
+        cur.execute(
+            """
+            INSERT INTO threads(thread_id, date, source_text, canonical_key, strength, created_at, last_seen, seen_count, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (thread_id, date, source_text, canonical_key, 1.0, now, now, 1, created_by),
+        )
+
+        for word, weight in normalized.items():
+            word_id = self._upsert_word_node(cur, word, weight, now)
+            cur.execute(
+                """
+                INSERT OR REPLACE INTO word_threads(word_id, thread_id, weight_in_thread, added_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (word_id, thread_id, weight, now),
+            )
+        self.conn.commit()
+        self.invalidate_trace_vocabulary_cache()
+        return thread_id
+
+    def _upsert_word_node(self, cur: sqlite3.Cursor, word: str, weight: float, now: str) -> str:
+        node = self.get_word_by_text(word)
+        if node is None:
+            word_id = "word_" + uuid.uuid4().hex[:12]
+            cur.execute(
+                """
+                INSERT INTO words(word_id, word, strength, weight, seen_count, first_seen, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (word_id, word, 1.0, weight, 1, now, now),
+            )
+            return word_id
+        word_id = node.word_id
+        cur.execute(
+            """
+            UPDATE words
+            SET strength = ?, weight = ?, seen_count = ?, last_seen = ?
+            WHERE word_id = ?
+            """,
+            (min(node.strength + DEFAULT_REINFORCE_AMOUNT, DEFAULT_MAX_STRENGTH), max(node.weight, weight), node.seen_count + 1, now, word_id),
+        )
+        return word_id
+
+    def get_word_by_text(self, word: str) -> Optional[WordNode]:
+        row = self.conn.execute(
+            """
+            SELECT word_id, word, strength, weight, seen_count, first_seen, last_seen
+            FROM words
+            WHERE word = ?
+            """,
+            (word,),
+        ).fetchone()
+        return row_to_word_node(row) if row else None
+
+    def get_word_by_id(self, word_id: str) -> Optional[WordNode]:
+        row = self.conn.execute(
+            """
+            SELECT word_id, word, strength, weight, seen_count, first_seen, last_seen
+            FROM words
+            WHERE word_id = ?
+            """,
+            (word_id,),
+        ).fetchone()
+        return row_to_word_node(row) if row else None
+
+    def get_all_words(self) -> list[str]:
+        rows = self.conn.execute("SELECT word FROM words ORDER BY word").fetchall()
+        return [r["word"] for r in rows]
+
+    def invalidate_trace_vocabulary_cache(self) -> None:
+        self._trace_vocabulary_cache = None
+
+    def get_trace_vocabulary(self) -> list[tuple[str, float]]:
+        """Return a memory mirror of existing Trace DB words for protected-span detection.
+
+        This method intentionally uses the existing words table only. It performs one
+        SELECT on first use or after invalidation, then serves the local-rule
+        extractor from memory so extraction does not scan SQLite every turn.
+        """
+        if self._trace_vocabulary_cache is not None:
+            return list(self._trace_vocabulary_cache)
+        rows = self.conn.execute(
+            """
+            SELECT word, weight, seen_count, last_seen
+            FROM words
+            ORDER BY length(word) DESC, seen_count DESC, last_seen DESC, word ASC
+            """
+        ).fetchall()
+        now = now_iso()
+        self._trace_vocabulary_cache = [
+            (row["word"], self._trace_vocabulary_score(float(row["weight"]), int(row["seen_count"]), str(row["last_seen"]), now))
+            for row in rows
+        ]
+        return list(self._trace_vocabulary_cache)
+
+    def _trace_vocabulary_score(self, weight: float, seen_count: int, last_seen: str, now: str) -> float:
+        try:
+            age_days = max(0.0, (dt.datetime.fromisoformat(now) - dt.datetime.fromisoformat(last_seen)).total_seconds() / 86400.0)
+        except ValueError:
+            age_days = 0.0
+        decay = 0.5 ** (age_days / 30.0)
+        frequency = max(1, seen_count)
+        return min(2.0, max(0.1, weight * (1.0 + min(frequency, 10) / 10.0) * decay))
+
+    def get_links_for_word(self, word_id: str) -> list[WordThreadLink]:
+        rows = self.conn.execute(
+            """
+            SELECT wt.word_id, w.word, wt.thread_id, wt.weight_in_thread, wt.added_at
+            FROM word_threads wt
+            JOIN words w ON w.word_id = wt.word_id
+            WHERE wt.word_id = ?
+            ORDER BY wt.weight_in_thread DESC
+            """,
+            (word_id,),
+        ).fetchall()
+        return [row_to_word_thread_link(r) for r in rows]
+
+    def get_links_for_thread(self, thread_id: str) -> list[WordThreadLink]:
+        rows = self.conn.execute(
+            """
+            SELECT wt.word_id, w.word, wt.thread_id, wt.weight_in_thread, wt.added_at
+            FROM word_threads wt
+            JOIN words w ON w.word_id = wt.word_id
+            WHERE wt.thread_id = ?
+            ORDER BY wt.weight_in_thread DESC, w.word ASC
+            """,
+            (thread_id,),
+        ).fetchall()
+        return [row_to_word_thread_link(r) for r in rows]
+
+    def get_thread(self, thread_id: str) -> Optional[Thread]:
+        row = self.conn.execute(
+            """
+            SELECT thread_id, date, source_text, canonical_key, strength, created_at, last_seen, seen_count, created_by
+            FROM threads
+            WHERE thread_id = ?
+            """,
+            (thread_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        words = [link.word for link in self.get_links_for_thread(thread_id)]
+        return Thread(
+            thread_id=row["thread_id"],
+            date=row["date"],
+            source_text=row["source_text"],
+            words=words,
+            canonical_key=row["canonical_key"] or make_canonical_key(words),
+            strength=float(row["strength"]),
+            created_at=row["created_at"] or row["date"],
+            last_seen=row["last_seen"] or row["date"],
+            seen_count=int(row["seen_count"]),
+            created_by=normalize_created_by(row["created_by"]),
+        )
+
+    def list_threads(self, limit: int = 20) -> list[Thread]:
+        rows = self.conn.execute(
+            """
+            SELECT thread_id, date, source_text
+            FROM threads
+            ORDER BY rowid DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        result: list[Thread] = []
+        for r in rows:
+            th = self.get_thread(r["thread_id"])
+            if th is not None:
+                result.append(th)
+        return result
+
+    def list_words(self, limit: int = 100) -> list[WordNode]:
+        rows = self.conn.execute(
+            """
+            SELECT word_id, word, strength, weight, seen_count, first_seen, last_seen
+            FROM words
+            ORDER BY seen_count DESC, word ASC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [row_to_word_node(r) for r in rows]
+
+    def count_threads_by_canonical_key(self, canonical_key: str) -> int:
+        if not canonical_key:
+            return 1
+        row = self.conn.execute("SELECT COUNT(*) AS c FROM threads WHERE canonical_key = ?", (canonical_key,)).fetchone()
+        return int(row["c"]) if row else 1
+
+    def has_thread_source(self, source_text: str, created_by: str) -> bool:
+        row = self.conn.execute(
+            "SELECT 1 FROM threads WHERE source_text = ? AND created_by = ? LIMIT 1",
+            (source_text, normalize_created_by(created_by)),
+        ).fetchone()
+        return row is not None
+
+    def get_next_turn_no(self) -> int:
+        row = self.conn.execute("SELECT COALESCE(MAX(turn_no), 0) + 1 AS next_turn FROM conversation_exposures").fetchone()
+        return int(row["next_turn"]) if row else 1
+
+    def get_fatigue(self, word: str, recent_turns: int = 10, exposure_type: str = "prompt") -> int:
+        next_turn = self.get_next_turn_no()
+        min_turn = max(1, next_turn - recent_turns)
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS c FROM conversation_exposures WHERE word = ? AND turn_no >= ? AND exposure_type = ?",
+            (word, min_turn, exposure_type),
+        ).fetchone()
+        return int(row["c"]) if row else 0
+
+    def get_fatigue_prompt(self, word: str, recent_turns: int = 10) -> int:
+        return self.get_fatigue(word, recent_turns, "prompt")
+
+    def get_fatigue_response(self, word: str, recent_turns: int = 10) -> int:
+        return self.get_fatigue(word, recent_turns, "response")
+
+    def record_exposures(self, gated: GatedContext, turn_no: Optional[int] = None, exposure_type: str = "prompt", response_text: str = "") -> int:
+        if turn_no is None:
+            turn_no = self.get_next_turn_no()
+        now = now_iso()
+        cur = self.conn.cursor()
+        for gw in gated.words:
+            if gw.suppressed_by_fatigue:
+                continue
+            if exposure_type == "response" and response_text and gw.word not in response_text:
+                continue
+            cur.execute(
+                "INSERT INTO conversation_exposures(id, word, thread_id, canonical_key, exposure_type, exposed_at, turn_no) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ("exp_" + uuid.uuid4().hex[:12], gw.word, None, None, exposure_type, now, turn_no),
+            )
+        if exposure_type == "prompt":
+            for th in gated.threads:
+                cur.execute(
+                    "INSERT INTO conversation_exposures(id, word, thread_id, canonical_key, exposure_type, exposed_at, turn_no) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    ("exp_" + uuid.uuid4().hex[:12], None, th.representative_thread_id, th.canonical_key, exposure_type, now, turn_no),
+                )
+        self.conn.commit()
+        return turn_no
+
+    def reinforce_seen(self, activated_words: list[ActivatedWord]) -> None:
+        now = now_iso()
+        cur = self.conn.cursor()
+        for aw in activated_words:
+            node = self.get_word_by_text(aw.word)
+            if node is None:
+                continue
+            # Depthが浅いほど強化。score自体は爆発しうるためlogで抑える。
+            gain = DEFAULT_REINFORCE_AMOUNT * (1.0 / (1.0 + aw.best_depth)) * min(math.log1p(aw.score), 1.0)
+            cur.execute(
+                """
+                UPDATE words
+                SET strength = ?, seen_count = ?, last_seen = ?
+                WHERE word_id = ?
+                """,
+                (
+                    min(node.strength + gain, DEFAULT_MAX_STRENGTH),
+                    node.seen_count + 1,
+                    now,
+                    node.word_id,
+                ),
+            )
+        self.conn.commit()
+
+
+class WordExtractor(LLMTraceExtractor):
+    """Backward-compatible LLM extractor name."""
+
+    def __init__(self, base_url: str = "", api_key: str = "", model: str = "local-model", timeout_sec: float = 12.0, debug: bool = False) -> None:
+        super().__init__(base_url, api_key, model, timeout_sec, debug, chat_client=lambda **kwargs: call_openai_compatible_chat(**kwargs), normalize_base_url=normalize_llm_base_url)
+
+
