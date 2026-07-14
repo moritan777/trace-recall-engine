@@ -5,7 +5,14 @@
 - [Getting Started](getting_started.md)
 - [Project Overview](00_project_overview.md)
 - [Current Research Direction](research/current_research_direction.md)
+- [AIKanojyo Integration Handover](handover/README.md)
 - [Extractor Research Plan](research/extractor_research_plan.md)
+
+## Handover
+
+- [Memory Engine Bible](handover/AIKANOJYO_MEMORY_ENGINE_BIBLE.md)
+- [AIKanojyo Integration Guide](handover/AIKANOJYO_INTEGRATION_GUIDE.md)
+- [Current Handover](handover/CURRENT_HANDOVER.md)
 
 ## Foundations
 
