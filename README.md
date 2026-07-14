@@ -27,6 +27,7 @@ See the [benchmark history and evaluation conditions](docs/benchmarks/README.md)
 - [Documentation Index](docs/README.md)
 - [Current Research Direction](docs/research/current_research_direction.md)
 - [AIKanojyo Integration Handover](docs/handover/README.md)
+- [AIKanojyo Integration Package](integration_packages/aikanojyo_trace_memory/README.md)
 - [Extractor Research Plan](docs/research/extractor_research_plan.md)
 
 ## Requirements

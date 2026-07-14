@@ -1,0 +1,236 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/threaded_concept_memory_probe.py
+Original Line Range: 1009-1234
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: ActivationGate, fatigue suppression, ThreadGroup grouping.
+Do not edit this snapshot as source of truth.
+
+    v0.8 Prompt gate.
+
+    Raw Activation may spread across multiple threads.
+    The gate does not change the raw activation log.
+    It only decides what becomes prompt-visible context.
+
+    Policy:
+    - Prefer top experience threads, not top loose words.
+    - Prefer threads supported by multiple direct input words.
+    - Direct words and thread-local core words are prompt-visible.
+    - depth2+ words from weak threads become support or suppressed.
+    - low-score words remain in logs but are not sent to the LLM.
+    """
+
+    def __init__(
+        self,
+        max_prompt_threads: int = 4,
+        max_core_words_per_thread: int = 5,
+        max_prompt_words: int = 12,
+        min_thread_score: float = 0.05,
+        min_word_score: float = 0.05,
+        support_ratio: float = 0.18,
+        store: Optional[ThreadedConceptMemoryStore] = None,
+        fatigue_recent_turns: int = 10,
+        fatigue_threshold: int = 3,
+    ) -> None:
+        self.max_prompt_threads = max_prompt_threads
+        self.max_core_words_per_thread = max_core_words_per_thread
+        self.max_prompt_words = max_prompt_words
+        self.min_thread_score = min_thread_score
+        self.min_word_score = min_word_score
+        self.support_ratio = support_ratio
+        self.store = store
+        self.fatigue_recent_turns = fatigue_recent_turns
+        self.fatigue_threshold = fatigue_threshold
+
+    def gate(self, activation: ActivationResult) -> GatedContext:
+        input_word_set = {normalize_word(w.word) for w in activation.input_words if normalize_word(w.word)}
+        word_by_text = {w.word: w for w in activation.activated_words}
+
+        def fatigue_prompt_for(word: str) -> int:
+            if self.store is None:
+                return 0
+            return self.store.get_fatigue_prompt(word, self.fatigue_recent_turns)
+
+        def fatigue_response_for(word: str) -> int:
+            if self.store is None:
+                return 0
+            return self.store.get_fatigue_response(word, self.fatigue_recent_turns)
+
+        def is_asked_override(word: str) -> bool:
+            return word in input_word_set
+        max_thread_score = max([t.score for t in activation.activated_threads], default=0.0)
+
+        selected_threads: list[ActivatedThread] = []
+        for th in activation.activated_threads:
+            if len(selected_threads) >= self.max_prompt_threads:
+                break
+            if th.score < self.min_thread_score:
+                continue
+
+            direct_words = [w for w in th.matched_words if w in input_word_set]
+            is_strong_enough = max_thread_score <= 0 or th.score >= max_thread_score * self.support_ratio
+            if is_strong_enough or len(direct_words) >= 1 or th.common_bonus > 0:
+                selected_threads.append(th)
+
+        selected_thread_ids = {t.thread_id for t in selected_threads}
+
+        preliminary_threads: list[GatedThread] = []
+        visible_word_names: set[str] = set()
+        suppressed_word_names: set[str] = set()
+
+        for th in selected_threads:
+            direct_words = [w for w in th.words if w in input_word_set]
+            core_words: list[str] = []
+            support_words: list[str] = []
+            suppressed_words: list[str] = []
+
+            sorted_thread_words = sorted(
+                th.words,
+                key=lambda word: (
+                    1 if word in input_word_set else 0,
+                    word_by_text.get(word).score if word in word_by_text else 0.0,
+                ),
+                reverse=True,
+            )
+
+            for word in sorted_thread_words:
+                aw = word_by_text.get(word)
+                score = aw.score if aw else 0.0
+
+                if word in direct_words:
+                    if word not in core_words:
+                        core_words.append(word)
+                        visible_word_names.add(word)
+                    continue
+
+                if len(core_words) < self.max_core_words_per_thread and score >= self.min_word_score:
+                    core_words.append(word)
+                    visible_word_names.add(word)
+                elif score >= self.min_word_score:
+                    support_words.append(word)
+                    visible_word_names.add(word)
+                else:
+                    suppressed_words.append(word)
+                    suppressed_word_names.add(word)
+
+            preliminary_threads.append(
+                GatedThread(
+                    thread_id=th.thread_id,
+                    score=th.score,
+                    base_score=th.base_score,
+                    common_bonus=th.common_bonus,
+                    words=th.words,
+                    direct_words=direct_words,
+                    core_words=core_words[: self.max_core_words_per_thread],
+                    support_words=support_words[: self.max_core_words_per_thread],
+                    suppressed_words=suppressed_words,
+                    canonical_key=th.canonical_key,
+                    effective_strength=th.effective_strength,
+                    same_key_thread_count=th.same_key_thread_count,
+                    created_by=th.created_by,
+                )
+            )
+
+        # Count mode keeps repeated traces as separate threads internally,
+        # but the prompt should receive them as one canonical ThreadGroup.
+        # Repetition strengthens recall, but should not duplicate prompt content.
+        #
+        # count modeでは、内部的には同じ痕跡を複数threadとして保持する。
+        # ただしPromptへ渡すときはcanonical_key単位で1つのThreadGroupに圧縮する。
+        # 繰り返しは想起を強めるが、Prompt内容を重複させてはいけない。
+        gated_threads = self._group_threads(preliminary_threads)
+
+        gated_words: list[GatedWord] = []
+        for aw in activation.activated_words:
+            if len(gated_words) >= self.max_prompt_words:
+                break
+
+            in_selected_thread = any(tid in selected_thread_ids for tid in aw.thread_ids)
+            is_direct = aw.word in input_word_set
+
+            if aw.score < self.min_word_score and not is_direct:
+                suppressed_word_names.add(aw.word)
+                continue
+            if not in_selected_thread and not is_direct:
+                suppressed_word_names.add(aw.word)
+                continue
+
+            fatigue = fatigue_prompt_for(aw.word)
+            fatigue_suppressed = fatigue >= self.fatigue_threshold and not is_asked_override(aw.word)
+            if is_direct:
+                role = "direct"
+                reason = "input word / asked override" if fatigue_suppressed else "input word"
+            elif fatigue_suppressed:
+                suppressed_word_names.add(aw.word)
+                continue
+            elif aw.best_depth <= 2:
+                role = "core"
+                reason = "inside selected thread"
+            else:
+                role = "support"
+                reason = "multi-hop support"
+
+            gated_words.append(GatedWord(aw.word, aw.score, aw.best_depth, role, reason, fatigue, False))
+            visible_word_names.add(aw.word)
+
+        suppressed_words: list[GatedWord] = []
+        for aw in activation.activated_words:
+            if aw.word in visible_word_names:
+                continue
+            if aw.word in suppressed_word_names or aw.score < self.min_word_score:
+                fatigue = fatigue_prompt_for(aw.word)
+                fatigue_suppressed = fatigue >= self.fatigue_threshold and not is_asked_override(aw.word)
+                reason = "recently_exposed" if fatigue_suppressed else "below gate or outside selected threads"
+                suppressed_words.append(GatedWord(aw.word, aw.score, aw.best_depth, "suppressed", reason, fatigue, fatigue_suppressed))
+
+        if gated_threads:
+            if gated_threads[0].common_bonus > 0:
+                summary = "Multiple input words converged on the top experience threads."
+            else:
+                summary = "A small set of related experience threads was selected."
+        else:
+            summary = "No strong gated context."
+
+        return GatedContext(
+            threads=gated_threads,
+            words=gated_words,
+            suppressed_words=suppressed_words[:20],
+            summary=summary,
+        )
+
+    def _group_threads(self, threads: list[GatedThread]) -> list[GatedThreadGroup]:
+        grouped: dict[str, list[GatedThread]] = {}
+        for th in threads:
+            key = th.canonical_key or make_canonical_key(th.words) or th.thread_id
+            grouped.setdefault(key, []).append(th)
+
+        result: list[GatedThreadGroup] = []
+        for key, members in grouped.items():
+            representative = max(members, key=lambda th: th.score)
+            member_thread_ids = [th.thread_id for th in members]
+            occurrence_count = max(representative.same_key_thread_count, len(members))
+            group_score = sum(th.score for th in members)
+            base_score = sum(th.base_score for th in members)
+            common_bonus = sum(th.common_bonus for th in members)
+            effective_strength = max(th.effective_strength for th in members)
+            created_by_counts: dict[str, int] = {}
+            for th in members:
+                origin = normalize_created_by(th.created_by)
+                created_by_counts[origin] = created_by_counts.get(origin, 0) + 1
+            dominant_created_by = max(created_by_counts.items(), key=lambda kv: (kv[1], kv[0]))[0] if created_by_counts else None
+            result.append(
+                GatedThreadGroup(
+                    canonical_key=key,
+                    representative_thread_id=representative.thread_id,
+                    occurrence_count=occurrence_count,
+                    score=representative.score,
+                    group_score=group_score,
+                    base_score=base_score,
+                    common_bonus=common_bonus,
+                    effective_strength=effective_strength,
+                    words=representative.words,
+                    direct_words=merge_unique([w for th in members for w in th.direct_words]),
+                    core_words=merge_unique([w for th in members for w in th.core_words])[: self.max_core_words_per_thread],
+                    support_words=merge_unique([w for th in members for w in th.support_words])[: self.max_core_words_per_thread],

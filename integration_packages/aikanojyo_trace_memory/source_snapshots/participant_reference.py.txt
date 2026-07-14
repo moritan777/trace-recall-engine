@@ -1,0 +1,59 @@
+SOURCE SNAPSHOT
+Repository: Threaded_Concept_Memory_Probe
+Commit: 752577a75a1fe3f65b93b89df25466ddd883a500
+Original Path: src/threaded_concept_memory_probe.py
+Original Line Range: 717-765
+Generated At: 2026-07-14T23:13:29Z
+Source Language: Python
+Purpose: Participant reference normalization only.
+Do not edit this snapshot as source of truth.
+
+def normalize_participant_references(
+    source_text: str,
+    created_by: str,
+    words: list[ExtractedWord],
+    debug: bool = False,
+) -> list[ExtractedWord]:
+    """Add canonical participant reference words from the original utterance.
+
+    Participant reference normalization does not assign semantic importance.
+    It only preserves who first-person and second-person expressions referred to
+    in a two-party conversation.
+
+    @user and @assistant must participate in recall as ordinary word nodes.
+    They must not receive score boosts, anchor privileges, or identity-specific
+    retrieval rules.
+    """
+    created_by = normalize_created_by(created_by)
+    text = normalize_text(source_text)
+    references: list[tuple[str, str]] = []
+
+    if "私" in text or "わたし" in text:
+        references.append(("私", USER_PARTICIPANT_WORD if created_by == "user" else ASSISTANT_PARTICIPANT_WORD))
+    if "あなた" in text:
+        references.append(("あなた", ASSISTANT_PARTICIPANT_WORD if created_by == "user" else USER_PARTICIPANT_WORD))
+
+    pronoun_words = {"私", "わたし", "あなた"}
+    retained_words = [word for word in words if normalize_word(word.word) not in pronoun_words]
+    additions = [ExtractedWord(canonical, 1.0) for _, canonical in references]
+    normalized = dedupe_extracted_words(additions + retained_words)
+
+    if debug:
+        print("[Participant Reference Normalization]", file=sys.stderr)
+        if references:
+            print(f"created_by={created_by}", file=sys.stderr)
+            print("source references:", file=sys.stderr)
+            for source, canonical in references:
+                print(f"- {source} -> {canonical}", file=sys.stderr)
+            print("before:", file=sys.stderr)
+            for word in words:
+                print(f"- {word.word}", file=sys.stderr)
+            print("after:", file=sys.stderr)
+            for word in normalized:
+                print(f"- {word.word}", file=sys.stderr)
+        else:
+            print("- no participant references", file=sys.stderr)
+
+    return normalized
+
+
