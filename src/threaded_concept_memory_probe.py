@@ -2084,7 +2084,7 @@ def _norm_word_set(words: list[Any]) -> set[str]:
     return {normalize_word(str(word)) for word in words if normalize_word(str(word))}
 
 
-def _count_expected_any_group_hits(extracted_set: set[str], groups: list[Any]) -> tuple[int, int, list[list[str]]]:
+def _normalized_expected_any_groups(groups: list[Any]) -> list[list[str]]:
     normalized_groups: list[list[str]] = []
     for group in groups:
         if not isinstance(group, list):
@@ -2092,9 +2092,39 @@ def _count_expected_any_group_hits(extracted_set: set[str], groups: list[Any]) -
         normalized = [normalize_word(str(word)) for word in group if normalize_word(str(word))]
         if normalized:
             normalized_groups.append(normalized)
-    missing = [group for group in normalized_groups if not (set(group) & extracted_set)]
-    return len(normalized_groups) - len(missing), len(normalized_groups), missing
+    return normalized_groups
 
+
+def evaluate_expected_targets(
+    final_words: list[Any],
+    expected_words: list[Any],
+    expected_any_groups: list[Any] | None = None,
+) -> dict[str, Any]:
+    """Evaluate expected target hits shared by extractor eval and oracle replay.
+
+    Slash/OR expectations are represented by ``expected_any_groups`` and count
+    once when any normalized member is present in final words.
+    """
+    word_set = _norm_word_set(final_words)
+    expected = _norm_word_set(expected_words)
+    groups = _normalized_expected_any_groups(expected_any_groups or [])
+    missing_any = [group for group in groups if not (set(group) & word_set)]
+    expected_hit_words = sorted(word_set & expected)
+    return {
+        "word_set": word_set,
+        "expected": expected,
+        "expected_hit_words": expected_hit_words,
+        "missing_expected": sorted(expected - word_set),
+        "expected_any_group_hit": len(groups) - len(missing_any),
+        "expected_any_group_total": len(groups),
+        "missing_expected_any_groups": missing_any,
+        "expected_hit": len(expected_hit_words) + len(groups) - len(missing_any),
+    }
+
+
+def _count_expected_any_group_hits(extracted_set: set[str], groups: list[Any]) -> tuple[int, int, list[list[str]]]:
+    result = evaluate_expected_targets(list(extracted_set), [], groups)
+    return result["expected_any_group_hit"], result["expected_any_group_total"], result["missing_expected_any_groups"]
 
 def _token_length_diagnostics(words: list[str], source_text: str) -> dict[str, Any]:
     lengths = [len(word) for word in words]
@@ -2196,17 +2226,20 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
     elapsed_ms = (time.perf_counter() - started) * 1000.0
     raw_extracted_words = [normalize_word(word.word) for word in raw_extracted if normalize_word(word.word)]
     extracted_words = [normalize_word(word.word) for word in extracted if normalize_word(word.word)]
-    extracted_set = set(extracted_words)
-    expected = _norm_word_set(list(item.get("expected_words", [])))
+    target_eval = evaluate_expected_targets(extracted_words, list(item.get("expected_words", [])), list(item.get("expected_any_groups", [])))
+    extracted_set = target_eval["word_set"]
+    expected = target_eval["expected"]
     forbidden = _norm_word_set(list(item.get("forbidden_words", [])))
     bridge = _norm_word_set(list(item.get("bridge_words", [])))
     compound = _norm_word_set(list(item.get("compound_words", [])))
     identity = _norm_word_set(list(item.get("identity_words", [])))
     participants = _norm_word_set(list(item.get("participant_words", [])))
-    any_hit, any_total, missing_any_groups = _count_expected_any_group_hits(extracted_set, list(item.get("expected_any_groups", [])))
+    any_hit = target_eval["expected_any_group_hit"]
+    any_total = target_eval["expected_any_group_total"]
+    missing_any_groups = target_eval["missing_expected_any_groups"]
 
-    expected_hit_words = sorted(extracted_set & expected)
-    missing_expected = sorted(expected - extracted_set)
+    expected_hit_words = target_eval["expected_hit_words"]
+    missing_expected = target_eval["missing_expected"]
     unexpected_words = sorted(extracted_set & forbidden)
     denom_precision = len(expected_hit_words) + any_hit + len(unexpected_words)
     precision_like = ((len(expected_hit_words) + any_hit) / denom_precision) if denom_precision else (1.0 if not unexpected_words else 0.0)
@@ -2226,11 +2259,14 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         "extracted_words": raw_extracted_words,
         "normalized_words": extracted_words,
         "expected": sorted(expected),
+        "expected_words": sorted(expected),
+        "expected_any_groups": _normalized_expected_any_groups(list(item.get("expected_any_groups", []))),
         "forbidden": sorted(forbidden),
+        "forbidden_words": sorted(forbidden),
         "missing_expected": missing_expected,
         "missing_expected_any_groups": missing_any_groups,
         "unexpected": unexpected_words,
-        "expected_hit": len(expected_hit_words) + any_hit,
+        "expected_hit": target_eval["expected_hit"],
         **oracle_diagnostics,
         "expected_any_group_hit": any_hit,
         "expected_any_group_total": any_total,
@@ -2272,13 +2308,15 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         "terminal_boundary_candidate_count": getattr(extractor, "last_diagnostics", {}).get("terminal_boundary_candidate_count", 0),
         "mixed_script_unmatched_count": oracle_diagnostics.get("mixed_script_unmatched_count", 0),
         "terminal_boundary_unmatched_count": oracle_diagnostics.get("terminal_boundary_unmatched_count", 0),
+        "promoted_mixed_script_words": getattr(extractor, "last_diagnostics", {}).get("promoted_mixed_script_words", []),
+        "promoted_mixed_script_count": getattr(extractor, "last_diagnostics", {}).get("promoted_mixed_script_count", 0),
         "chunks_rejected": getattr(extractor, "last_diagnostics", {}).get("chunks_rejected", 0),
         "chunks_accepted": getattr(extractor, "last_diagnostics", {}).get("chunks_accepted", 0),
     }
 
 def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "protected_match_count", "protected_match_length", "db_dictionary_hit_rate", "longest_match_success", "dictionary_coverage", "tokenizer_candidate_count", "average_candidate_length", "tokenizer_split_count", "average_chunk_length", "tokenizer_alternate_count", "mixed_script_candidate_count", "terminal_boundary_candidate_count", "mixed_script_oracle_hit_count", "terminal_boundary_oracle_hit_count", "mixed_script_unmatched_count", "terminal_boundary_unmatched_count", "candidate_oracle_hit", "primary_hit", "alternate_hit", "final_hit", "not_generated", "generated_but_not_selected", "generated_then_transformed", "chunks_rejected", "chunks_accepted", "elapsed_ms", "word_count"]
+    fields = ["scenario", "category", "extractor", "expected_hit", "missing_expected", "unexpected", "bridge_hit", "compound_hit", "identity_hit", "participant_hit", "novel_term_hit", "long_token_count", "very_long_token_count", "average_token_length", "max_token_length", "whole_sentence_like_token_count", "protected_match_count", "protected_match_length", "db_dictionary_hit_rate", "longest_match_success", "dictionary_coverage", "tokenizer_candidate_count", "average_candidate_length", "tokenizer_split_count", "average_chunk_length", "tokenizer_alternate_count", "mixed_script_candidate_count", "terminal_boundary_candidate_count", "promoted_mixed_script_count", "mixed_script_oracle_hit_count", "terminal_boundary_oracle_hit_count", "mixed_script_unmatched_count", "terminal_boundary_unmatched_count", "candidate_oracle_hit", "primary_hit", "alternate_hit", "final_hit", "not_generated", "generated_but_not_selected", "generated_then_transformed", "chunks_rejected", "chunks_accepted", "elapsed_ms", "word_count"]
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -2297,7 +2335,7 @@ def write_extractor_eval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                 "dictionary_coverage": f"{float(row.get('dictionary_coverage', 0.0)):.3f}",
                 "tokenizer_candidate_count": row.get("tokenizer_candidate_count", 0), "average_candidate_length": f"{float(row.get('average_candidate_length', 0.0)):.2f}",
                 "tokenizer_split_count": row.get("tokenizer_split_count", 0), "average_chunk_length": f"{float(row.get('average_chunk_length', 0.0)):.2f}",
-                "tokenizer_alternate_count": row.get("tokenizer_alternate_count", 0), "mixed_script_candidate_count": row.get("mixed_script_candidate_count", 0), "terminal_boundary_candidate_count": row.get("terminal_boundary_candidate_count", 0), "mixed_script_oracle_hit_count": row.get("mixed_script_oracle_hit_count", 0), "terminal_boundary_oracle_hit_count": row.get("terminal_boundary_oracle_hit_count", 0), "mixed_script_unmatched_count": row.get("mixed_script_unmatched_count", 0), "terminal_boundary_unmatched_count": row.get("terminal_boundary_unmatched_count", 0), "candidate_oracle_hit": row.get("candidate_oracle_hit", 0), "primary_hit": row.get("primary_hit", 0), "alternate_hit": row.get("alternate_hit", 0), "final_hit": row.get("final_hit", 0), "not_generated": row.get("not_generated", 0), "generated_but_not_selected": row.get("generated_but_not_selected", 0), "generated_then_transformed": row.get("generated_then_transformed", 0),
+                "tokenizer_alternate_count": row.get("tokenizer_alternate_count", 0), "mixed_script_candidate_count": row.get("mixed_script_candidate_count", 0), "terminal_boundary_candidate_count": row.get("terminal_boundary_candidate_count", 0), "promoted_mixed_script_count": row.get("promoted_mixed_script_count", 0), "mixed_script_oracle_hit_count": row.get("mixed_script_oracle_hit_count", 0), "terminal_boundary_oracle_hit_count": row.get("terminal_boundary_oracle_hit_count", 0), "mixed_script_unmatched_count": row.get("mixed_script_unmatched_count", 0), "terminal_boundary_unmatched_count": row.get("terminal_boundary_unmatched_count", 0), "candidate_oracle_hit": row.get("candidate_oracle_hit", 0), "primary_hit": row.get("primary_hit", 0), "alternate_hit": row.get("alternate_hit", 0), "final_hit": row.get("final_hit", 0), "not_generated": row.get("not_generated", 0), "generated_but_not_selected": row.get("generated_but_not_selected", 0), "generated_then_transformed": row.get("generated_then_transformed", 0),
                 "chunks_rejected": row.get("chunks_rejected", 0), "chunks_accepted": row.get("chunks_accepted", 0),
                 "elapsed_ms": f"{row['elapsed_ms']:.3f}", "word_count": row["word_count"],
             })
@@ -2369,7 +2407,7 @@ def build_extractor_eval_report(rows: list[dict[str, Any]], scenario_file: Path,
     lines[insert_at:insert_at] = oracle_rows
     for row in category_summary:
         lines.append(f"| {row['category']} | {row['scenario_count']} | {row['expected_hit']} | {row['missing']} | {row['unexpected']} | {row['empty']} | {_ratio(row['bridge_hit'], row['bridge_total'])} | {_ratio(row['compound_hit'], row['compound_total'])} | {_ratio(row['novel_hit'], row['novel_total'])} | {row['average_word_count']:.2f} | {row['average_elapsed_ms']:.3f} |")
-    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Protected Span Diagnostics", "", f"- Protected Match Count: {int(total('protected_match_count'))}", f"- Protected Match Length: {int(total('protected_match_length'))}", f"- Average DB Dictionary Hit Rate: {avg('db_dictionary_hit_rate'):.3f}", f"- Longest Match Success: {sum(1 for row in rows if row.get('longest_match_success', True))}/{n}", f"- Average Dictionary Coverage: {avg('dictionary_coverage'):.3f}", "", "## Tokenizer Diagnostics", "", f"- Tokenizer Candidate Count: {int(total('tokenizer_candidate_count'))}", f"- Average Candidate Length: {avg('average_candidate_length'):.2f}", f"- Tokenizer Split Count: {int(total('tokenizer_split_count'))}", f"- Average Chunk Length: {avg('average_chunk_length'):.2f}", f"- Alternate Span Count: {int(total('tokenizer_alternate_count'))}", f"- Mixed Script Candidate Count: {int(total('mixed_script_candidate_count'))}", f"- Terminal Boundary Candidate Count: {int(total('terminal_boundary_candidate_count'))}", f"- Mixed Script Oracle Hits: {int(total('mixed_script_oracle_hit_count'))}", f"- Terminal Boundary Oracle Hits: {int(total('terminal_boundary_oracle_hit_count'))}", f"- Chunks Rejected: {int(total('chunks_rejected'))}", f"- Chunks Accepted: {int(total('chunks_accepted'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
+    lines.extend(["", "## Unknown / Novel Term Retention", "", f"- Exact hits: {novel_hit}/{novel_total} ({_ratio(novel_hit, novel_total)})", f"- Partial hits: {int(total('novel_term_partial_hit_count'))}", f"- Missing: {int(total('novel_term_missing_count'))}", "", "## Token Length Diagnostics", "", f"- Long tokens (>=8 chars): {int(total('long_token_count'))}", f"- Very long tokens (>=16 chars): {int(total('very_long_token_count'))}", f"- Average token length: {avg('average_token_length'):.2f}", f"- Max token length: {int(max((row['max_token_length'] for row in rows), default=0))}", f"- Whole-sentence-like tokens: {int(total('whole_sentence_like_token_count'))}", "", "## Protected Span Diagnostics", "", f"- Protected Match Count: {int(total('protected_match_count'))}", f"- Protected Match Length: {int(total('protected_match_length'))}", f"- Average DB Dictionary Hit Rate: {avg('db_dictionary_hit_rate'):.3f}", f"- Longest Match Success: {sum(1 for row in rows if row.get('longest_match_success', True))}/{n}", f"- Average Dictionary Coverage: {avg('dictionary_coverage'):.3f}", "", "## Tokenizer Diagnostics", "", f"- Tokenizer Candidate Count: {int(total('tokenizer_candidate_count'))}", f"- Average Candidate Length: {avg('average_candidate_length'):.2f}", f"- Tokenizer Split Count: {int(total('tokenizer_split_count'))}", f"- Average Chunk Length: {avg('average_chunk_length'):.2f}", f"- Alternate Span Count: {int(total('tokenizer_alternate_count'))}", f"- Mixed Script Candidate Count: {int(total('mixed_script_candidate_count'))}", f"- Terminal Boundary Candidate Count: {int(total('terminal_boundary_candidate_count'))}", f"- Promoted Mixed Script Count: {int(total('promoted_mixed_script_count'))}", f"- Mixed Script Oracle Hits: {int(total('mixed_script_oracle_hit_count'))}", f"- Terminal Boundary Oracle Hits: {int(total('terminal_boundary_oracle_hit_count'))}", f"- Chunks Rejected: {int(total('chunks_rejected'))}", f"- Chunks Accepted: {int(total('chunks_accepted'))}", "", "## Participant Reference Boundary", "", "Details JSONL contains both `extracted_words` (extractor output before participant normalization) and `normalized_words` (after participant reference normalization).", "", "## Potential Benchmark Overfitting", "", "Compare this report with the core benchmark report. A large local-rule drop on expected, bridge, or compound retention indicates possible overfitting to the development-facing core fixture.", "", "## Human Interpretation", "", "Diagnostics are observational. Long Japanese compounds can be legitimate and do not automatically fail the benchmark.", "", "| scenario | expected_hit | missing | unexpected | bridge | compound | novel | elapsed_ms | word_count |", "|---|---:|---|---|---:|---:|---:|---:|---:|" ])
     for row in rows:
         missing = list(row["missing_expected"]) + ["/".join(group) for group in row.get("missing_expected_any_groups", [])]
         lines.append(f"| {row['scenario']} | {row['expected_hit']} | {' '.join(missing)} | {' '.join(row['unexpected'])} | {row['bridge_hit']}/{row['bridge_total']} | {row['compound_hit']}/{row['compound_total']} | {row['novel_term_exact_hit_count']}/{row['novel_term_total']} | {row['elapsed_ms']:.3f} | {row['word_count']} |")
@@ -2478,11 +2516,15 @@ def evaluate_oracle_replay_row(row: dict[str, Any], dataset: str, strategy: str,
     baseline_words = baseline_words if baseline_words is not None else replay_select_words(row, "current-final")
     word_set = set(words)
     baseline_set = set(baseline_words)
-    expected = _norm_word_set(list(row.get("expected_words", row.get("expected", []))))
+    expected_values = list(row.get("expected_words", row.get("expected", [])))
+    any_groups = list(row.get("expected_any_groups", []))
+    target_eval = evaluate_expected_targets(words, expected_values, any_groups)
+    baseline_eval = evaluate_expected_targets(baseline_words, expected_values, any_groups)
+    expected = target_eval["expected"]
     forbidden = _norm_word_set(list(row.get("forbidden_words", row.get("forbidden", []))))
-    any_hit, any_total, missing_any = _count_expected_any_group_hits(word_set, list(row.get("expected_any_groups", [])))
-    baseline_expected_hit = len(baseline_set & expected) + _count_expected_any_group_hits(baseline_set, list(row.get("expected_any_groups", [])))[0]
-    expected_hit = len(word_set & expected) + any_hit
+    missing_any = target_eval["missing_expected_any_groups"]
+    baseline_expected_hit = baseline_eval["expected_hit"]
+    expected_hit = target_eval["expected_hit"]
     added = [word for word in words if word not in baseline_set]
     baseline_missing = expected - baseline_set
     added_expected = sorted((word_set & baseline_missing))
@@ -2499,7 +2541,7 @@ def evaluate_oracle_replay_row(row: dict[str, Any], dataset: str, strategy: str,
         "added_words": added,
         "unmatched_added_words": unmatched,
         "expected_hit_count": expected_hit,
-        "missing_expected_count": len(expected - word_set) + len(missing_any),
+        "missing_expected_count": len(target_eval["missing_expected"]) + len(missing_any),
         "forbidden_hit_count": len(word_set & forbidden),
         "unexpected_count": len(word_set & forbidden),
         "final_word_count": len(words),
@@ -3624,6 +3666,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""), help="Optional model override for word extraction; defaults to --model.")
     parser.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""), help="Optional model override for response generation; defaults to --model.")
     parser.add_argument("--debug-extractor", action="store_true", help="Print LLM extractor prompt, raw response, parsed words, and Python-filtered words.")
+    parser.add_argument("--enable-mixed-script-promotion", action="store_true", help="Experimentally promote structurally generated mixed-script local-rule candidates; disabled by default.")
     parser.add_argument("--debug-participant-reference", action="store_true", help="Print participant reference normalization before/after details.")
     parser.add_argument("--disable-participant-reference", action="store_true", help="Disable participant reference normalization for feature-ablation experiments.")
     parser.add_argument("--timeout", type=float, default=12.0)
@@ -3707,6 +3750,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval_extractor.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""))
     p_eval_extractor.add_argument("--timeout", type=float, default=12.0)
     p_eval_extractor.add_argument("--debug-extractor", action="store_true")
+    p_eval_extractor.add_argument("--enable-mixed-script-promotion", action="store_true")
     p_eval_extractor.add_argument("--metrics-csv", default="reports/extractor_eval_metrics.csv")
     p_eval_extractor.add_argument("--details-jsonl", default="reports/extractor_eval_details.jsonl")
     p_eval_extractor.add_argument("--report-md", default="reports/extractor_eval_report.md")

@@ -280,3 +280,9 @@ Extractor evaluation records an Oracle Result per expected word with statuses su
 Candidate Span Generator v2 adds only structurally grounded Mixed Script and safe terminal-boundary candidates. New candidates remain diagnostic-only and are not promoted to production extraction output. Oracle Replay is reused to test generalization before any selector change.
 
 The generator records candidate `source` and `reason` metadata for oracle diagnostics while keeping final words, trace persistence, and recall behavior unchanged.
+
+## Mixed Script Promotion Experiment
+
+Mixed Script promotion is experimental and disabled by default. Enable it only for A/B runs with `--enable-mixed-script-promotion` together with the `local-rule` extractor.
+
+Only structurally generated `mixed-script` candidates may be promoted. Terminal-boundary and general alternate candidates remain diagnostic-only, and baseline reconciliation between extractor evaluation and oracle replay is required before interpreting A/B gains.

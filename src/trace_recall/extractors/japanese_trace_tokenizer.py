@@ -62,7 +62,10 @@ class JapaneseTraceTokenizer:
                     split_count += max(0, len(pieces) - 1)
                     tokens.extend(pieces)
         alternates = self._alternate_spans(text, tokens, protected_ranges)
-        v2_candidates = self.candidate_span_generator.generate(text, tokens, protected_spans or [])
+        # Generate v2 diagnostic candidates from the full surface. The local-rule
+        # extractor still applies promotion safety checks and dedupe before any
+        # candidate can affect final output.
+        v2_candidates = self.candidate_span_generator.generate(text, tokens, [])
         for cand in v2_candidates:
             alternates.append(TokenCandidate(cand.text, cand.start, cand.end, cand.source))
         alternates = sorted({(a.start, a.end, a.text): a for a in alternates}.values(), key=lambda t: (t.start, t.end, t.text))

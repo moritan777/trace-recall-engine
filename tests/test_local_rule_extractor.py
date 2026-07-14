@@ -84,3 +84,21 @@ class DynamicTraceDictionaryTests(unittest.TestCase):
         extractor = LocalRuleTraceExtractor(trace_vocabulary=_FakeTraceVocabulary([]))
         extracted = {item.word for item in extractor.extract("僕はチーズケーキが好きです。")}
         self.assertTrue({"チーズケーキ", "好き"} <= extracted)
+
+class MixedScriptPromotionTests(unittest.TestCase):
+    def test_promotion_is_disabled_by_default(self):
+        extracted = {item.word for item in LocalRuleTraceExtractor().extract("ChatGPT Plus使ってる")}
+        self.assertNotIn("ChatGPT Plus", extracted)
+
+    def test_flag_promotes_only_mixed_script_candidates(self):
+        extractor = LocalRuleTraceExtractor(enable_mixed_script_promotion=True)
+        extracted = {item.word for item in extractor.extract("ChatGPT Plus使ってる")}
+        self.assertIn("ChatGPT Plus", extracted)
+        self.assertIn("ChatGPT Plus", extractor.last_diagnostics["promoted_mixed_script_words"])
+
+    def test_terminal_boundary_remains_diagnostic_only(self):
+        extractor = LocalRuleTraceExtractor(enable_mixed_script_promotion=True)
+        extracted = {item.word for item in extractor.extract("私、のりこっていうの")}
+        self.assertNotIn("のりこ", extracted)
+        terminal = {c["text"] for c in extractor.last_diagnostics["candidate_spans"] if c["source"] == "terminal-boundary"}
+        self.assertIn("のりこ", terminal)

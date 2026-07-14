@@ -159,6 +159,15 @@ class OracleReplayTests(unittest.TestCase):
             "protected_span_words": ["せつなが来た"],
         }
 
+    def test_expected_target_helper_shared_with_oracle_replay(self):
+        from threaded_concept_memory_probe import evaluate_expected_targets, evaluate_oracle_replay_row
+        direct = evaluate_expected_targets(["来た", "言う"], ["来た"], [["いう", "言う"]])
+        self.assertEqual(direct["expected_hit"], 2)
+        row = {"scenario": "or", "input": "x", "expected": ["来た"], "expected_any_groups": [["いう", "言う"]], "final_words": ["来た", "言う"]}
+        replay = evaluate_oracle_replay_row(row, "unit", "current-final")
+        self.assertEqual(replay["expected_hit_count"], direct["expected_hit"])
+        self.assertEqual(replay["missing_expected_count"], 0)
+
     def test_oracle_replay_strategies_and_baseline(self):
         from threaded_concept_memory_probe import REPLAY_STRATEGIES, replay_select_words
         row = self._row()
