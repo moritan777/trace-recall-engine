@@ -83,9 +83,10 @@ class LocalRuleTraceExtractor:
         "だった", "でした", "じゃなくて", "なくて", "一緒", "そう", "す",
     }
 
-    def __init__(self, debug: bool = False, trace_vocabulary: TraceVocabularyProvider | None = None) -> None:
+    def __init__(self, debug: bool = False, trace_vocabulary: TraceVocabularyProvider | None = None, enable_mixed_script_promotion: bool = False) -> None:
         self.debug = debug
         self.trace_vocabulary = trace_vocabulary
+        self.enable_mixed_script_promotion = enable_mixed_script_promotion
         self.tokenizer = JapaneseTraceTokenizer()
         self.last_diagnostics: dict[str, object] = {}
 
@@ -99,12 +100,16 @@ class LocalRuleTraceExtractor:
         candidates: list[_Candidate] = [_Candidate(s.word, s.weight, s.start, s.source) for s in protected_spans]
         tokenizer_tokens = self.tokenizer.tokenize(normalized, protected_spans)
         candidates.extend(self._chunk_candidates(normalized, protected_spans, tokenizer_tokens))
+        promoted_mixed_script_words = self._mixed_script_promotion_candidates(normalized, candidates)
+        candidates.extend(promoted_mixed_script_words)
         words, removed = self._dedupe(candidates)
         self.last_diagnostics = {
             "extractor_name": self.name,
             "elapsed_ms": (time.perf_counter() - started) * 1000.0,
             "raw_candidates": [c.word for c in candidates],
             "final_words": [w.word for w in words],
+            "promoted_mixed_script_words": [c.word for c in promoted_mixed_script_words],
+            "promoted_mixed_script_count": len(promoted_mixed_script_words),
             "removed_stop_words": removed,
             "compound_candidates": [c.word for c in candidates if c.source == "compound"],
             "bridge_candidates": [c.word for c in candidates if c.source == "bridge"],
@@ -222,6 +227,34 @@ class LocalRuleTraceExtractor:
                 out.append(_Candidate(cleaned, 0.8, int(getattr(token, "start", 0)), "tokenizer"))
         return out
 
+
+    def _mixed_script_promotion_candidates(self, text: str, existing: list[_Candidate]) -> list[_Candidate]:
+        if not self.enable_mixed_script_promotion:
+            return []
+        existing_words = {self._clean_surface(c.word) for c in existing if self._clean_surface(c.word)}
+        out: list[_Candidate] = []
+        for item in self.tokenizer.last_diagnostics.get("candidate_spans", []):
+            if not isinstance(item, dict) or item.get("source") != "mixed-script":
+                continue
+            word = self._clean_surface(str(item.get("text", "")))
+            start = int(item.get("start", -1))
+            end = int(item.get("end", -1))
+            if not self._is_promotable_mixed_script(text, word, start, end, existing_words):
+                continue
+            existing_words.add(word)
+            out.append(_Candidate(word, 0.9, start, "mixed-script-promotion"))
+        return out
+
+    def _is_promotable_mixed_script(self, text: str, word: str, start: int, end: int, existing_words: set[str]) -> bool:
+        if len(word) < 2 or len(word) > 24:
+            return False
+        if not word or word in self.STOP_WORDS or word in existing_words:
+            return False
+        if start < 0 or end > len(text) or start >= end or text[start:end] != word:
+            return False
+        if re.fullmatch(r"[\W_]+", word):
+            return False
+        return True
 
     def _residual_segments(self, start: int, end: int, protected_ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
         overlaps = sorted((max(start, a), min(end, b)) for a, b in protected_ranges if a < end and b > start)

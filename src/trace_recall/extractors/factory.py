@@ -15,7 +15,7 @@ def create_extractor(args: Any, chat_client: Callable[..., str] | None = None, n
     if extractor_name == "fallback":
         return FallbackTraceExtractor()
     if extractor_name == "local-rule":
-        return LocalRuleTraceExtractor(debug=getattr(args, "debug_extractor", False))
+        return LocalRuleTraceExtractor(debug=getattr(args, "debug_extractor", False), enable_mixed_script_promotion=getattr(args, "enable_mixed_script_promotion", False))
     if extractor_name == "llm":
         extractor_model = getattr(args, "extractor_model", "") or getattr(args, "model", "local-model")
         return LLMTraceExtractor(
