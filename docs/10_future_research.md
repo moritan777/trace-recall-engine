@@ -2,6 +2,10 @@
 
 The current architecture has completed its initial storage and long-scale recall validation. Future work now focuses on the extraction boundary and on later integration-quality evaluation.
 
+Research updates are published on
+
+📖 Zenn
+
 ---
 
 ## Completed or Moved Out of Primary Future Scope
