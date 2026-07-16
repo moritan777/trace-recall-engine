@@ -50,3 +50,14 @@ The next benchmark phase focuses on extractor replacement. See the [Current Rese
 
 - [Benchmark History](benchmark_history.md)
 - [Research Log](Research_Log.md)
+
+Benchmarks explain what happened.
+
+For why the architecture was designed this way:
+
+→ Architecture
+
+For development history:
+
+→ note
+
