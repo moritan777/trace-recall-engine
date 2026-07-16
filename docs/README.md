@@ -59,3 +59,18 @@
 - [Future Research](10_future_research.md)
 - [From RAG to Trace Recall](history/from_rag_to_trace_recall.md)
 - [2026 Trace Recall Shift](history/2026-07_trace_recall_shift.md)
+
+---
+
+## Related Resources
+
+These documents describe the implementation.
+
+If you are looking for the development journey:
+
+- 📖 Technical Articles (Zenn)
+- 📝 Development Story (note)
+
+If you are looking for the application:
+
+- 🤖 AIKanojyo
