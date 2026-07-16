@@ -95,3 +95,13 @@ Participant Reference
 ```
 
 The tokenizer generates Trace candidate chunks only. It is not a Japanese morphological analyzer and does not perform meaning inference, part-of-speech tagging, intent classification, sentiment analysis, preference detection, person classification, or relationship classification.
+
+Further Reading
+
+Architecture rationale
+
+→ note
+
+Implementation discussions
+
+→ Zenn
