@@ -3,6 +3,27 @@
 > An experimental trace-based conversational memory architecture.
 
 > **Status:** Research Prototype (Active Development)
+> 
+> Originally developed through the AI companion research project **AIKanojyo**.
+
+---
+
+## New to this project?
+
+We recommend the following reading order.
+
+1. 📘 Read this README
+2. 📚 Explore the architecture and documentation
+3. 📖 Technical articles on Zenn
+4. 📝 Development story on note
+
+### External Resources
+
+- 📖 [Technical Articles (Zenn)](https://zenn.dev/mitsukida)
+Technical articles, implementation logs, and design discussions.
+
+- 📝 [Development Story (note)](https://note.com/moritan777)
+Development story, motivations, and research background.
 
 ---
 
@@ -454,3 +475,15 @@ The generator records candidate `source` and `reason` metadata for oracle diagno
 Mixed Script promotion is experimental and disabled by default. Enable it only for A/B runs with `--enable-mixed-script-promotion` together with the `local-rule` extractor.
 
 Only structurally generated `mixed-script` candidates may be promoted. Terminal-boundary and general alternate candidates remain diagnostic-only, and baseline reconciliation between extractor evaluation and oracle replay is required before interpreting A/B gains.
+
+---
+
+## Related Resources
+
+- 📖 [Technical Articles (Zenn)](https://zenn.dev/mitsukida)
+
+- 📝 [Development Story (note)](https://note.com/moritan777)
+
+- 🤖 AIKanojyo
+Android AI companion application
+using Trace Recall Engine.
