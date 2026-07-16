@@ -181,3 +181,15 @@ Current evaluation now needs to support the extractor transition:
 - Long-term conversational consistency
 
 Future work will evaluate not only what was recalled, but also how effectively recalled traces contribute to natural conversation.
+
+Benchmark history
+
+↓
+
+Benchmarks
+
+Research progress
+
+↓
+
+Zenn
