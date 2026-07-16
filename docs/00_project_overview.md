@@ -8,6 +8,14 @@ It began as part of AIKanojyo memory research, but it has grown into an independ
 
 The project is not intended to reproduce the human brain. It is a practical research system for testing whether traces, activation, recall selection, and working memory can produce more natural long-term conversational recall.
 
+For the story behind this project, see
+
+📝 Development Story (note)
+
+For technical discussions
+
+📖 Zenn
+
 ## Current Status
 
 - Status: Research Prototype
