@@ -22,3 +22,9 @@
 ## 指示書例にあるが未確認のログ
 
 `MemoryRetrievalMerge`、`TraceRecallDiag`、`TraceActivationDiag`、`RecallFactPromptBridgeDiag`、`RecallFactUsageDiag`、`RecallBenchmarkTurnSummary`、`ConversationContinuity...` はこのリポジトリでは実装名として未確認。
+
+## Stage-level recall diagnostics
+
+The optional `DiagnosticRecorder` emits deterministic, machine-readable events in pipeline order: `EXTRACTION`, `RAW_ACTIVATION`, `ACTIVATION_GATE`, optional `EXTERNAL_ADMISSION`, `RECALL_SELECTION`, and `WORKING_MEMORY`. `REVEAL_POLICY` is reserved. Events contain identifier, input/output score, accepted state, non-empty reason, fatigue contribution, activation source, deterministic sequence, frequency and reinforcement observations, plus source/connection/destination fields from which activation paths can be reconstructed. The existing eval research JSONL embeds these events; enabling that logger does not change selection.
+
+Frequency is observational: `raw_frequency` and `reinforcement_contribution` explain count bias but do not alter reinforcement. Connection events preserve the source, edge kind, destination, score and eventual selection fields needed for later utility analysis.

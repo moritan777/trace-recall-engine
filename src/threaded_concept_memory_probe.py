@@ -66,6 +66,8 @@ from typing import Any, Optional
 from trace_recall.extractors import ExtractedWord, TraceExtractor, create_extractor, fallback_extract_words
 from trace_recall.extractors.base import clamp, dedupe_extracted_words, normalize_text, normalize_word, parse_json_object
 from trace_recall.extractors.llm import LLMTraceExtractor
+from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
+from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 
 
 # This probe does not store sentences as memories.
@@ -276,6 +278,8 @@ class GatedContext:
     words: list[GatedWord]
     suppressed_words: list[GatedWord]
     summary: str
+    outcome: str = "CANDIDATES_SELECTED"
+    topic_reentry_words: list[str] | None = None
 
 
 class ThreadedConceptMemoryStore:
@@ -1031,6 +1035,9 @@ class ActivationGate:
         store: Optional[ThreadedConceptMemoryStore] = None,
         fatigue_recent_turns: int = 10,
         fatigue_threshold: int = 3,
+        admission_hook: AdmissionHook | None = None,
+        diagnostics: DiagnosticRecorder | None = None,
+        context_metadata: Optional[dict[str, Any]] = None,
     ) -> None:
         self.max_prompt_threads = max_prompt_threads
         self.max_core_words_per_thread = max_core_words_per_thread
@@ -1041,10 +1048,30 @@ class ActivationGate:
         self.store = store
         self.fatigue_recent_turns = fatigue_recent_turns
         self.fatigue_threshold = fatigue_threshold
+        self.admission_hook = admission_hook
+        self.diagnostics = diagnostics
+        self.context_metadata = context_metadata or {}
 
     def gate(self, activation: ActivationResult) -> GatedContext:
         input_word_set = {normalize_word(w.word) for w in activation.input_words if normalize_word(w.word)}
         word_by_text = {w.word: w for w in activation.activated_words}
+
+        if self.diagnostics is not None:
+            for aw in activation.activated_words:
+                node = self.store.get_word_by_text(aw.word) if self.store else None
+                self.diagnostics.record(
+                    RecallStage.RAW_ACTIVATION, aw.word, True, "raw activation candidate",
+                    input_score=aw.score, output_score=aw.score,
+                    activation_source=",".join(aw.activated_by), raw_frequency=node.seen_count if node else 0,
+                    reinforcement_contribution=max(0.0, node.strength - 1.0) if node else 0.0,
+                )
+            for path in activation.traces:
+                self.diagnostics.record(
+                    RecallStage.RAW_ACTIVATION, path.to_id, True, path.reason,
+                    input_score=path.score, output_score=path.score,
+                    activation_source=path.from_id, source_trace=path.from_id,
+                    connection=f"{path.from_type}->{path.to_type}", destination=path.to_id,
+                )
 
         def fatigue_prompt_for(word: str) -> int:
             if self.store is None:
@@ -1057,6 +1084,8 @@ class ActivationGate:
             return self.store.get_fatigue_response(word, self.fatigue_recent_turns)
 
         def is_asked_override(word: str) -> bool:
+            # Deterministic topic re-entry: the user's extracted input directly
+            # contains the fatigued word. A propagated/associated match is not enough.
             return word in input_word_set
         max_thread_score = max([t.score for t in activation.activated_threads], default=0.0)
 
@@ -1173,15 +1202,65 @@ class ActivationGate:
             gated_words.append(GatedWord(aw.word, aw.score, aw.best_depth, role, reason, fatigue, False))
             visible_word_names.add(aw.word)
 
+        # External admission is deliberately semantic-free. It runs after the
+        # built-in gate and before Working Memory construction.
+        admitted_words: list[GatedWord] = []
+        externally_suppressed: dict[str, str] = {}
+        admission_results: dict[str, tuple[bool, str]] = {}
+        for word in gated_words:
+            decision = self.admission_hook(word, self.context_metadata) if self.admission_hook else None
+            allowed = decision is None or decision.action is AdmissionAction.ALLOW
+            reason = decision.reason if decision is not None else "no admission hook"
+            admission_results[word.word] = (allowed, reason or "allowed")
+            if allowed:
+                admitted_words.append(word)
+            else:
+                externally_suppressed[word.word] = decision.reason
+                visible_word_names.discard(word.word)
+        gated_words = admitted_words
+
         suppressed_words: list[GatedWord] = []
         for aw in activation.activated_words:
             if aw.word in visible_word_names:
                 continue
-            if aw.word in suppressed_word_names or aw.score < self.min_word_score:
+            if aw.word not in externally_suppressed and (aw.word in suppressed_word_names or aw.score < self.min_word_score):
                 fatigue = fatigue_prompt_for(aw.word)
                 fatigue_suppressed = fatigue >= self.fatigue_threshold and not is_asked_override(aw.word)
                 reason = "recently_exposed" if fatigue_suppressed else "below gate or outside selected threads"
                 suppressed_words.append(GatedWord(aw.word, aw.score, aw.best_depth, "suppressed", reason, fatigue, fatigue_suppressed))
+
+        for aw in activation.activated_words:
+            if aw.word in externally_suppressed:
+                suppressed_words.append(GatedWord(aw.word, aw.score, aw.best_depth, "suppressed", externally_suppressed[aw.word], fatigue_prompt_for(aw.word), False))
+
+        admitted_names = {word.word for word in gated_words}
+        if self.admission_hook is not None:
+            admitted_groups: list[GatedThreadGroup] = []
+            for group in gated_threads:
+                removed = [word for word in group.words if word not in admitted_names]
+                group.words = [word for word in group.words if word in admitted_names]
+                group.direct_words = [word for word in group.direct_words if word in admitted_names]
+                group.core_words = [word for word in group.core_words if word in admitted_names]
+                group.support_words = [word for word in group.support_words if word in admitted_names]
+                group.suppressed_words = merge_unique(group.suppressed_words + removed)
+                if group.words:
+                    admitted_groups.append(group)
+            gated_threads = admitted_groups
+
+        outcome = classify_outcome(len(activation.activated_words), len(gated_words)).value
+        reentry_words = sorted(word.word for word in gated_words if word.fatigue >= self.fatigue_threshold and word.word in input_word_set)
+        if self.diagnostics is not None:
+            for aw in activation.activated_words:
+                selected = aw.word in admitted_names
+                suppressed = next((word for word in suppressed_words if word.word == aw.word), None)
+                reason = next((word.reason for word in gated_words if word.word == aw.word), suppressed.reason if suppressed else "not selected")
+                fatigue = fatigue_prompt_for(aw.word)
+                self.diagnostics.record(RecallStage.ACTIVATION_GATE, aw.word, selected, reason, input_score=aw.score, output_score=aw.score if selected else 0.0, fatigue_contribution=-float(fatigue) if not selected else 0.0)
+                if aw.word in admission_results:
+                    allowed, admission_reason = admission_results[aw.word]
+                    self.diagnostics.record(RecallStage.EXTERNAL_ADMISSION, aw.word, allowed, admission_reason, input_score=aw.score, output_score=aw.score if allowed else 0.0)
+                self.diagnostics.record(RecallStage.RECALL_SELECTION, aw.word, selected, reason, input_score=aw.score, output_score=aw.score if selected else 0.0, final_selected=selected)
+                self.diagnostics.record(RecallStage.WORKING_MEMORY, aw.word, selected, "included in working memory" if selected else reason, input_score=aw.score, output_score=aw.score if selected else 0.0, final_selected=selected)
 
         if gated_threads:
             if gated_threads[0].common_bonus > 0:
@@ -1196,6 +1275,8 @@ class ActivationGate:
             words=gated_words,
             suppressed_words=suppressed_words[:20],
             summary=summary,
+            outcome=outcome,
+            topic_reentry_words=reentry_words,
         )
 
     def _group_threads(self, threads: list[GatedThread]) -> list[GatedThreadGroup]:
@@ -1750,7 +1831,7 @@ def row_to_word_thread_link(row: sqlite3.Row) -> WordThreadLink:
 
 
 
-def build_gate(args: argparse.Namespace, store: Optional[ThreadedConceptMemoryStore] = None) -> Optional[ActivationGate]:
+def build_gate(args: argparse.Namespace, store: Optional[ThreadedConceptMemoryStore] = None, diagnostics: DiagnosticRecorder | None = None) -> Optional[ActivationGate]:
     if getattr(args, "disable_gate", False):
         return None
     return ActivationGate(
@@ -1763,6 +1844,7 @@ def build_gate(args: argparse.Namespace, store: Optional[ThreadedConceptMemorySt
         store=store,
         fatigue_recent_turns=args.fatigue_recent_turns,
         fatigue_threshold=args.fatigue_threshold,
+        diagnostics=diagnostics,
     )
 
 
@@ -2807,8 +2889,12 @@ def run_eval_turn(
 
     turn_start = time.perf_counter()
     recall_start = time.perf_counter()
+    diagnostics = DiagnosticRecorder() if (getattr(args, "research_log_jsonl", "") or getattr(args, "research_log_dir", "")) else None
+    if diagnostics is not None:
+        for word in words:
+            diagnostics.record(RecallStage.EXTRACTION, word.word, True, "extractor output", input_score=word.weight, output_score=word.weight, activation_source=getattr(args, "extractor", ""))
     activation = engine.activate(words, args.top_words, args.top_threads)
-    gate = build_gate(args, store)
+    gate = build_gate(args, store, diagnostics)
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
     prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
     recall_ms = (time.perf_counter() - recall_start) * 1000.0
@@ -2816,6 +2902,8 @@ def run_eval_turn(
     response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False)
     llm_response_ms = 0.0
     if mode == "ask" and not response_skipped:
+        if gate is not None:
+            gate.diagnostics = None
         llm_start = time.perf_counter()
         response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
         llm_response_ms = (time.perf_counter() - llm_start) * 1000.0
@@ -2853,6 +2941,9 @@ def run_eval_turn(
         "gated_words": [gw.word for gw in gated.words],
         "selected_thread_groups": [gated_thread_group_to_dict(th) for th in gated.threads],
         "suppressed_words": [gated_word_to_dict(sw) for sw in gated.suppressed_words],
+        "recall_outcome": gated.outcome,
+        "topic_reentry_words": gated.topic_reentry_words or [],
+        "stage_diagnostics": diagnostics.to_jsonable() if diagnostics is not None else [],
         "prompt_text": prompt,
         "prompt_stats": prompt_stats_dict(prompt),
         "response_text": response_text,
@@ -2877,7 +2968,7 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
     prompt_text = event.get("prompt_text", "")
     response_text = event.get("response_text", "")
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "experiment_name": getattr(args, "research_experiment_name", ""),
         "experiment_type": getattr(args, "research_experiment_type", ""),
         "dimension": getattr(args, "research_dimension", ""),
@@ -2899,6 +2990,9 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "selected_thread_groups": metrics.get("selected_thread_groups", []),
             "selected_words": metrics.get("gated_words", []),
             "fatigue_suppressed_words": metrics.get("suppressed_words", []),
+            "outcome": event.get("recall_outcome", ""),
+            "topic_reentry_words": event.get("topic_reentry_words", []),
+            "stage_diagnostics": event.get("stage_diagnostics", []),
         },
         "working_memory": {
             "thread_group_count": metrics.get("working_memory_group_count", 0),

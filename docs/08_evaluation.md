@@ -193,3 +193,9 @@ Research progress
 ↓
 
 Zenn
+
+## Recall governance labels
+
+Evaluation fixtures may annotate a trace target with `SHOULD_RECALL`, `MAY_RECALL`, `SHOULD_NOT_RECALL`, or `MUST_NOT_SPEAK`. The last value is an evaluation label: it does not add privacy, relationship, or boundary semantics to this engine. `MAY_RECALL` never fails solely because it is absent. A candidate-free result and a result where every candidate is suppressed are separately represented as `NO_CANDIDATES` and `CANDIDATES_SUPPRESSED`; both are valid outcomes.
+
+The offline `trace_recall.offline` lateral-inhibition experiment reports expected-hit gain/loss, unexpected-hit reduction, selected size, prompt-size impact, and counterexamples. It is not called by the production gate or selector.
