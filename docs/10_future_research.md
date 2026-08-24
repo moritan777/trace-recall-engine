@@ -136,3 +136,7 @@ The generator records candidate `source` and `reason` metadata for oracle diagno
 Mixed Script promotion is experimental and disabled by default. Enable it only for A/B runs with `--enable-mixed-script-promotion` together with the `local-rule` extractor.
 
 Only structurally generated `mixed-script` candidates may be promoted. Terminal-boundary and general alternate candidates remain diagnostic-only, and baseline reconciliation between extractor evaluation and oracle replay is required before interpreting A/B gains.
+
+## Governance integration boundary
+
+A generic admission hook now accepts a candidate plus opaque context metadata and returns `ALLOW` or `SUPPRESS` with a reason. Future AIKanojyo research may supply Relationship, Mood, Boundary, or Privacy decisions at this boundary, but none of those semantics belongs to or is currently implemented by Trace Recall Engine. The next integration experiment should therefore validate one external policy adapter against stage diagnostics before adding any further engine behavior.

@@ -14,3 +14,12 @@
 * Prompt 長は `prompt_stats` による概算表示はあるが、hard limit enforcement は未確認。
 * `cmd_ask` は応答後に入力を Trace thread として保存しない。`cmd_chat` default path は ask 後に保存する。
 * Shadow mode / production AIKanojyo prompt injection は同梱 integration guide 上の計画・推奨として存在するが、本リポジトリの production AIKanojyo 実装では未確認。
+
+## Governance boundaries and remaining gaps
+
+* Remembering ≠ Selecting ≠ Admitting ≠ Speaking. Activation can occur without selection; selection can be rejected by generic admission; speaking policy remains outside this engine.
+* `MUST_NOT_SPEAK` is an evaluation label only. Relationship, Mood, Boundary, and Privacy semantics are not implemented here.
+* Conflict metadata (`CURRENT`, `HISTORICAL`, `SUPERSEDED`, `CONFLICTED`, `UNCERTAIN`) can be supplied by fixtures or external callers, but the engine does not infer or resolve it. In particular, `SUPERSEDED` does not mean `CONFLICTED`.
+* Trace Recall Engine is not a Stable Fact Store and does not establish names, addresses, preferences, or boundaries as authoritative facts.
+* Topic re-entry is intentionally narrow and deterministic: only a directly extracted current-input word overrides fatigue. A propagated association does not.
+* Lateral inhibition remains an offline helper and has not been adopted by production recall.
