@@ -68,6 +68,12 @@ from trace_recall.extractors.base import clamp, dedupe_extracted_words, normaliz
 from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
+from trace_recall.governance_capture import (
+    activation_path_markdown, build_activation_path_analyses, build_failure_audits,
+    comparison_markdown, convert_research_records, evaluate_governance, failure_audit_markdown,
+    load_annotations, read_jsonl as read_governance_jsonl,
+    write_jsonl as write_governance_jsonl,
+)
 
 
 # This probe does not store sentences as memories.
@@ -2742,6 +2748,47 @@ def cmd_eval_extractor(args: argparse.Namespace) -> int:
     print(f"[Extractor Eval] report_md={args.report_md}")
     return 0
 
+
+def cmd_capture_governance(args: argparse.Namespace) -> int:
+    annotations = load_annotations(Path(args.annotations)) if args.annotations else {}
+    captured = convert_research_records(read_governance_jsonl(Path(args.research_log)), annotations)
+    write_governance_jsonl(Path(args.output_jsonl), captured)
+    print(f"[Governance Capture] observations={len(captured)} annotations={sum('annotation' in row for row in captured)} output_jsonl={args.output_jsonl}")
+    return 0
+
+
+def cmd_governance_eval(args: argparse.Namespace) -> int:
+    scenario_rows = read_governance_jsonl(Path(args.scenario_file))
+    captured = evaluate_governance(scenario_rows)
+    results = {"100-turn captured conversation": captured}
+    if args.artificial_scenario_file:
+        results = {
+            "Artificial governance fixture": evaluate_governance(read_governance_jsonl(Path(args.artificial_scenario_file))),
+            **results,
+        }
+    output = {"schema_version": 1, "results": results}
+    write_text(Path(args.output_json), json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), comparison_markdown(results))
+    if args.frequency_report_md:
+        lines = ["# Governance Frequency and Connection Report", ""]
+        for name, result in results.items():
+            lines.extend([f"## {name}", "", f"- Frequency distribution: `{json.dumps(result['frequency_distribution'], sort_keys=True)}`", f"- Connection-path usage: {result['connection_path_usage']}", ""])
+        write_text(Path(args.frequency_report_md), "\n".join(lines))
+    if args.failure_audit_json or args.failure_audit_md:
+        audits = build_failure_audits(scenario_rows, args.gate_min_word_score)
+        if args.failure_audit_json:
+            write_text(Path(args.failure_audit_json), json.dumps(audits, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        if args.failure_audit_md:
+            write_text(Path(args.failure_audit_md), failure_audit_markdown(audits))
+    if args.activation_path_json or args.activation_path_md:
+        paths = build_activation_path_analyses(scenario_rows)
+        if args.activation_path_json:
+            write_text(Path(args.activation_path_json), json.dumps(paths, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        if args.activation_path_md:
+            write_text(Path(args.activation_path_md), activation_path_markdown(paths))
+    print(f"[Governance Eval] output_json={args.output_json} report_md={args.report_md}")
+    return 0
+
 def cmd_eval(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     events: list[dict[str, Any]] = []
@@ -2896,10 +2943,12 @@ def run_eval_turn(
     activation = engine.activate(words, args.top_words, args.top_threads)
     gate = build_gate(args, store, diagnostics)
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
+    activation_analysis = build_activation_analysis(activation, store, expected_words)
     prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
     recall_ms = (time.perf_counter() - recall_start) * 1000.0
     response_text = ""
-    response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False)
+    response_turns = set(getattr(args, "response_turn", []) or [])
+    response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False) or (bool(response_turns) and turn not in response_turns)
     llm_response_ms = 0.0
     if mode == "ask" and not response_skipped:
         if gate is not None:
@@ -2944,6 +2993,7 @@ def run_eval_turn(
         "recall_outcome": gated.outcome,
         "topic_reentry_words": gated.topic_reentry_words or [],
         "stage_diagnostics": diagnostics.to_jsonable() if diagnostics is not None else [],
+        "activation_analysis": activation_analysis,
         "prompt_text": prompt,
         "prompt_stats": prompt_stats_dict(prompt),
         "response_text": response_text,
@@ -2961,6 +3011,59 @@ def run_eval_turn(
 # conversation content and must not include API keys or authorization headers.
 def _research_words(words: list[Any]) -> list[dict[str, Any]]:
     return [{"word": getattr(w, "word", str(w)), "weight": float(getattr(w, "weight", 1.0))} for w in words]
+
+
+def build_activation_analysis(activation: ActivationResult, store: ThreadedConceptMemoryStore, expected_words: list[str]) -> dict[str, Any]:
+    """Capture production activation paths and DB connectivity without changing them."""
+    candidates = []
+    for rank, word in enumerate(activation.activated_words, 1):
+        node = store.get_word_by_text(word.word)
+        candidates.append({
+            "rank": rank, "word": word.word, "score": word.score,
+            "best_depth": word.best_depth, "thread_ids": word.thread_ids,
+            "activation_sources": word.activated_by,
+            "word_strength": node.strength if node else None,
+            "word_weight": node.weight if node else None,
+            "frequency": node.seen_count if node else None,
+        })
+    thread_ids = {trace.from_id for trace in activation.traces if trace.from_type == "thread"}
+    thread_ids.update(trace.to_id for trace in activation.traces if trace.to_type == "thread")
+    threads = {}
+    for thread_id in sorted(thread_ids):
+        thread = store.get_thread(thread_id)
+        if thread:
+            threads[thread_id] = {
+                "source_text": thread.source_text, "words": thread.words,
+                "created_by": thread.created_by, "canonical_key": thread.canonical_key,
+                "strength": thread.strength, "seen_count": thread.seen_count,
+            }
+    targets = {}
+    for target in expected_words:
+        node = store.get_word_by_text(target)
+        links = store.get_links_for_word(node.word_id) if node else []
+        targets[target] = {
+            "word_exists": node is not None,
+            "word_strength": node.strength if node else None,
+            "word_weight": node.weight if node else None,
+            "frequency": node.seen_count if node else None,
+            "linked_threads": [
+                {"thread_id": link.thread_id, "weight": link.weight_in_thread, "thread": threads.get(link.thread_id) or _thread_audit_dict(store.get_thread(link.thread_id))}
+                for link in links
+            ],
+        }
+    return {
+        "candidates": candidates,
+        "paths": [vars(trace) for trace in activation.traces],
+        "threads": threads,
+        "expected_target_db": targets,
+        "depth_decay": {str(key): value for key, value in DEPTH_DECAY.items()},
+    }
+
+
+def _thread_audit_dict(thread: Thread | None) -> dict[str, Any] | None:
+    if thread is None:
+        return None
+    return {"source_text": thread.source_text, "words": thread.words, "created_by": thread.created_by, "canonical_key": thread.canonical_key, "strength": thread.strength, "seen_count": thread.seen_count}
 
 
 def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
@@ -2993,6 +3096,7 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "outcome": event.get("recall_outcome", ""),
             "topic_reentry_words": event.get("topic_reentry_words", []),
             "stage_diagnostics": event.get("stage_diagnostics", []),
+            "activation_analysis": event.get("activation_analysis", {}),
         },
         "working_memory": {
             "thread_group_count": metrics.get("working_memory_group_count", 0),
@@ -3024,6 +3128,11 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "response_used_unexpected_count": metrics.get("response_used_unexpected_count", 0),
             "precision_like": metrics.get("recall_precision_like", 0.0),
             "recall_efficiency": metrics.get("recall_efficiency", 0.0),
+        },
+        "governance_observation_config": {
+            "gate_min_word_score": float(getattr(args, "gate_min_word_score", 0.05)),
+            "fatigue_recent_turns": int(getattr(args, "fatigue_recent_turns", 10)),
+            "fatigue_threshold": int(getattr(args, "fatigue_threshold", 3)),
         },
         "timing": event.get("timing", {}),
     }
@@ -3900,7 +4009,27 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--research-log-dir", default="", help="Write one prompt/response research Markdown file per ask turn. May contain private conversation content.")
     p_eval.add_argument("--no-reinforce", action="store_true")
     p_eval.add_argument("--no-response", action="store_true")
+    p_eval.add_argument("--response-turn", action="append", type=int, help="Generate a response only for this turn (repeatable); evaluation-runner control only.")
     p_eval.set_defaults(func=cmd_eval)
+
+    p_capture = sub.add_parser("capture-governance", help="Convert Research Logger schema v2 JSONL to offline governance observations.")
+    p_capture.add_argument("--research-log", required=True)
+    p_capture.add_argument("--annotations", default="")
+    p_capture.add_argument("--output-jsonl", required=True)
+    p_capture.set_defaults(func=cmd_capture_governance)
+
+    p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
+    p_governance.add_argument("--scenario-file", required=True)
+    p_governance.add_argument("--artificial-scenario-file", default="", help="Optional artificial fixture included in the comparison report.")
+    p_governance.add_argument("--output-json", required=True)
+    p_governance.add_argument("--report-md", required=True)
+    p_governance.add_argument("--frequency-report-md", default="")
+    p_governance.add_argument("--failure-audit-json", default="")
+    p_governance.add_argument("--failure-audit-md", default="")
+    p_governance.add_argument("--activation-path-json", default="")
+    p_governance.add_argument("--activation-path-md", default="")
+    p_governance.add_argument("--gate-min-word-score", type=float, default=0.05, help="Recorded runtime threshold used only to calculate audit score margins.")
+    p_governance.set_defaults(func=cmd_governance_eval)
 
     p_sensitivity = sub.add_parser("sensitivity")
     p_sensitivity.add_argument("--conversation-file", default=str(DEFAULT_SEED_TESTS_FILE), help="JSONL fixture; defaults to eval_conversations/seed_tests_public.jsonl.")

@@ -1,0 +1,9 @@
+{"turn": 1, "user": "カフェでチーズケーキを食べたい", "mode": "learn"}
+{"turn": 2, "user": "カフェの話を覚えてる？", "mode": "ask_no_response", "expected_words": ["カフェ", "チーズケーキ"], "unexpected_words": []}
+{"turn": 3, "user": "カフェについてもう一度", "mode": "ask_no_response", "expected_words": ["カフェ", "チーズケーキ"], "unexpected_words": []}
+{"turn": 4, "user": "カフェの続きを聞きたい", "mode": "ask_no_response", "expected_words": ["カフェ", "チーズケーキ"], "unexpected_words": []}
+{"turn": 5, "user": "カフェについて普通に話そう", "mode": "ask_no_response", "expected_words": ["カフェ"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 6, "user": "映画を見るときはポップコーンがほしい", "mode": "learn"}
+{"turn": 7, "user": "映画の話に移ろう", "mode": "ask_no_response", "expected_words": ["映画", "ポップコーン"], "unexpected_words": ["チーズケーキ"]}
+{"turn": 8, "user": "チーズケーキの話に戻ろう", "mode": "ask_no_response", "expected_words": ["チーズケーキ"], "unexpected_words": []}
+{"turn": 9, "user": "甘いものの話に戻った感じかな", "mode": "ask_no_response", "expected_words": [], "unexpected_words": ["チーズケーキ"]}

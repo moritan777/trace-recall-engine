@@ -1,0 +1,4 @@
+{"turn": 5, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["fatigue_candidate"], "benchmark_responsibility": "ASSOCIATIVE_RECALL_EXPECTED"}
+{"turn": 7, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["topic_transition"], "benchmark_responsibility": "ASSOCIATIVE_RECALL_EXPECTED"}
+{"turn": 8, "expectation": "SHOULD_RECALL", "words": ["チーズケーキ"], "coverage": ["explicit_topic_reentry"], "benchmark_responsibility": "ASSOCIATIVE_RECALL_EXPECTED"}
+{"turn": 9, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["pseudo_reentry"], "benchmark_responsibility": "ASSOCIATIVE_RECALL_EXPECTED"}
