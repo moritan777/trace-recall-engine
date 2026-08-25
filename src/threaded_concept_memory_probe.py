@@ -67,9 +67,11 @@ from trace_recall.extractors import ExtractedWord, TraceExtractor, create_extrac
 from trace_recall.extractors.base import clamp, dedupe_extracted_words, normalize_text, normalize_word, parse_json_object
 from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
+from trace_recall.composition_stress import composition_stress_markdown, evaluate_composition_stress
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
     activation_path_markdown, build_activation_path_analyses, build_failure_audits,
+    build_recall_composition_analysis,
     comparison_markdown, convert_research_records, evaluate_governance, failure_audit_markdown,
     load_annotations, read_jsonl as read_governance_jsonl,
     write_jsonl as write_governance_jsonl,
@@ -2757,6 +2759,16 @@ def cmd_capture_governance(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_composition_stress_eval(args: argparse.Namespace) -> int:
+    rows = read_governance_jsonl(Path(args.scenario_file))
+    result = evaluate_composition_stress(rows)
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    if args.report_md:
+        write_text(Path(args.report_md), composition_stress_markdown(result))
+    print(f"[Composition Stress Eval] scenarios={result['scenario_count']} output_json={args.output_json}")
+    return 0
+
+
 def cmd_governance_eval(args: argparse.Namespace) -> int:
     scenario_rows = read_governance_jsonl(Path(args.scenario_file))
     captured = evaluate_governance(scenario_rows)
@@ -2786,6 +2798,9 @@ def cmd_governance_eval(args: argparse.Namespace) -> int:
             write_text(Path(args.activation_path_json), json.dumps(paths, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         if args.activation_path_md:
             write_text(Path(args.activation_path_md), activation_path_markdown(paths))
+    if args.composition_analysis_json:
+        composition = build_recall_composition_analysis(scenario_rows)
+        write_text(Path(args.composition_analysis_json), json.dumps(composition, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     print(f"[Governance Eval] output_json={args.output_json} report_md={args.report_md}")
     return 0
 
@@ -4018,6 +4033,12 @@ def make_parser() -> argparse.ArgumentParser:
     p_capture.add_argument("--output-jsonl", required=True)
     p_capture.set_defaults(func=cmd_capture_governance)
 
+    p_composition = sub.add_parser("composition-stress-eval", help="Compare unchanged offline composition strategies on deterministic stress fixtures.")
+    p_composition.add_argument("--scenario-file", default="eval_governance/composition_stress/scenarios.jsonl")
+    p_composition.add_argument("--output-json", required=True)
+    p_composition.add_argument("--report-md", default="", help="Write aggregate strategy comparison and changed-scenario audit Markdown.")
+    p_composition.set_defaults(func=cmd_composition_stress_eval)
+
     p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
     p_governance.add_argument("--scenario-file", required=True)
     p_governance.add_argument("--artificial-scenario-file", default="", help="Optional artificial fixture included in the comparison report.")
@@ -4028,6 +4049,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_governance.add_argument("--failure-audit-md", default="")
     p_governance.add_argument("--activation-path-json", default="")
     p_governance.add_argument("--activation-path-md", default="")
+    p_governance.add_argument("--composition-analysis-json", default="", help="Write offline stage, ThreadGroup competition, and composition-strategy analysis.")
     p_governance.add_argument("--gate-min-word-score", type=float, default=0.05, help="Recorded runtime threshold used only to calculate audit score margins.")
     p_governance.set_defaults(func=cmd_governance_eval)
 
