@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from typing import Any, Callable
 
 from .base import ExtractedWord, clamp, dedupe_extracted_words, normalize_word, parse_json_object
@@ -28,15 +29,30 @@ class LLMTraceExtractor:
         self.timeout_sec = timeout_sec
         self.debug = debug or os.getenv("LLM_EXTRACTOR_DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}
         self.chat_client = chat_client
+        self.last_result_metadata: dict[str, Any] = {}
 
     def extract(self, text: str) -> list[ExtractedWord]:
-        if self.base_url:
-            try:
+        started = time.perf_counter()
+        metadata = {
+            "configured_extractor": "llm", "actual_extractor": "fallback",
+            "llm_attempted": bool(self.base_url), "llm_succeeded": False,
+            "fallback_used": True, "failure_type": "NONE", "failure_message": "",
+            "model": self.model, "timeout_sec": self.timeout_sec,
+        }
+        try:
+            if self.base_url:
                 print(f"[llm] extracting words via {self.base_url} model={self.model}", file=sys.stderr)
-                return self._extract_with_llm(text)
-            except Exception as exc:
-                print(f"[warn] LLM word extraction failed, fallback used: {exc}", file=sys.stderr)
-        return fallback_extract_words(text)
+                try:
+                    result = self._extract_with_llm(text)
+                    metadata.update(actual_extractor="llm", llm_succeeded=True, fallback_used=False)
+                    return result
+                except Exception as exc:
+                    metadata.update(failure_type=_failure_type(exc), failure_message=str(exc)[:500])
+                    print(f"[warn] LLM word extraction failed, fallback used: {exc}", file=sys.stderr)
+            return fallback_extract_words(text)
+        finally:
+            metadata["elapsed_ms"] = (time.perf_counter() - started) * 1000.0
+            self.last_result_metadata = metadata
 
     def _extract_with_llm(self, text: str) -> list[ExtractedWord]:
         system = (
@@ -170,3 +186,14 @@ class LLMTraceExtractor:
             print(f"[LLM Extractor Debug] contains 名前 after python filter={'名前' in {w.word for w in final_words}}", file=sys.stderr)
         return final_words
 
+
+def _failure_type(exc: Exception) -> str:
+    name = type(exc).__name__.lower()
+    message = str(exc).lower()
+    if "timeout" in name or "timed out" in message or "timeout" in message:
+        return "TIMEOUT"
+    if "http" in name or "http" in message:
+        return "HTTP_ERROR"
+    if isinstance(exc, (ValueError, json.JSONDecodeError)) or "json" in message or "parse" in message:
+        return "PARSE_ERROR"
+    return "OTHER"

@@ -1345,6 +1345,8 @@ class ResponseGenerator:
         self.api_key = api_key or os.getenv("LLM_API_KEY", "")
         self.model = model or os.getenv("LLM_MODEL", "local-model")
         self.timeout_sec = timeout_sec
+        self.last_result_metadata: dict[str, Any] = {}
+        self.last_prompt = ""
 
     def generate(
         self,
@@ -1353,17 +1355,26 @@ class ResponseGenerator:
         include_trace: bool = False,
         trace_limit: int = 10,
         gate: Optional[ActivationGate] = None,
+        gated: Optional[GatedContext] = None,
+        prompt: Optional[str] = None,
         prompt_view: str = "threadgroup",
         origin_order: str = "none",
     ) -> str:
-        gated = gate.gate(activation) if gate is not None else None
-        prompt = build_response_prompt(user_input, activation, include_trace=include_trace, trace_limit=trace_limit, gated=gated, prompt_view=prompt_view, origin_order=origin_order)
+        # Existing direct callers may still provide a gate. Production/eval callers
+        # pass the already admitted context and exact prebuilt prompt.
+        if gated is None and gate is not None:
+            gated = gate.gate(activation)
+        if prompt is None:
+            prompt = build_response_prompt(user_input, activation, include_trace=include_trace, trace_limit=trace_limit, gated=gated, prompt_view=prompt_view, origin_order=origin_order)
+        self.last_prompt = prompt
         print("[LLM Prompt Stats] " + prompt_stats("response_prompt", prompt), file=sys.stderr)
-
+        metadata = {"requested": True, "backend": "fallback", "llm_attempted": bool(self.base_url),
+                    "llm_succeeded": False, "fallback_used": True, "failure_type": "NONE",
+                    "failure_message": "", "model": self.model, "timeout_sec": self.timeout_sec}
         if self.base_url:
             try:
                 print(f"[llm] generating response via {self.base_url} model={self.model}", file=sys.stderr)
-                return call_openai_compatible_chat(
+                text = call_openai_compatible_chat(
                     base_url=self.base_url,
                     api_key=self.api_key,
                     model=self.model,
@@ -1384,9 +1395,14 @@ class ResponseGenerator:
                     max_tokens=256,
                     timeout_sec=self.timeout_sec,
                 ).strip()
+                metadata.update(backend="llm", llm_succeeded=True, fallback_used=False)
+                self.last_result_metadata = metadata
+                return text
             except Exception as exc:
+                metadata.update(failure_type=classify_llm_failure(exc), failure_message=str(exc)[:500])
                 print(f"[warn] LLM response generation failed, fallback used: {exc}", file=sys.stderr)
-        return fallback_generate_response(user_input, activation)
+        self.last_result_metadata = metadata
+        return fallback_generate_response(user_input, activation, gated=gated)
 
 
 def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadgroup", origin_order: str = "none") -> list[str]:
@@ -1684,8 +1700,21 @@ def loose_katakana_match(a: str, b: str) -> bool:
     return len(a2) >= 3 and len(b2) >= 3 and (a2 in b2 or b2 in a2)
 
 
-def fallback_generate_response(user_input: str, activation: ActivationResult) -> str:
-    top = [w.word for w in activation.activated_words[:6]]
+def classify_llm_failure(exc: Exception) -> str:
+    name, message = type(exc).__name__.lower(), str(exc).lower()
+    if "timeout" in name or "timeout" in message or "timed out" in message:
+        return "TIMEOUT"
+    if "http" in name or "http" in message:
+        return "HTTP_ERROR"
+    if "json" in message or "parse" in message:
+        return "PARSE_ERROR"
+    return "OTHER"
+
+
+def fallback_generate_response(user_input: str, activation: ActivationResult, gated: Optional[GatedContext] = None) -> str:
+    # A present (even empty) gated context is authoritative. Raw activation is
+    # retained solely for the explicit gate-disabled compatibility path.
+    top = [w.word for w in gated.words[:6]] if gated is not None else [w.word for w in activation.activated_words[:6]]
     if not top:
         return "まだうまく思い出せないけど、その話もう少し聞かせて。"
     if "チーズケーキ" in top and "コーヒー" in top:
@@ -1871,7 +1900,8 @@ def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemorySto
     if hasattr(extractor, "set_trace_vocabulary_provider"):
         extractor.set_trace_vocabulary_provider(store)
     engine = ActivationEngine(store, args.half_life_days, args.max_depth, args.common_bonus, args.mutual_amplification, args.thread_strength_mode)
-    generator = ResponseGenerator(args.base_url, args.api_key, response_model, args.timeout)
+    response_timeout = getattr(args, "response_timeout", None) or args.timeout
+    generator = ResponseGenerator(args.base_url, args.api_key, response_model, response_timeout)
     return store, extractor, engine, generator
 
 
@@ -1915,7 +1945,7 @@ def cmd_ask(args: argparse.Namespace) -> int:
         response_text = ""
         if not args.no_response:
             print("\n[Response]")
-            response_text = generator.generate(args.text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
+            response_text = generator.generate(args.text, result, args.response_include_trace, args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
             print(response_text)
         else:
             print("\n[Response]")
@@ -2003,7 +2033,7 @@ def cmd_seed_tests(args: argparse.Namespace) -> int:
             response_text = ""
             if args.seed_generate_response:
                 print("\n[Response]")
-                response_text = generator.generate(t, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
+                response_text = generator.generate(t, result, args.response_include_trace, args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
                 print(response_text)
             if gated is not None:
                 turn_no = store.record_exposures(gated, exposure_type="prompt")
@@ -2066,7 +2096,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
                     print_gated_context(gated)
                 store.reinforce_seen(result.activated_words)
                 print("\n[Response]")
-                response_text = generator.generate(text, result, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
+                response_text = generator.generate(text, result, args.response_include_trace, args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
                 print(response_text)
                 if gated is not None:
                     turn_no = store.record_exposures(gated, exposure_type="prompt")
@@ -3039,7 +3069,16 @@ def run_eval_turn(
     mode = str(item["mode"])
     expected_words = [normalize_word(str(w)) for w in item.get("expected_words", []) if normalize_word(str(w))]
     unexpected_words = [normalize_word(str(w)) for w in item.get("unexpected_words", []) if normalize_word(str(w))]
+    end_to_end_start = time.perf_counter()
+    extractor_start = time.perf_counter()
     words = extract_normalized_words(args, extractor, user_text, role)
+    extractor_ms = (time.perf_counter() - extractor_start) * 1000.0
+    extractor_metadata = dict(getattr(extractor, "last_result_metadata", {}) or {})
+    if not extractor_metadata:
+        extractor_metadata = {"configured_extractor": getattr(args, "extractor", "unknown"),
+                              "actual_extractor": getattr(args, "extractor", "unknown"),
+                              "llm_attempted": False, "llm_succeeded": False, "fallback_used": False,
+                              "failure_type": "NONE", "failure_message": "", "elapsed_ms": extractor_ms}
     normalized_word_records = _research_words(words)
 
     if mode == "learn":
@@ -3072,12 +3111,19 @@ def run_eval_turn(
     response_turns = set(getattr(args, "response_turn", []) or [])
     response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False) or (bool(response_turns) and turn not in response_turns)
     llm_response_ms = 0.0
+    response_generation = {"requested": False, "backend": "skipped", "llm_attempted": False,
+                           "llm_succeeded": False, "fallback_used": False, "failure_type": "NONE",
+                           "failure_message": "", "model": getattr(generator, "model", getattr(args, "response_model", "") or args.model),
+                           "timeout_sec": getattr(generator, "timeout_sec", getattr(args, "response_timeout", None) or args.timeout)}
     if mode == "ask" and not response_skipped:
         if gate is not None:
             gate.diagnostics = None
         llm_start = time.perf_counter()
-        response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit, gate=gate, prompt_view=args.prompt_view, origin_order=args.origin_order)
+        response_text = generator.generate(user_text, activation, args.response_include_trace, args.response_trace_limit,
+                                           gated=gated if gate is not None else None, prompt=prompt,
+                                           prompt_view=args.prompt_view, origin_order=args.origin_order)
         llm_response_ms = (time.perf_counter() - llm_start) * 1000.0
+        response_generation = dict(generator.last_result_metadata)
 
     if not args.no_reinforce:
         store.reinforce_seen(activation.activated_words)
@@ -3120,8 +3166,13 @@ def run_eval_turn(
         "prompt_stats": prompt_stats_dict(prompt),
         "response_text": response_text,
         "response_skipped": response_skipped,
+        "extractor_generation": extractor_metadata,
+        "response_generation": response_generation,
         "metrics": metrics,
-        "timing": {"recall_ms": recall_ms, "llm_response_ms": llm_response_ms, "total_ms": (time.perf_counter() - turn_start) * 1000.0},
+        "timing": {"extractor_ms": extractor_ms, "recall_ms": recall_ms, "llm_response_ms": llm_response_ms,
+                   "runtime_total_ms": (time.perf_counter() - turn_start) * 1000.0,
+                   "total_ms": (time.perf_counter() - turn_start) * 1000.0,
+                   "end_to_end_ms": (time.perf_counter() - end_to_end_start) * 1000.0},
     }
 
 
@@ -3206,6 +3257,7 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
         "created_by": event.get("role", "user"),
         "extractor": {
             "extractor_name": getattr(args, "extractor", "llm"),
+            **event.get("extractor_generation", {}),
             "raw_words": event.get("raw_words", []),
             "normalized_words": event.get("normalized_words", []),
         },
@@ -3241,6 +3293,7 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "final_text": response_text,
             "chars": len(response_text),
         },
+        "response_generation": event.get("response_generation", {}),
         "evaluation": {
             "expected_words": event.get("expected_words", []),
             "unexpected_words": event.get("unexpected_words", []),
@@ -3249,6 +3302,13 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "response_used_expected_count": metrics.get("response_used_expected_count", 0),
             "response_used_unexpected_count": metrics.get("response_used_unexpected_count", 0),
             "precision_like": metrics.get("recall_precision_like", 0.0),
+            "legacy_combined_metric": True,
+            "recall_expected_hits": metrics.get("recall_expected_hits", []),
+            "recall_unexpected_hits": metrics.get("recall_unexpected_hits", []),
+            "working_memory_recall_precision": metrics.get("working_memory_recall_precision", 0.0),
+            "spoken_expected_hits": metrics.get("spoken_expected_hits", []),
+            "spoken_unexpected_hits": metrics.get("spoken_unexpected_hits", []),
+            "spoken_suppressed_words": metrics.get("spoken_suppressed_words", []),
             "recall_efficiency": metrics.get("recall_efficiency", 0.0),
         },
         "governance_observation_config": {
@@ -3339,11 +3399,17 @@ def evaluate_recall_turn(
     response_used_groups = [th.canonical_key for th in response_used_threads]
     response_expected = [w for w in expected_words if w and w in response_text]
     response_unexpected = [w for w in unexpected_words if w and w in response_text]
+    recall_expected = [w for w in expected_words if w in gated_word_set]
+    recall_unexpected = [w for w in unexpected_words if w in gated_word_set]
+    suppressed_set = {sw.word for sw in gated.suppressed_words}
+    spoken_suppressed = [w for w in suppressed_set if w and w in response_text]
     expected_hits = [w for w in expected_words if w in gated_word_set or (w and w in response_text)]
     unexpected_hits = [w for w in unexpected_words if w in gated_word_set or (w and w in response_text)]
     prompt_only = [w for w in gated_word_set if w and w not in response_text]
     denom = len(expected_hits) + len(unexpected_hits)
     precision_like = (len(expected_hits) / denom) if denom else (1.0 if not unexpected_hits else 0.0)
+    wm_denom = len(recall_expected) + len(recall_unexpected)
+    wm_precision = len(recall_expected) / wm_denom if wm_denom else 1.0
     return {
         "turn": turn,
         "mode": mode,
@@ -3360,6 +3426,18 @@ def evaluate_recall_turn(
         "expected_hit_count": len(expected_hits),
         "unexpected_hit_count": len(unexpected_hits),
         "recall_precision_like": precision_like,
+        "legacy_combined_metric": True,
+        "recall_expected_hits": recall_expected,
+        "recall_unexpected_hits": recall_unexpected,
+        "recall_expected_hit_count": len(recall_expected),
+        "recall_unexpected_hit_count": len(recall_unexpected),
+        "working_memory_recall_precision": wm_precision,
+        "spoken_expected_hits": response_expected,
+        "spoken_unexpected_hits": response_unexpected,
+        "spoken_expected_hit_count": len(response_expected),
+        "spoken_unexpected_hit_count": len(response_unexpected),
+        "spoken_suppressed_words": spoken_suppressed,
+        "spoken_suppressed_count": len(spoken_suppressed),
         "recall_noise_count": len(unexpected_hits),
         "fatigue_suppressed_count": sum(1 for sw in gated.suppressed_words if sw.suppressed_by_fatigue),
         "response_used_expected_count": len(response_expected),
@@ -3423,6 +3501,9 @@ def gated_word_to_dict(word: GatedWord) -> dict[str, Any]:
 
 def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
     metrics = event["metrics"]
+    extraction = event.get("extractor_generation", {})
+    response = event.get("response_generation", {})
+    timing = event.get("timing", {})
     return {
         "turn": metrics["turn"],
         "mode": metrics["mode"],
@@ -3439,6 +3520,20 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "expected_hit_count": metrics["expected_hit_count"],
         "unexpected_hit_count": metrics["unexpected_hit_count"],
         "recall_precision_like": f"{metrics['recall_precision_like']:.6f}",
+        "extractor_backend": extraction.get("actual_extractor", "UNKNOWN"),
+        "extractor_fallback_used": str(extraction.get("fallback_used", False)).lower(),
+        "response_backend": response.get("backend", "skipped"),
+        "response_fallback_used": str(response.get("fallback_used", False)).lower(),
+        "recall_expected_hit_count": metrics["recall_expected_hit_count"],
+        "recall_unexpected_hit_count": metrics["recall_unexpected_hit_count"],
+        "working_memory_recall_precision": f"{metrics['working_memory_recall_precision']:.6f}",
+        "spoken_expected_hit_count": metrics["spoken_expected_hit_count"],
+        "spoken_unexpected_hit_count": metrics["spoken_unexpected_hit_count"],
+        "spoken_suppressed_count": metrics["spoken_suppressed_count"],
+        "extractor_ms": timing.get("extractor_ms", 0.0),
+        "recall_ms": timing.get("recall_ms", 0.0),
+        "llm_response_ms": timing.get("llm_response_ms", 0.0),
+        "end_to_end_ms": timing.get("end_to_end_ms", 0.0),
         "recall_noise_count": metrics["recall_noise_count"],
         "fatigue_suppressed_count": metrics["fatigue_suppressed_count"],
         "response_used_expected_count": metrics["response_used_expected_count"],
@@ -3483,6 +3578,10 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "expected_hit_count",
         "unexpected_hit_count",
         "recall_precision_like",
+        "extractor_backend", "extractor_fallback_used", "response_backend", "response_fallback_used",
+        "recall_expected_hit_count", "recall_unexpected_hit_count", "working_memory_recall_precision",
+        "spoken_expected_hit_count", "spoken_unexpected_hit_count", "spoken_suppressed_count",
+        "extractor_ms", "recall_ms", "llm_response_ms", "end_to_end_ms",
         "recall_noise_count",
         "fatigue_suppressed_count",
         "response_used_expected_count",
@@ -3523,6 +3622,22 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
     response_groups = sum(int(r["response_used_group_count"]) for r in rows)
     wm_words = sum(int(r["working_memory_word_count"]) for r in rows)
     response_skipped = sum(1 for r in rows if str(r["response_skipped"]).lower() == "true")
+    def p95(key: str) -> float:
+        values = sorted(float(r.get(key, 0) or 0) for r in rows)
+        return values[min(len(values) - 1, math.ceil(len(values) * .95) - 1)]
+    def avg(key: str) -> float:
+        return sum(float(r.get(key, 0) or 0) for r in rows) / len(rows)
+    extractor_attempts = sum(1 for r in rows if r.get("extractor_backend") in {"llm", "fallback"})
+    extractor_successes = sum(1 for r in rows if r.get("extractor_backend") == "llm")
+    extractor_fallbacks = sum(1 for r in rows if str(r.get("extractor_fallback_used")).lower() == "true")
+    response_attempts = sum(1 for r in rows if r.get("response_backend") in {"llm", "fallback"})
+    response_successes = sum(1 for r in rows if r.get("response_backend") == "llm")
+    response_fallbacks = sum(1 for r in rows if str(r.get("response_fallback_used")).lower() == "true")
+    recall_expected = sum(int(r["recall_expected_hit_count"]) for r in rows)
+    recall_unexpected = sum(int(r["recall_unexpected_hit_count"]) for r in rows)
+    spoken_unexpected = sum(int(r["spoken_unexpected_hit_count"]) for r in rows)
+    spoken_suppressed = sum(int(r["spoken_suppressed_count"]) for r in rows)
+    wm_precision = recall_expected / (recall_expected + recall_unexpected) if recall_expected + recall_unexpected else 1.0
     return [
         "",
         "## Summary",
@@ -3533,6 +3648,23 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- unexpected_hit_count_total: {unexpected}",
         f"- fatigue_suppressed_count_total: {fatigue}",
         f"- average_recall_precision_like: {avg_precision:.3f}",
+        f"- Legacy combined precision: {avg_precision:.3f}",
+        f"- Working Memory Recall Precision: {wm_precision:.3f}",
+        f"- Working Memory unexpected hits: {recall_unexpected}",
+        f"- Spoken unexpected hits: {spoken_unexpected}",
+        f"- Spoken suppressed hits: {spoken_suppressed}",
+        f"- LLM extractor attempts: {extractor_attempts}",
+        f"- LLM extractor successes: {extractor_successes}",
+        f"- Extractor fallbacks: {extractor_fallbacks}",
+        f"- Extractor fallback rate: {extractor_fallbacks / extractor_attempts if extractor_attempts else 0.0:.3f}",
+        f"- LLM response attempts: {response_attempts}",
+        f"- LLM response successes: {response_successes}",
+        f"- Response fallbacks: {response_fallbacks}",
+        f"- Response fallback rate: {response_fallbacks / response_attempts if response_attempts else 0.0:.3f}",
+        f"- Average extractor ms / p95: {avg('extractor_ms'):.1f} / {p95('extractor_ms'):.1f}",
+        f"- Average recall ms / p95: {avg('recall_ms'):.1f} / {p95('recall_ms'):.1f}",
+        f"- Average LLM response ms / p95: {avg('llm_response_ms'):.1f} / {p95('llm_response_ms'):.1f}",
+        f"- Average end-to-end ms / p95: {avg('end_to_end_ms'):.1f} / {p95('end_to_end_ms'):.1f}",
         f"- working_memory_group_count_total: {wm_groups}",
         f"- response_used_group_count_total: {response_groups}",
         f"- average_recall_efficiency: {avg_efficiency:.3f}",
@@ -3995,6 +4127,8 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--debug-participant-reference", action="store_true", help="Print participant reference normalization before/after details.")
     parser.add_argument("--disable-participant-reference", action="store_true", help="Disable participant reference normalization for feature-ablation experiments.")
     parser.add_argument("--timeout", type=float, default=12.0)
+    parser.add_argument("--extractor-timeout", type=float, default=None)
+    parser.add_argument("--response-timeout", type=float, default=None)
     parser.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     parser.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
     parser.add_argument("--top-words", type=int, default=20)
@@ -4104,6 +4238,8 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--debug-participant-reference", action="store_true", default=argparse.SUPPRESS)
     p_eval.add_argument("--disable-participant-reference", action="store_true", default=argparse.SUPPRESS)
     p_eval.add_argument("--timeout", type=float, default=argparse.SUPPRESS)
+    p_eval.add_argument("--extractor-timeout", type=float, default=argparse.SUPPRESS)
+    p_eval.add_argument("--response-timeout", type=float, default=argparse.SUPPRESS)
     p_eval.add_argument("--half-life-days", type=float, default=argparse.SUPPRESS)
     p_eval.add_argument("--max-depth", type=int, default=argparse.SUPPRESS)
     p_eval.add_argument("--top-words", type=int, default=argparse.SUPPRESS)
