@@ -13,6 +13,7 @@ from statistics import mean
 from typing import Any, Iterable, Mapping
 
 from .governance import RecallExpectation, parse_expectation
+from .offline import group_competition_analysis, replay_composition_strategies
 
 
 def _list(value: Any) -> list[Any]:
@@ -71,6 +72,8 @@ def capture_record(record: Mapping[str, Any], annotation: Mapping[str, Any] | No
         "candidate_ids": _list(recall.get("activated_threads")),
         "selected_ids": selected_ids,
         "selected_words": _list(recall.get("selected_words")),
+        "activated_words": _list(recall.get("activated_words")),
+        "fatigue_suppressed_words": _list(recall.get("fatigue_suppressed_words")),
         "working_memory_ids": [g.get("representative_thread_id", g.get("canonical_key")) for g in _list(memory.get("selected_thread_groups")) if isinstance(g, dict)],
         "working_memory_word_count": memory.get("word_count", 0),
         "working_memory_group_count": memory.get("thread_group_count", 0),
@@ -100,11 +103,89 @@ def capture_record(record: Mapping[str, Any], annotation: Mapping[str, Any] | No
         "precision_like": evaluation.get("precision_like", 0.0),
         "runtime_config": dict(config),
         "activation_analysis": recall.get("activation_analysis", {}),
+        "composition_candidate_groups": _list(recall.get("composition_candidate_groups")),
     }
     result: dict[str, Any] = {"schema_version": 1, "fixture_type": "captured_governance_observation", "turn": record.get("turn"), "observed": observed}
     if annotation:
         result["annotation"] = dict(annotation)
     return result
+
+
+def build_recall_composition_analysis(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    """Separate target outcomes and replay group composition, entirely offline."""
+    target_rows: list[dict[str, Any]] = []
+    strategy_totals: dict[str, Counter] = {}
+    competition_turns: list[dict[str, Any]] = []
+    for row in rows:
+        obs, ann = _normalise(row)
+        if not ann or not ann.get("expectation"):
+            continue
+        targets = {str(word) for word in _list(ann.get("words"))}
+        events = [event for event in _list(obs.get("diagnostic_stage_events")) if isinstance(event, dict)]
+        activated = {str(word) for word in _list(obs.get("activated_words"))}
+        selected_words = {str(word) for word in _list(obs.get("selected_words"))}
+        wm_words = set(selected_words)
+        groups = [group for group in _list(obs.get("working_memory_groups")) if isinstance(group, dict)]
+        candidate_groups = [group for group in _list(obs.get("composition_candidate_groups")) if isinstance(group, dict)] or groups
+        selected_ids = {_group_id_local(group) for group in groups}
+        person_names = {str(word) for word in _list(ann.get("person_name_candidates"))}
+        generic_words = {str(word) for word in _list(ann.get("generic_word_candidates"))}
+        candidate_groups = [
+            {**group,
+             "person_name_words": sorted(set(str(word) for word in _list(group.get("words"))) & person_names),
+             "generic_words": sorted(set(str(word) for word in _list(group.get("words"))) & generic_words)}
+            for group in candidate_groups
+        ]
+        paths = _list((obs.get("activation_analysis") or {}).get("paths")) if isinstance(obs.get("activation_analysis"), dict) else []
+        for target in sorted(targets):
+            target_events = [event for event in events if str(event.get("identifier")) == target]
+            gate = next((event for event in target_events if event.get("stage") == "ACTIVATION_GATE"), None)
+            selected_group = any(target in _list(group.get("words")) for group in groups)
+            contributing_ids = {str(path.get("from_id")) for path in paths if isinstance(path, dict) and path.get("from_type") == "thread" and str(path.get("to_id")) == target}
+            selected_member_ids = {str(thread_id) for group in groups for thread_id in _list(group.get("member_thread_ids"))}
+            contributing_selected = bool(contributing_ids & selected_member_ids) if contributing_ids else selected_group
+            fatigue_suppressed = any(
+                ("fatigue" in str(event.get("reason", "")).lower() or event.get("fatigue_contribution")) and not event.get("accepted", True)
+                for event in target_events
+            ) or any(str(item.get("word")) == target and item.get("suppressed_by_fatigue") for item in _list(obs.get("fatigue_suppressed_words")) if isinstance(item, dict))
+            was_activated = target in activated or any(event.get("stage") == "RAW_ACTIVATION" for event in target_events)
+            passed_gate = bool(gate and gate.get("accepted", True)) or (was_activated and selected_group) or fatigue_suppressed
+            admitted_before_fatigue = was_activated and passed_gate and selected_group
+            entered = target in wm_words
+            target_rows.append({
+                "turn": row.get("turn", obs.get("sequence")), "target": target,
+                "activated": was_activated, "passed_activation_gate": passed_gate,
+                "contributing_thread_selected": contributing_selected,
+                "target_present_in_selected_group": selected_group,
+                "admitted_before_fatigue": admitted_before_fatigue,
+                "suppressed_by_fatigue": fatigue_suppressed,
+                "entered_working_memory": entered,
+                "internal_outcome": "RECALL_SUCCEEDED" if admitted_before_fatigue else "RECALL_FAILED",
+                "external_outcome": "GOVERNANCE_SUPPRESSED" if admitted_before_fatigue and fatigue_suppressed and not entered else ("AVAILABLE" if entered else "NOT_AVAILABLE"),
+                "expected_recall_internally": parse_expectation(ann["expectation"]) is RecallExpectation.SHOULD_RECALL,
+                "expected_mention_externally": ann.get("expected_mention_externally"),
+            })
+        if int(row.get("turn", obs.get("sequence", 0)) or 0) in {11, 97} or ann.get("competition_targets"):
+            competition_turns.append({"turn": row.get("turn", obs.get("sequence")), **group_competition_analysis(candidate_groups, targets, selected_ids)})
+        labels = {target: ann["expectation"] for target in targets}
+        for strategy, metrics in replay_composition_strategies(candidate_groups, labels, len(groups), wm_words).items():
+            total = strategy_totals.setdefault(strategy, Counter())
+            for key in ("associative_target_recovery", "should_not_recall_leakage", "unexpected_recall", "selected_group_count", "working_memory_size", "counterexample_count"):
+                total[key] += int(metrics[key])
+    should = [target for target in target_rows if target["expected_recall_internally"]]
+    def rate(field: str) -> float | None:
+        return sum(bool(target[field]) for target in should) / len(should) if should else None
+    return {
+        "targets": target_rows,
+        "rates": {"activation_recall_rate": rate("activated"), "group_inclusion_rate": rate("target_present_in_selected_group"), "pre_fatigue_admission_rate": rate("admitted_before_fatigue"), "final_working_memory_recall_rate": rate("entered_working_memory")},
+        "thread_group_competition": competition_turns,
+        "offline_strategy_comparison": {key: dict(value) for key, value in strategy_totals.items()},
+        "scope": "offline observation/replay only; production activation, Gate, fatigue, reinforcement, and connection weights are unchanged",
+    }
+
+
+def _group_id_local(group: Mapping[str, Any]) -> str:
+    return str(group.get("canonical_key", group.get("representative_thread_id", "")))
 
 
 def convert_research_records(records: Iterable[Mapping[str, Any]], annotations: Mapping[int, Mapping[str, Any]] | None = None) -> list[dict[str, Any]]:
