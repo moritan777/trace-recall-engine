@@ -75,6 +75,7 @@ from trace_recall.gate_pressure import analyze_gate_pressure, compare_gate_press
 from trace_recall.path_growth import analyze_path_origin, compare_path_origin, path_growth_markdown, select_path_review_queue
 from trace_recall.repeated_experience import analyze_repeated_experience, compare_repeated_experience, repeated_experience_markdown, select_repetition_review_queue
 from trace_recall.storage_identity import analyze_storage_identity, compare_storage_identity, select_storage_identity_review_queue, storage_identity_markdown
+from trace_recall.identity_metadata import analyze_identity_metadata, identity_metadata_markdown, select_identity_metadata_review_queue
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
     activation_path_markdown, build_activation_path_analyses, build_failure_audits,
@@ -2863,6 +2864,18 @@ def cmd_storage_identity_analysis(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_identity_metadata_analysis(args: argparse.Namespace) -> int:
+    conversation = load_eval_conversation(Path(args.conversation_file))
+    research = read_governance_jsonl(Path(args.research_log))
+    result = analyze_identity_metadata(conversation, research, Path(args.db))
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), identity_metadata_markdown(result))
+    if args.review_queue:
+        write_governance_jsonl(Path(args.review_queue), select_identity_metadata_review_queue(result, args.review_limit))
+    print(f"[Identity Metadata Analysis] threads={result['thread_count']} root={result['root_cause']} direction={result['recommended_metadata_direction']}")
+    return 0
+
+
 def cmd_governance_eval(args: argparse.Namespace) -> int:
     scenario_rows = read_governance_jsonl(Path(args.scenario_file))
     captured = evaluate_governance(scenario_rows)
@@ -4199,6 +4212,16 @@ def make_parser() -> argparse.ArgumentParser:
     p_identity.add_argument("--review-queue", default="")
     p_identity.add_argument("--review-limit", type=int, default=20)
     p_identity.set_defaults(func=cmd_storage_identity_analysis)
+
+    p_metadata = sub.add_parser("identity-metadata-analysis", help="Audit missing Experience provenance without adding metadata or changing schema.")
+    p_metadata.add_argument("--conversation-file", required=True)
+    p_metadata.add_argument("--research-log", required=True)
+    p_metadata.add_argument("--db", required=True)
+    p_metadata.add_argument("--output-json", required=True)
+    p_metadata.add_argument("--report-md", required=True)
+    p_metadata.add_argument("--review-queue", default="")
+    p_metadata.add_argument("--review-limit", type=int, default=20)
+    p_metadata.set_defaults(func=cmd_identity_metadata_analysis)
 
     p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
     p_governance.add_argument("--scenario-file", required=True)

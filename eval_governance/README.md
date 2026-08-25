@@ -88,3 +88,7 @@ The Phase 3.3 command and integrity boundary are documented in [`repeated_experi
 ## Experience Thread storage identity
 
 The Phase 3.4 command, identity levels, counterfactual boundary, and three identity principles are documented in [`storage_identity/README.md`](storage_identity/README.md). No candidate model is connected to Production storage.
+
+## Missing Experience identity metadata
+
+The Phase 3.5 provenance audit and minimal-metadata boundary are documented in [`identity_metadata/README.md`](identity_metadata/README.md). It adds no source-turn/event/session field and performs no migration.

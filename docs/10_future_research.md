@@ -173,3 +173,7 @@ Repeated storage and state reinforcement can be observed together without declar
 ## Phase 3.4 identity principles
 
 Same word set is not necessarily the same Experience. The same Experience is not necessarily the same state. Repeating one Experience does not prove that multiple Experiences exist. Current `date`/`created_at` values are generated from storage time, so using them as identity can merely make every Thread unique. Any future identity/state work must resolve event provenance before changing count-mode instance storage.
+
+## Phase 3.5 metadata boundary
+
+Description Identity, Occurrence Identity, Observation Identity, and Mutable Repetition State are separate concepts. The fixture turn can identify an observation but cannot establish whether two observations describe one event or distinct events. Any future prototype must preserve upstream provenance explicitly and must not use storage timestamps or mutable frequency/strength as event identity proxies.

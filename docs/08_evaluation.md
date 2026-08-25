@@ -249,3 +249,7 @@ The offline `trace_recall.offline` lateral-inhibition experiment reports expecte
 ## Phase 3.4: Experience Thread storage identity
 
 `storage-identity-analysis` compares word-set, source-text, origin, temporal, and strength/state identity levels without adopting any model. Expected-target annotations are an evaluation overlay only. Every model estimate is marked `OFFLINE_IDENTITY_COUNTERFACTUAL`; timestamp-driven uniqueness is flagged separately from meaningful Experience distinction.
+
+## Phase 3.5: Missing Experience identity metadata
+
+`identity-metadata-analysis` audits the conversation → extractor → learn → thread factory → SQLite provenance chain. It distinguishes upstream source-turn loss from source event identity that never existed, and separates intra-turn duplication from exact-input inter-turn repetition. Source-turn arithmetic is `OFFLINE_METADATA_COUNTERFACTUAL`, not a schema proposal or Recall replay.
