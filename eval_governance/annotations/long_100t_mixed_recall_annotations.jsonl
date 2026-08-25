@@ -1,0 +1,12 @@
+{"turn": 11, "expectation": "SHOULD_RECALL", "words": ["チーズケーキ", "コーヒー", "猫"]}
+{"turn": 18, "expectation": "SHOULD_RECALL", "words": ["猫", "ソラ"]}
+{"turn": 29, "expectation": "SHOULD_RECALL", "words": ["カフェ", "チーズケーキ", "コーヒー"]}
+{"turn": 40, "expectation": "SHOULD_RECALL", "words": ["カフェ"]}
+{"turn": 49, "expectation": "SHOULD_RECALL", "words": ["カッターナイフ", "怪我", "苦手"]}
+{"turn": 54, "expectation": "SHOULD_NOT_RECALL", "words": ["元カノ"]}
+{"turn": 71, "expectation": "SHOULD_RECALL", "words": ["誕生日", "7月15日"]}
+{"turn": 73, "expectation": "SHOULD_NOT_RECALL", "words": ["記念日"]}
+{"turn": 74, "expectation": "SHOULD_RECALL", "words": ["記念日"]}
+{"turn": 89, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"]}
+{"turn": 92, "expectation": "SHOULD_RECALL", "words": ["チーズケーキ"]}
+{"turn": 93, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"]}

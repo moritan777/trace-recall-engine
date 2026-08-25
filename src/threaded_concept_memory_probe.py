@@ -68,6 +68,11 @@ from trace_recall.extractors.base import clamp, dedupe_extracted_words, normaliz
 from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
+from trace_recall.governance_capture import (
+    comparison_markdown, convert_research_records, evaluate_governance,
+    load_annotations, read_jsonl as read_governance_jsonl,
+    write_jsonl as write_governance_jsonl,
+)
 
 
 # This probe does not store sentences as memories.
@@ -2742,6 +2747,34 @@ def cmd_eval_extractor(args: argparse.Namespace) -> int:
     print(f"[Extractor Eval] report_md={args.report_md}")
     return 0
 
+
+def cmd_capture_governance(args: argparse.Namespace) -> int:
+    annotations = load_annotations(Path(args.annotations)) if args.annotations else {}
+    captured = convert_research_records(read_governance_jsonl(Path(args.research_log)), annotations)
+    write_governance_jsonl(Path(args.output_jsonl), captured)
+    print(f"[Governance Capture] observations={len(captured)} annotations={sum('annotation' in row for row in captured)} output_jsonl={args.output_jsonl}")
+    return 0
+
+
+def cmd_governance_eval(args: argparse.Namespace) -> int:
+    captured = evaluate_governance(read_governance_jsonl(Path(args.scenario_file)))
+    results = {"100-turn captured conversation": captured}
+    if args.artificial_scenario_file:
+        results = {
+            "Artificial governance fixture": evaluate_governance(read_governance_jsonl(Path(args.artificial_scenario_file))),
+            **results,
+        }
+    output = {"schema_version": 1, "results": results}
+    write_text(Path(args.output_json), json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), comparison_markdown(results))
+    if args.frequency_report_md:
+        lines = ["# Governance Frequency and Connection Report", ""]
+        for name, result in results.items():
+            lines.extend([f"## {name}", "", f"- Frequency distribution: `{json.dumps(result['frequency_distribution'], sort_keys=True)}`", f"- Connection-path usage: {result['connection_path_usage']}", ""])
+        write_text(Path(args.frequency_report_md), "\n".join(lines))
+    print(f"[Governance Eval] output_json={args.output_json} report_md={args.report_md}")
+    return 0
+
 def cmd_eval(args: argparse.Namespace) -> int:
     store, extractor, engine, generator = build_components(args)
     events: list[dict[str, Any]] = []
@@ -3901,6 +3934,20 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--no-reinforce", action="store_true")
     p_eval.add_argument("--no-response", action="store_true")
     p_eval.set_defaults(func=cmd_eval)
+
+    p_capture = sub.add_parser("capture-governance", help="Convert Research Logger schema v2 JSONL to offline governance observations.")
+    p_capture.add_argument("--research-log", required=True)
+    p_capture.add_argument("--annotations", default="")
+    p_capture.add_argument("--output-jsonl", required=True)
+    p_capture.set_defaults(func=cmd_capture_governance)
+
+    p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
+    p_governance.add_argument("--scenario-file", required=True)
+    p_governance.add_argument("--artificial-scenario-file", default="", help="Optional artificial fixture included in the comparison report.")
+    p_governance.add_argument("--output-json", required=True)
+    p_governance.add_argument("--report-md", required=True)
+    p_governance.add_argument("--frequency-report-md", default="")
+    p_governance.set_defaults(func=cmd_governance_eval)
 
     p_sensitivity = sub.add_parser("sensitivity")
     p_sensitivity.add_argument("--conversation-file", default=str(DEFAULT_SEED_TESTS_FILE), help="JSONL fixture; defaults to eval_conversations/seed_tests_public.jsonl.")
