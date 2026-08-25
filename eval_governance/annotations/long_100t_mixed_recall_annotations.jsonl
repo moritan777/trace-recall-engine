@@ -1,0 +1,23 @@
+{"turn": 11, "expectation": "SHOULD_RECALL", "words": ["チーズケーキ", "コーヒー", "猫"], "coverage": ["baseline_recall"]}
+{"turn": 12, "expectation": "SHOULD_RECALL", "words": ["紅茶", "のりこ"], "coverage": ["person_separation"]}
+{"turn": 18, "expectation": "SHOULD_RECALL", "words": ["猫", "ソラ"], "coverage": ["associative_recall"]}
+{"turn": 29, "expectation": "SHOULD_RECALL", "words": ["カフェ", "チーズケーキ", "コーヒー"], "coverage": ["associative_recall"]}
+{"turn": 37, "expectation": "SHOULD_NOT_RECALL", "words": ["カフェ"], "coverage": ["weak_associative_false_positive_candidate"]}
+{"turn": 39, "expectation": "SHOULD_RECALL", "words": ["カフェ"], "coverage": ["high_frequency_topic"]}
+{"turn": 40, "expectation": "SHOULD_RECALL", "words": ["カフェ"], "coverage": ["explicit_topic_reentry"]}
+{"turn": 49, "expectation": "SHOULD_RECALL", "words": ["カッターナイフ", "怪我", "苦手"], "coverage": ["associative_recall"]}
+{"turn": 50, "expectation": "SHOULD_NOT_RECALL", "words": ["カッターナイフ"], "coverage": ["weak_associative_false_positive_candidate"]}
+{"turn": 53, "expectation": "MUST_NOT_SPEAK", "words": ["元カノ"], "coverage": ["repeated_negation", "evaluation_only_boundary"]}
+{"turn": 54, "expectation": "SHOULD_NOT_RECALL", "words": ["元カノ"], "coverage": ["repeated_negation"]}
+{"turn": 59, "expectation": "MUST_NOT_SPEAK", "words": ["元カノ"], "coverage": ["repeated_negation", "explicit_topic_reentry", "evaluation_only_boundary"]}
+{"turn": 71, "expectation": "SHOULD_RECALL", "words": ["誕生日", "7月15日"], "coverage": ["fact_recall"]}
+{"turn": 73, "expectation": "SHOULD_NOT_RECALL", "words": ["記念日"], "coverage": ["high_frequency_but_low_value_topic", "fatigue_candidate"]}
+{"turn": 74, "expectation": "SHOULD_RECALL", "words": ["記念日"], "coverage": ["explicit_topic_reentry"]}
+{"turn": 79, "expectation": "SHOULD_RECALL", "words": ["紅茶"], "coverage": ["explicit_topic_reentry"]}
+{"turn": 89, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["weak_associative_false_positive_candidate", "high_frequency_but_low_value_topic"]}
+{"turn": 92, "expectation": "SHOULD_RECALL", "words": ["チーズケーキ"], "coverage": ["explicit_topic_reentry", "high_frequency_topic"]}
+{"turn": 93, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["high_frequency_but_low_value_topic", "fatigue_candidate"]}
+{"turn": 94, "expectation": "MUST_NOT_SPEAK", "words": ["元カノ"], "coverage": ["repeated_negation", "evaluation_only_boundary"]}
+{"turn": 95, "expectation": "MUST_NOT_SPEAK", "words": ["元カノ"], "coverage": ["repeated_negation", "evaluation_only_boundary"]}
+{"turn": 97, "expectation": "SHOULD_RECALL", "words": ["みつき", "のりこ", "紅茶", "チーズケーキ"], "coverage": ["person_separation"]}
+{"turn": 98, "expectation": "SHOULD_NOT_RECALL", "words": ["元カノ"], "coverage": ["weak_associative_false_positive_candidate", "repeated_negation"]}
