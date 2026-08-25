@@ -47,6 +47,10 @@ Long-horizon 100-vs-1000 baseline comparison and representative annotation-revie
 queue generation are documented in `long_horizon/README.md`. This consumes
 Research Logger schema v2 and optional DB snapshots without changing runtime.
 
+Activation candidate/path/frequency/redundancy pressure decomposition is
+documented in `gate_pressure/README.md`. It reuses the same captured baseline
+logs and does not add runtime instrumentation or change Gate behavior.
+
 ## Recall composition boundary analysis
 
 Pass `--composition-analysis-json PATH` to `governance-eval` to emit per-target

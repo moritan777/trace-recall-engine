@@ -27,6 +27,17 @@ distribution. Every comparable quality metric retains raw and relative deltas;
 the `STABLE`/`IMPROVED`/`DEGRADED` label is a zero-tolerance sign description,
 not a newly tuned threshold.
 
+## Activation Gate pressure
+
+`gate-pressure-analysis` decomposes candidate sources, depth, path multiplicity,
+frequency, score buckets, redundancy, suppression reasons, ask-level pressure,
+and observational correlations before Working Memory. It counts each candidate
+once at the Gate boundary; downstream rejection events are not treated as new
+candidates. Unknown suppression semantics remain `UNCLASSIFIED`.
+
+Only existing recall/total timings are used. Missing per-stage timing is marked
+unavailable, and correlations are never interpreted as causal.
+
 The evaluation framework executes reproducible conversation scenarios and measures how traces propagate through the recall pipeline.
 
 Rather than evaluating only the final LLM response, the framework can evaluate each stage independently:

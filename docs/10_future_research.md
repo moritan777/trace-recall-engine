@@ -17,6 +17,10 @@ baseline degrades at 1000 turns, only the worst observed subsystem should be
 studied next; the evaluation must not automatically tune Activation, Gate,
 fatigue, reinforcement, connections, or Working Memory.
 
+Gate-pressure diagnosis may identify path, frequency, redundancy, or capacity
+pressure, but Phase 3.1 does not prune candidates, tune thresholds, or alter
+connections. Any follow-up must study exactly one observed subsystem first.
+
 The current architecture has completed its initial storage and long-scale recall validation. Future work now focuses on the extraction boundary and on later integration-quality evaluation.
 
 Research updates are published on

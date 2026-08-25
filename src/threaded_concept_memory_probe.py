@@ -71,6 +71,7 @@ from trace_recall.composition_stress import composition_stress_markdown, evaluat
 from trace_recall.composition_features import analyze_composition_features, composition_feature_markdown, feature_table_csv
 from trace_recall.composition_validation import composition_validation_markdown, validate_composition_signal
 from trace_recall.long_horizon import compare_long_horizon, long_horizon_markdown, select_annotation_turns, summarize_long_horizon
+from trace_recall.gate_pressure import analyze_gate_pressure, compare_gate_pressure, gate_pressure_markdown, select_pressure_review_turns
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
     activation_path_markdown, build_activation_path_analyses, build_failure_audits,
@@ -2807,6 +2808,19 @@ def cmd_baseline_scale_validation(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gate_pressure_analysis(args: argparse.Namespace) -> int:
+    short = analyze_gate_pressure(read_governance_jsonl(Path(args.short_research_log)))
+    long = analyze_gate_pressure(read_governance_jsonl(Path(args.long_research_log)))
+    comparison = compare_gate_pressure(short, long)
+    result = {"schema_version": 1, "pressure_100": short, "pressure_1000": long, "comparison": comparison}
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), gate_pressure_markdown(short, long, comparison))
+    if args.review_queue:
+        write_governance_jsonl(Path(args.review_queue), select_pressure_review_turns(long, args.review_limit))
+    print(f"[Gate Pressure Analysis] 100={short['ask_count']} 1000={long['ask_count']} root={comparison['root_cause']}")
+    return 0
+
+
 def cmd_governance_eval(args: argparse.Namespace) -> int:
     scenario_rows = read_governance_jsonl(Path(args.scenario_file))
     captured = evaluate_governance(scenario_rows)
@@ -4101,6 +4115,15 @@ def make_parser() -> argparse.ArgumentParser:
     p_scale.add_argument("--annotation-template", default="")
     p_scale.add_argument("--annotation-limit", type=int, default=25)
     p_scale.set_defaults(func=cmd_baseline_scale_validation)
+
+    p_pressure = sub.add_parser("gate-pressure-analysis", help="Decompose unchanged-baseline Activation Gate pressure from schema-v2 logs.")
+    p_pressure.add_argument("--short-research-log", required=True)
+    p_pressure.add_argument("--long-research-log", required=True)
+    p_pressure.add_argument("--output-json", required=True)
+    p_pressure.add_argument("--report-md", required=True)
+    p_pressure.add_argument("--review-queue", default="")
+    p_pressure.add_argument("--review-limit", type=int, default=25)
+    p_pressure.set_defaults(func=cmd_gate_pressure_analysis)
 
     p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
     p_governance.add_argument("--scenario-file", required=True)
