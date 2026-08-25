@@ -69,8 +69,8 @@ from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
-    build_failure_audits, comparison_markdown, convert_research_records, evaluate_governance,
-    failure_audit_markdown,
+    activation_path_markdown, build_activation_path_analyses, build_failure_audits,
+    comparison_markdown, convert_research_records, evaluate_governance, failure_audit_markdown,
     load_annotations, read_jsonl as read_governance_jsonl,
     write_jsonl as write_governance_jsonl,
 )
@@ -2780,6 +2780,12 @@ def cmd_governance_eval(args: argparse.Namespace) -> int:
             write_text(Path(args.failure_audit_json), json.dumps(audits, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         if args.failure_audit_md:
             write_text(Path(args.failure_audit_md), failure_audit_markdown(audits))
+    if args.activation_path_json or args.activation_path_md:
+        paths = build_activation_path_analyses(scenario_rows)
+        if args.activation_path_json:
+            write_text(Path(args.activation_path_json), json.dumps(paths, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        if args.activation_path_md:
+            write_text(Path(args.activation_path_md), activation_path_markdown(paths))
     print(f"[Governance Eval] output_json={args.output_json} report_md={args.report_md}")
     return 0
 
@@ -2937,6 +2943,7 @@ def run_eval_turn(
     activation = engine.activate(words, args.top_words, args.top_threads)
     gate = build_gate(args, store, diagnostics)
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
+    activation_analysis = build_activation_analysis(activation, store, expected_words)
     prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
     recall_ms = (time.perf_counter() - recall_start) * 1000.0
     response_text = ""
@@ -2986,6 +2993,7 @@ def run_eval_turn(
         "recall_outcome": gated.outcome,
         "topic_reentry_words": gated.topic_reentry_words or [],
         "stage_diagnostics": diagnostics.to_jsonable() if diagnostics is not None else [],
+        "activation_analysis": activation_analysis,
         "prompt_text": prompt,
         "prompt_stats": prompt_stats_dict(prompt),
         "response_text": response_text,
@@ -3003,6 +3011,59 @@ def run_eval_turn(
 # conversation content and must not include API keys or authorization headers.
 def _research_words(words: list[Any]) -> list[dict[str, Any]]:
     return [{"word": getattr(w, "word", str(w)), "weight": float(getattr(w, "weight", 1.0))} for w in words]
+
+
+def build_activation_analysis(activation: ActivationResult, store: ThreadedConceptMemoryStore, expected_words: list[str]) -> dict[str, Any]:
+    """Capture production activation paths and DB connectivity without changing them."""
+    candidates = []
+    for rank, word in enumerate(activation.activated_words, 1):
+        node = store.get_word_by_text(word.word)
+        candidates.append({
+            "rank": rank, "word": word.word, "score": word.score,
+            "best_depth": word.best_depth, "thread_ids": word.thread_ids,
+            "activation_sources": word.activated_by,
+            "word_strength": node.strength if node else None,
+            "word_weight": node.weight if node else None,
+            "frequency": node.seen_count if node else None,
+        })
+    thread_ids = {trace.from_id for trace in activation.traces if trace.from_type == "thread"}
+    thread_ids.update(trace.to_id for trace in activation.traces if trace.to_type == "thread")
+    threads = {}
+    for thread_id in sorted(thread_ids):
+        thread = store.get_thread(thread_id)
+        if thread:
+            threads[thread_id] = {
+                "source_text": thread.source_text, "words": thread.words,
+                "created_by": thread.created_by, "canonical_key": thread.canonical_key,
+                "strength": thread.strength, "seen_count": thread.seen_count,
+            }
+    targets = {}
+    for target in expected_words:
+        node = store.get_word_by_text(target)
+        links = store.get_links_for_word(node.word_id) if node else []
+        targets[target] = {
+            "word_exists": node is not None,
+            "word_strength": node.strength if node else None,
+            "word_weight": node.weight if node else None,
+            "frequency": node.seen_count if node else None,
+            "linked_threads": [
+                {"thread_id": link.thread_id, "weight": link.weight_in_thread, "thread": threads.get(link.thread_id) or _thread_audit_dict(store.get_thread(link.thread_id))}
+                for link in links
+            ],
+        }
+    return {
+        "candidates": candidates,
+        "paths": [vars(trace) for trace in activation.traces],
+        "threads": threads,
+        "expected_target_db": targets,
+        "depth_decay": {str(key): value for key, value in DEPTH_DECAY.items()},
+    }
+
+
+def _thread_audit_dict(thread: Thread | None) -> dict[str, Any] | None:
+    if thread is None:
+        return None
+    return {"source_text": thread.source_text, "words": thread.words, "created_by": thread.created_by, "canonical_key": thread.canonical_key, "strength": thread.strength, "seen_count": thread.seen_count}
 
 
 def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
@@ -3035,6 +3096,7 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "outcome": event.get("recall_outcome", ""),
             "topic_reentry_words": event.get("topic_reentry_words", []),
             "stage_diagnostics": event.get("stage_diagnostics", []),
+            "activation_analysis": event.get("activation_analysis", {}),
         },
         "working_memory": {
             "thread_group_count": metrics.get("working_memory_group_count", 0),
@@ -3964,6 +4026,8 @@ def make_parser() -> argparse.ArgumentParser:
     p_governance.add_argument("--frequency-report-md", default="")
     p_governance.add_argument("--failure-audit-json", default="")
     p_governance.add_argument("--failure-audit-md", default="")
+    p_governance.add_argument("--activation-path-json", default="")
+    p_governance.add_argument("--activation-path-md", default="")
     p_governance.add_argument("--gate-min-word-score", type=float, default=0.05, help="Recorded runtime threshold used only to calculate audit score margins.")
     p_governance.set_defaults(func=cmd_governance_eval)
 

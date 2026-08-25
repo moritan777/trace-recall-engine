@@ -40,3 +40,12 @@ The evaluator now reports separately:
 
 This is evaluator-only accounting and does not change runtime diagnostics or the
 recall pipeline.
+
+## Activation score event integrity
+
+Each candidate has one `raw activation candidate` diagnostic containing its
+total pre-Gate score, followed by path-level `RAW_ACTIVATION` events. An earlier
+audit selected the last event by identifier and therefore reported a final
+mutual-amplification path fragment (`0.0089` for turn 29) as though it were the
+candidate total. Activation path analysis keeps candidate totals and individual
+path contributions separate. It does not use path fragments as Gate scores.

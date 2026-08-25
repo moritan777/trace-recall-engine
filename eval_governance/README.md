@@ -30,3 +30,15 @@ threshold margin. To observe only the four `MUST_NOT_SPEAK` responses in the
 100-turn run, pass `--response-turn 53 --response-turn 59 --response-turn 94
 --response-turn 95` to `eval`. This controls response execution only and does not
 change recall behavior.
+
+Activation path analysis is emitted with `--activation-path-json` and
+`--activation-path-md`. It preserves production trace contributions, candidate
+rank, DB link metadata, and `created_by`. Counterfactual values are explicitly
+offline arithmetic over observed paths, not a production replay. `created_by`
+identifies the message author; it must not be interpreted as entity ownership.
+
+Every manual overlay row declares `benchmark_responsibility` as
+`ASSOCIATIVE_RECALL_EXPECTED`, `STABLE_FACT_EXPECTED`, or `AMBIGUOUS`.
+Stable-fact rows are excluded from the associative SHOULD_RECALL denominator and
+reported separately as `stable_fact_coverage_observation`; this is evaluation
+metadata and does not implement a Stable Fact Store.
