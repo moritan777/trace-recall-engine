@@ -68,6 +68,8 @@ from trace_recall.extractors.base import clamp, dedupe_extracted_words, normaliz
 from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.composition_stress import composition_stress_markdown, evaluate_composition_stress
+from trace_recall.composition_features import analyze_composition_features, composition_feature_markdown, feature_table_csv
+from trace_recall.composition_validation import composition_validation_markdown, validate_composition_signal
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
     activation_path_markdown, build_activation_path_analyses, build_failure_audits,
@@ -2769,6 +2771,26 @@ def cmd_composition_stress_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_composition_feature_analysis(args: argparse.Namespace) -> int:
+    result = analyze_composition_features(read_governance_jsonl(Path(args.scenario_file)))
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), composition_feature_markdown(result))
+    if args.output_csv:
+        write_text(Path(args.output_csv), feature_table_csv(result))
+    print(f"[Composition Feature Analysis] scenarios={result['scenario_count']} judgement={result['final_judgement']}")
+    return 0
+
+
+def cmd_composition_validation(args: argparse.Namespace) -> int:
+    exploration = read_governance_jsonl(Path(args.exploration_file))
+    validation = read_governance_jsonl(Path(args.validation_file))
+    result = validate_composition_signal(exploration, validation)
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), composition_validation_markdown(result))
+    print(f"[Composition Validation] scenarios={result['validation_dataset']['scenario_count']} judgement={result['generalization_judgement']}")
+    return 0
+
+
 def cmd_governance_eval(args: argparse.Namespace) -> int:
     scenario_rows = read_governance_jsonl(Path(args.scenario_file))
     captured = evaluate_governance(scenario_rows)
@@ -4038,6 +4060,20 @@ def make_parser() -> argparse.ArgumentParser:
     p_composition.add_argument("--output-json", required=True)
     p_composition.add_argument("--report-md", default="", help="Write aggregate strategy comparison and changed-scenario audit Markdown.")
     p_composition.set_defaults(func=cmd_composition_stress_eval)
+
+    p_features = sub.add_parser("composition-feature-analysis", help="Run target-blind offline feature discrimination diagnostics.")
+    p_features.add_argument("--scenario-file", default="eval_governance/composition_stress/scenarios.jsonl")
+    p_features.add_argument("--output-json", required=True)
+    p_features.add_argument("--output-csv", default="")
+    p_features.add_argument("--report-md", required=True)
+    p_features.set_defaults(func=cmd_composition_feature_analysis)
+
+    p_validation = sub.add_parser("composition-validation", help="Validate the frozen Phase 2.9 rule on independent offline fixtures.")
+    p_validation.add_argument("--exploration-file", default="eval_governance/composition_stress/scenarios.jsonl")
+    p_validation.add_argument("--validation-file", default="eval_governance/composition_validation/scenarios.jsonl")
+    p_validation.add_argument("--output-json", required=True)
+    p_validation.add_argument("--report-md", required=True)
+    p_validation.set_defaults(func=cmd_composition_validation)
 
     p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
     p_governance.add_argument("--scenario-file", required=True)

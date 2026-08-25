@@ -42,3 +42,26 @@ baseline with coverage, rank band, competition shape, both outcomes, and an
 improvement/regression assessment. It separately extracts recovery that breaks
 another scenario, leakage increases, unexpected-recall increases, and
 Working-Memory-only growth. These classifications do not adopt a strategy.
+
+## Conditional feature diagnostics
+
+`composition-feature-analysis` extracts target-blind pre-selection features:
+
+```bash
+python src/threaded_concept_memory_probe.py composition-feature-analysis \
+  --output-json /tmp/composition-feature-analysis.json \
+  --output-csv /tmp/composition-feature-analysis.csv \
+  --report-md /tmp/composition-feature-analysis.md
+```
+
+Only candidate groups and the existing group boundary enter the feature
+extractor. Expected target, expected label, rank, scenario ID, and coverage tags
+are excluded. Tags and rank are used afterward only for interpretation. The
+threshold scan is deterministic but overfit-prone in only 30 in-sample rows.
+
+`GROUP_DIVERSITY` **is not** a production improvement. Recovery **is not** a
+safe improvement. An offline separation signal **is not** a production policy.
+
+The frozen `generic_ratio` rule is evaluated out-of-sample by
+`composition-validation`; the exploration dataset is not modified or retrained
+as part of that command. See `../composition_validation/README.md`.

@@ -1,5 +1,22 @@
 # Evaluation
 
+## Conditional composition feature analysis
+
+The offline `composition-feature-analysis` command tests target-blind candidate
+pool features against `GROUP_DIVERSITY` recovery and regression. Feature inputs
+exclude targets, labels, ranks, scenario IDs, and coverage tags; rank and family
+metadata are interpretation-only cross-checks. It scans observed thresholds and
+at most two features rather than fitting an ML model.
+
+With 30 in-sample fixtures, results are overfit-prone diagnostics:
+`GROUP_DIVERSITY` is not a production improvement, recovery is not necessarily
+safe improvement, and an offline separation signal is not production policy.
+
+`composition-validation` applies the Phase 2.9 `generic_ratio` threshold
+unchanged to independent fixtures. Frozen-rule metrics are kept separate from a
+validation-only exploratory threshold scan, and feature direction/rank-band
+stability is reported across both datasets.
+
 The evaluation framework executes reproducible conversation scenarios and measures how traces propagate through the recall pipeline.
 
 Rather than evaluating only the final LLM response, the framework can evaluate each stage independently:
