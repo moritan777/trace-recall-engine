@@ -43,6 +43,10 @@ Stable-fact rows are excluded from the associative SHOULD_RECALL denominator and
 reported separately as `stable_fact_coverage_observation`; this is evaluation
 metadata and does not implement a Stable Fact Store.
 
+Long-horizon 100-vs-1000 baseline comparison and representative annotation-review
+queue generation are documented in `long_horizon/README.md`. This consumes
+Research Logger schema v2 and optional DB snapshots without changing runtime.
+
 ## Recall composition boundary analysis
 
 Pass `--composition-analysis-json PATH` to `governance-eval` to emit per-target

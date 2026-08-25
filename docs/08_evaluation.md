@@ -17,6 +17,16 @@ unchanged to independent fixtures. Frozen-rule metrics are kept separate from a
 validation-only exploratory threshold scan, and feature direction/rank-band
 stability is reported across both datasets.
 
+## Long-horizon baseline validation
+
+`baseline-scale-validation` compares 100- and 1000-turn Research Logger schema
+v2 observations using the same metric implementation. It reports recall
+quality, candidate suppression/root stage, frequency-to-admission relationships,
+fatigue/re-entry, activation diffusion, database growth, and turn-time
+distribution. Every comparable quality metric retains raw and relative deltas;
+the `STABLE`/`IMPROVED`/`DEGRADED` label is a zero-tolerance sign description,
+not a newly tuned threshold.
+
 The evaluation framework executes reproducible conversation scenarios and measures how traces propagate through the recall pipeline.
 
 Rather than evaluating only the final LLM response, the framework can evaluate each stage independently:

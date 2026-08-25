@@ -70,6 +70,7 @@ from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.composition_stress import composition_stress_markdown, evaluate_composition_stress
 from trace_recall.composition_features import analyze_composition_features, composition_feature_markdown, feature_table_csv
 from trace_recall.composition_validation import composition_validation_markdown, validate_composition_signal
+from trace_recall.long_horizon import compare_long_horizon, long_horizon_markdown, select_annotation_turns, summarize_long_horizon
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
     activation_path_markdown, build_activation_path_analyses, build_failure_audits,
@@ -2791,6 +2792,21 @@ def cmd_composition_validation(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_baseline_scale_validation(args: argparse.Namespace) -> int:
+    short_rows = read_governance_jsonl(Path(args.short_research_log))
+    long_rows = read_governance_jsonl(Path(args.long_research_log))
+    short = summarize_long_horizon(short_rows, Path(args.short_db) if args.short_db else None)
+    long = summarize_long_horizon(long_rows, Path(args.long_db) if args.long_db else None)
+    comparison = compare_long_horizon(short, long)
+    result = {"schema_version": 1, "baseline_100": short, "baseline_1000": long, "comparison": comparison}
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), long_horizon_markdown(short, long, comparison))
+    if args.annotation_template:
+        write_governance_jsonl(Path(args.annotation_template), select_annotation_turns(long_rows, args.annotation_limit))
+    print(f"[Baseline Scale Validation] 100={short['ask_turn_count']} 1000={long['ask_turn_count']} judgement={comparison['final_judgement']}")
+    return 0
+
+
 def cmd_governance_eval(args: argparse.Namespace) -> int:
     scenario_rows = read_governance_jsonl(Path(args.scenario_file))
     captured = evaluate_governance(scenario_rows)
@@ -4074,6 +4090,17 @@ def make_parser() -> argparse.ArgumentParser:
     p_validation.add_argument("--output-json", required=True)
     p_validation.add_argument("--report-md", required=True)
     p_validation.set_defaults(func=cmd_composition_validation)
+
+    p_scale = sub.add_parser("baseline-scale-validation", help="Compare 100- and 1000-turn production-baseline Research Logger observations.")
+    p_scale.add_argument("--short-research-log", required=True)
+    p_scale.add_argument("--long-research-log", required=True)
+    p_scale.add_argument("--short-db", default="")
+    p_scale.add_argument("--long-db", default="")
+    p_scale.add_argument("--output-json", required=True)
+    p_scale.add_argument("--report-md", required=True)
+    p_scale.add_argument("--annotation-template", default="")
+    p_scale.add_argument("--annotation-limit", type=int, default=25)
+    p_scale.set_defaults(func=cmd_baseline_scale_validation)
 
     p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
     p_governance.add_argument("--scenario-file", required=True)
