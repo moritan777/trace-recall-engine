@@ -1,5 +1,43 @@
 # Evaluation
 
+## Conditional composition feature analysis
+
+The offline `composition-feature-analysis` command tests target-blind candidate
+pool features against `GROUP_DIVERSITY` recovery and regression. Feature inputs
+exclude targets, labels, ranks, scenario IDs, and coverage tags; rank and family
+metadata are interpretation-only cross-checks. It scans observed thresholds and
+at most two features rather than fitting an ML model.
+
+With 30 in-sample fixtures, results are overfit-prone diagnostics:
+`GROUP_DIVERSITY` is not a production improvement, recovery is not necessarily
+safe improvement, and an offline separation signal is not production policy.
+
+`composition-validation` applies the Phase 2.9 `generic_ratio` threshold
+unchanged to independent fixtures. Frozen-rule metrics are kept separate from a
+validation-only exploratory threshold scan, and feature direction/rank-band
+stability is reported across both datasets.
+
+## Long-horizon baseline validation
+
+`baseline-scale-validation` compares 100- and 1000-turn Research Logger schema
+v2 observations using the same metric implementation. It reports recall
+quality, candidate suppression/root stage, frequency-to-admission relationships,
+fatigue/re-entry, activation diffusion, database growth, and turn-time
+distribution. Every comparable quality metric retains raw and relative deltas;
+the `STABLE`/`IMPROVED`/`DEGRADED` label is a zero-tolerance sign description,
+not a newly tuned threshold.
+
+## Activation Gate pressure
+
+`gate-pressure-analysis` decomposes candidate sources, depth, path multiplicity,
+frequency, score buckets, redundancy, suppression reasons, ask-level pressure,
+and observational correlations before Working Memory. It counts each candidate
+once at the Gate boundary; downstream rejection events are not treated as new
+candidates. Unknown suppression semantics remain `UNCLASSIFIED`.
+
+Only existing recall/total timings are used. Missing per-stage timing is marked
+unavailable, and correlations are never interpreted as causal.
+
 The evaluation framework executes reproducible conversation scenarios and measures how traces propagate through the recall pipeline.
 
 Rather than evaluating only the final LLM response, the framework can evaluate each stage independently:
@@ -199,3 +237,15 @@ Zenn
 Evaluation fixtures may annotate a trace target with `SHOULD_RECALL`, `MAY_RECALL`, `SHOULD_NOT_RECALL`, or `MUST_NOT_SPEAK`. The last value is an evaluation label: it does not add privacy, relationship, or boundary semantics to this engine. `MAY_RECALL` never fails solely because it is absent. A candidate-free result and a result where every candidate is suppressed are separately represented as `NO_CANDIDATES` and `CANDIDATES_SUPPRESSED`; both are valid outcomes.
 
 The offline `trace_recall.offline` lateral-inhibition experiment reports expected-hit gain/loss, unexpected-hit reduction, selected size, prompt-size impact, and counterexamples. It is not called by the production gate or selector.
+
+## Phase 3.2: Path growth origin analysis
+
+`path-growth-analysis` compares unchanged 100/1000-turn baselines using Research Logger paths and final SQLite snapshots. It separates exact/repeated thread signatures, shared-word fanout, connection distributions, path concentration, amplification, frequency/latency correlations, and review-only top path producers. Exact duplicate signatures and different experiences sharing a word are never conflated. Historical storage snapshots unavailable in existing metadata are reported as unavailable.
+
+## Phase 3.3: Repeated Experience storage analysis
+
+`repeated-experience-analysis` separates exact thread-signature repetition, same-word/different-context storage, saved-state equivalence, reinforcement multiplicity, repeat path contribution, and high-fanout composition. Its first-instance-only result is explicitly `OFFLINE_TOPOLOGY_COUNTERFACTUAL`, not a Recall replay or evidence that deduplication preserves quality. Unknown event provenance is not inferred from final snapshots.
+
+## Phase 3.4: Experience Thread storage identity
+
+`storage-identity-analysis` compares word-set, source-text, origin, temporal, and strength/state identity levels without adopting any model. Expected-target annotations are an evaluation overlay only. Every model estimate is marked `OFFLINE_IDENTITY_COUNTERFACTUAL`; timestamp-driven uniqueness is flagged separately from meaningful Experience distinction.

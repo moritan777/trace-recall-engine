@@ -42,3 +42,49 @@ Every manual overlay row declares `benchmark_responsibility` as
 Stable-fact rows are excluded from the associative SHOULD_RECALL denominator and
 reported separately as `stable_fact_coverage_observation`; this is evaluation
 metadata and does not implement a Stable Fact Store.
+
+Long-horizon 100-vs-1000 baseline comparison and representative annotation-review
+queue generation are documented in `long_horizon/README.md`. This consumes
+Research Logger schema v2 and optional DB snapshots without changing runtime.
+
+Activation candidate/path/frequency/redundancy pressure decomposition is
+documented in `gate_pressure/README.md`. It reuses the same captured baseline
+logs and does not add runtime instrumentation or change Gate behavior.
+
+## Recall composition boundary analysis
+
+Pass `--composition-analysis-json PATH` to `governance-eval` to emit per-target
+booleans for activation, activation Gate passage, contributing-group selection,
+target group inclusion, pre-fatigue admission, fatigue suppression, and Working
+Memory entry. The report gives Activation, Group Inclusion, Pre-Fatigue
+Admission, and Final Working-Memory Recall rates separately. Consequently a
+selected target suppressed by the existing fatigue policy is classified as
+`RECALL_SUCCEEDED` / `GOVERNANCE_SUPPRESSED`, rather than as an activation or
+composition failure. `expected_recall_internally` and the optional annotation
+field `expected_mention_externally` keep benchmark recall and conversational
+mention expectations distinct.
+
+The same artifact reports candidate/selected group counts, group score, direct,
+person/name and generic-word contribution metadata, distinct source threads,
+and pairwise group overlap. It also compares `BASELINE`, `DIRECT_MATCH_CAP`,
+`GROUP_DIVERSITY`, and `GENERIC_WORD_DOWNWEIGHT` using only captured candidate
+groups. These re-orderings and their recovery, leakage, unexpected recall,
+group-count, Working-Memory-size, and counterexample metrics are offline replay;
+they are not connected to production Activation, Gate, fatigue, reinforcement,
+or Connection Weight.
+
+The one recommended next step is: **increase the dataset**. The strategy table
+must cover more than the known Turn 11/97 competition and Turn 29 fatigue cases
+before any composition strategy can be considered for production research.
+
+## Path growth origin analysis
+
+The Phase 3.2 command and integrity rules are documented in [`path_growth/README.md`](path_growth/README.md). It diagnoses storage growth, connection fanout, and repeated paths without changing Production recall.
+
+## Repeated Experience storage analysis
+
+The Phase 3.3 command and integrity boundary are documented in [`repeated_experience/README.md`](repeated_experience/README.md). The analysis keeps structural identity, state equivalence, and recall utility separate and never mutates Production storage.
+
+## Experience Thread storage identity
+
+The Phase 3.4 command, identity levels, counterfactual boundary, and three identity principles are documented in [`storage_identity/README.md`](storage_identity/README.md). No candidate model is connected to Production storage.
