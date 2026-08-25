@@ -22,7 +22,7 @@ def create_extractor(args: Any, chat_client: Callable[..., str] | None = None, n
             getattr(args, "base_url", ""),
             getattr(args, "api_key", ""),
             extractor_model,
-            getattr(args, "timeout", 12.0),
+            getattr(args, "extractor_timeout", None) or getattr(args, "timeout", 12.0),
             debug=getattr(args, "debug_extractor", False),
             chat_client=chat_client,
             normalize_base_url=normalize_base_url,
