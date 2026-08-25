@@ -1,5 +1,43 @@
 # Evaluation
 
+## Conditional composition feature analysis
+
+The offline `composition-feature-analysis` command tests target-blind candidate
+pool features against `GROUP_DIVERSITY` recovery and regression. Feature inputs
+exclude targets, labels, ranks, scenario IDs, and coverage tags; rank and family
+metadata are interpretation-only cross-checks. It scans observed thresholds and
+at most two features rather than fitting an ML model.
+
+With 30 in-sample fixtures, results are overfit-prone diagnostics:
+`GROUP_DIVERSITY` is not a production improvement, recovery is not necessarily
+safe improvement, and an offline separation signal is not production policy.
+
+`composition-validation` applies the Phase 2.9 `generic_ratio` threshold
+unchanged to independent fixtures. Frozen-rule metrics are kept separate from a
+validation-only exploratory threshold scan, and feature direction/rank-band
+stability is reported across both datasets.
+
+## Long-horizon baseline validation
+
+`baseline-scale-validation` compares 100- and 1000-turn Research Logger schema
+v2 observations using the same metric implementation. It reports recall
+quality, candidate suppression/root stage, frequency-to-admission relationships,
+fatigue/re-entry, activation diffusion, database growth, and turn-time
+distribution. Every comparable quality metric retains raw and relative deltas;
+the `STABLE`/`IMPROVED`/`DEGRADED` label is a zero-tolerance sign description,
+not a newly tuned threshold.
+
+## Activation Gate pressure
+
+`gate-pressure-analysis` decomposes candidate sources, depth, path multiplicity,
+frequency, score buckets, redundancy, suppression reasons, ask-level pressure,
+and observational correlations before Working Memory. It counts each candidate
+once at the Gate boundary; downstream rejection events are not treated as new
+candidates. Unknown suppression semantics remain `UNCLASSIFIED`.
+
+Only existing recall/total timings are used. Missing per-stage timing is marked
+unavailable, and correlations are never interpreted as causal.
+
 The evaluation framework executes reproducible conversation scenarios and measures how traces propagate through the recall pipeline.
 
 Rather than evaluating only the final LLM response, the framework can evaluate each stage independently:
