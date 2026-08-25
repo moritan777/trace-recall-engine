@@ -7,7 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from trace_recall.governance_capture import (  # noqa: E402
-    build_activation_path_analyses, build_failure_audits, capture_record, convert_research_records, evaluate_governance, load_annotations,
+    build_activation_path_analyses, build_failure_audits, build_recall_composition_analysis,
+    capture_record, convert_research_records, evaluate_governance, load_annotations,
 )
 
 
@@ -112,6 +113,19 @@ class GovernanceCaptureTests(unittest.TestCase):
         self.assertEqual(result["expectation_denominators"], {"SHOULD_RECALL": 1})
         self.assertEqual(result["associative_should_recall_hit_rate"], 1.0)
         self.assertEqual(result["stable_fact_coverage_observation"], {"hits": 0, "total": 1, "rate": 0.0})
+
+    def test_composition_analysis_separates_fatigue_from_selection_failure(self):
+        row = research(29)
+        row["recall"].update({
+            "activated_words": ["memory"], "selected_words": [],
+            "fatigue_suppressed_words": [{"word": "memory", "suppressed_by_fatigue": True}],
+        })
+        row["working_memory"]["selected_thread_groups"] = [{"canonical_key": "g1", "words": ["memory"], "member_thread_ids": ["t1"]}]
+        captured = convert_research_records([row], {29: {"expectation": "SHOULD_RECALL", "words": ["memory"], "benchmark_responsibility": "ASSOCIATIVE_RECALL_EXPECTED"}})
+        target = build_recall_composition_analysis(captured)["targets"][0]
+        self.assertTrue(target["admitted_before_fatigue"])
+        self.assertTrue(target["suppressed_by_fatigue"])
+        self.assertEqual((target["internal_outcome"], target["external_outcome"]), ("RECALL_SUCCEEDED", "GOVERNANCE_SUPPRESSED"))
 
 
 if __name__ == "__main__":

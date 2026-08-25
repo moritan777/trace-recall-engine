@@ -1,5 +1,22 @@
 # Future Research
 
+## Conditional composition remains offline
+
+Target-blind feature separation can motivate dataset expansion or a later
+offline experiment, but not a runtime switch. `GROUP_DIVERSITY` does not equal
+production improvement, recovery does not equal safe improvement, and an
+offline separation signal does not equal production policy. Out-of-sample
+evidence and leakage/Working-Memory safety review remain prerequisites.
+
+Out-of-sample validation must freeze exploration rules before reading validation
+outcomes. Any threshold fitted to validation data is exploratory only and cannot
+support production adoption.
+
+Long-horizon validation precedes further recall research. If the unchanged
+baseline degrades at 1000 turns, only the worst observed subsystem should be
+studied next; the evaluation must not automatically tune Activation, Gate,
+fatigue, reinforcement, connections, or Working Memory.
+
 The current architecture has completed its initial storage and long-scale recall validation. Future work now focuses on the extraction boundary and on later integration-quality evaluation.
 
 Research updates are published on

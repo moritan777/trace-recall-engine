@@ -13,7 +13,9 @@ from trace_recall.governance import (  # noqa: E402
     AdmissionAction, AdmissionDecision, ConflictState, RecallExpectation,
     RecallOutcome, evaluate_expectations, parse_expectation,
 )
-from trace_recall.offline import compare_lateral_inhibition  # noqa: E402
+from trace_recall.offline import (  # noqa: E402
+    compare_lateral_inhibition, group_competition_analysis, replay_composition_strategies,
+)
 
 
 class FakeStore:
@@ -97,6 +99,20 @@ class RecallGovernanceTests(unittest.TestCase):
         self.assertEqual(result["selected"], ["strong"])
         self.assertEqual(result["unexpected_hit_reduction"], 1)
         self.assertEqual(result["counterexample_count"], 0)
+
+    def test_offline_composition_strategies_report_tradeoffs(self):
+        groups = [
+            {"canonical_key": "direct-a", "group_score": 3, "words": ["query", "noise"], "direct_words": ["query"], "member_thread_ids": ["same"]},
+            {"canonical_key": "direct-b", "group_score": 2, "words": ["query", "leak"], "direct_words": ["query"], "member_thread_ids": ["same"]},
+            {"canonical_key": "memory", "group_score": 1, "words": ["target"], "member_thread_ids": ["different"]},
+        ]
+        result = replay_composition_strategies(groups, {"target": "SHOULD_RECALL", "leak": "SHOULD_NOT_RECALL"}, 2)
+        self.assertEqual(result["BASELINE"]["associative_target_recovery"], 0)
+        self.assertEqual(result["DIRECT_MATCH_CAP"]["associative_target_recovery"], 1)
+        self.assertEqual(result["GROUP_DIVERSITY"]["associative_target_recovery"], 1)
+        competition = group_competition_analysis(groups, {"target"}, {"direct-a", "direct-b"})
+        self.assertEqual(competition["candidate_groups_considered"], 3)
+        self.assertEqual(competition["selected_group_count"], 2)
 
 
 if __name__ == "__main__":
