@@ -1,5 +1,26 @@
 # Future Research
 
+## Conditional composition remains offline
+
+Target-blind feature separation can motivate dataset expansion or a later
+offline experiment, but not a runtime switch. `GROUP_DIVERSITY` does not equal
+production improvement, recovery does not equal safe improvement, and an
+offline separation signal does not equal production policy. Out-of-sample
+evidence and leakage/Working-Memory safety review remain prerequisites.
+
+Out-of-sample validation must freeze exploration rules before reading validation
+outcomes. Any threshold fitted to validation data is exploratory only and cannot
+support production adoption.
+
+Long-horizon validation precedes further recall research. If the unchanged
+baseline degrades at 1000 turns, only the worst observed subsystem should be
+studied next; the evaluation must not automatically tune Activation, Gate,
+fatigue, reinforcement, connections, or Working Memory.
+
+Gate-pressure diagnosis may identify path, frequency, redundancy, or capacity
+pressure, but Phase 3.1 does not prune candidates, tune thresholds, or alter
+connections. Any follow-up must study exactly one observed subsystem first.
+
 The current architecture has completed its initial storage and long-scale recall validation. Future work now focuses on the extraction boundary and on later integration-quality evaluation.
 
 Research updates are published on
@@ -140,3 +161,19 @@ Only structurally generated `mixed-script` candidates may be promoted. Terminal-
 ## Governance integration boundary
 
 A generic admission hook now accepts a candidate plus opaque context metadata and returns `ALLOW` or `SUPPRESS` with a reason. Future AIKanojyo research may supply Relationship, Mood, Boundary, or Privacy decisions at this boundary, but none of those semantics belongs to or is currently implemented by Trace Recall Engine. The next integration experiment should therefore validate one external policy adapter against stage diagnostics before adding any further engine behavior.
+
+## Phase 3.2 boundary
+
+Path-growth diagnostics are observational. High fanout, repeated signatures, and path concentration are not automatic pruning candidates. Any future path traversal research must preserve Production Activation, Gate, Selection, Fatigue, Reinforcement, Connection Weight, and Working Memory behavior until separately evaluated.
+
+## Phase 3.3 boundary
+
+Repeated storage and state reinforcement can be observed together without declaring either a bug. Exact structural duplicates may retain different timestamps, strength, frequency, source, or participant origin. Future storage-identity research must first define which saved state is semantically required; Phase 3.3 does not implement deduplication or change Production storage/Recall behavior.
+
+## Phase 3.4 identity principles
+
+Same word set is not necessarily the same Experience. The same Experience is not necessarily the same state. Repeating one Experience does not prove that multiple Experiences exist. Current `date`/`created_at` values are generated from storage time, so using them as identity can merely make every Thread unique. Any future identity/state work must resolve event provenance before changing count-mode instance storage.
+
+## Phase 3.5 metadata boundary
+
+Description Identity, Occurrence Identity, Observation Identity, and Mutable Repetition State are separate concepts. The fixture turn can identify an observation but cannot establish whether two observations describe one event or distinct events. Any future prototype must preserve upstream provenance explicitly and must not use storage timestamps or mutable frequency/strength as event identity proxies.
