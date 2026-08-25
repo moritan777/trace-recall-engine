@@ -1,0 +1,4 @@
+{"turn": 5, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["fatigue_candidate"]}
+{"turn": 7, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["topic_transition"]}
+{"turn": 8, "expectation": "SHOULD_RECALL", "words": ["チーズケーキ"], "coverage": ["explicit_topic_reentry"]}
+{"turn": 9, "expectation": "SHOULD_NOT_RECALL", "words": ["チーズケーキ"], "coverage": ["pseudo_reentry"]}

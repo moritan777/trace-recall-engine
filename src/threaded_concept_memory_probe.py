@@ -69,7 +69,8 @@ from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
-    comparison_markdown, convert_research_records, evaluate_governance,
+    build_failure_audits, comparison_markdown, convert_research_records, evaluate_governance,
+    failure_audit_markdown,
     load_annotations, read_jsonl as read_governance_jsonl,
     write_jsonl as write_governance_jsonl,
 )
@@ -2757,7 +2758,8 @@ def cmd_capture_governance(args: argparse.Namespace) -> int:
 
 
 def cmd_governance_eval(args: argparse.Namespace) -> int:
-    captured = evaluate_governance(read_governance_jsonl(Path(args.scenario_file)))
+    scenario_rows = read_governance_jsonl(Path(args.scenario_file))
+    captured = evaluate_governance(scenario_rows)
     results = {"100-turn captured conversation": captured}
     if args.artificial_scenario_file:
         results = {
@@ -2772,6 +2774,12 @@ def cmd_governance_eval(args: argparse.Namespace) -> int:
         for name, result in results.items():
             lines.extend([f"## {name}", "", f"- Frequency distribution: `{json.dumps(result['frequency_distribution'], sort_keys=True)}`", f"- Connection-path usage: {result['connection_path_usage']}", ""])
         write_text(Path(args.frequency_report_md), "\n".join(lines))
+    if args.failure_audit_json or args.failure_audit_md:
+        audits = build_failure_audits(scenario_rows, args.gate_min_word_score)
+        if args.failure_audit_json:
+            write_text(Path(args.failure_audit_json), json.dumps(audits, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        if args.failure_audit_md:
+            write_text(Path(args.failure_audit_md), failure_audit_markdown(audits))
     print(f"[Governance Eval] output_json={args.output_json} report_md={args.report_md}")
     return 0
 
@@ -2932,7 +2940,8 @@ def run_eval_turn(
     prompt = build_response_prompt(user_text, activation, include_trace=args.response_include_trace, trace_limit=args.response_trace_limit, gated=gated, prompt_view=args.prompt_view, origin_order=args.origin_order)
     recall_ms = (time.perf_counter() - recall_start) * 1000.0
     response_text = ""
-    response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False)
+    response_turns = set(getattr(args, "response_turn", []) or [])
+    response_skipped = mode == "ask_no_response" or getattr(args, "no_response", False) or (bool(response_turns) and turn not in response_turns)
     llm_response_ms = 0.0
     if mode == "ask" and not response_skipped:
         if gate is not None:
@@ -3057,6 +3066,11 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "response_used_unexpected_count": metrics.get("response_used_unexpected_count", 0),
             "precision_like": metrics.get("recall_precision_like", 0.0),
             "recall_efficiency": metrics.get("recall_efficiency", 0.0),
+        },
+        "governance_observation_config": {
+            "gate_min_word_score": float(getattr(args, "gate_min_word_score", 0.05)),
+            "fatigue_recent_turns": int(getattr(args, "fatigue_recent_turns", 10)),
+            "fatigue_threshold": int(getattr(args, "fatigue_threshold", 3)),
         },
         "timing": event.get("timing", {}),
     }
@@ -3933,6 +3947,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--research-log-dir", default="", help="Write one prompt/response research Markdown file per ask turn. May contain private conversation content.")
     p_eval.add_argument("--no-reinforce", action="store_true")
     p_eval.add_argument("--no-response", action="store_true")
+    p_eval.add_argument("--response-turn", action="append", type=int, help="Generate a response only for this turn (repeatable); evaluation-runner control only.")
     p_eval.set_defaults(func=cmd_eval)
 
     p_capture = sub.add_parser("capture-governance", help="Convert Research Logger schema v2 JSONL to offline governance observations.")
@@ -3947,6 +3962,9 @@ def make_parser() -> argparse.ArgumentParser:
     p_governance.add_argument("--output-json", required=True)
     p_governance.add_argument("--report-md", required=True)
     p_governance.add_argument("--frequency-report-md", default="")
+    p_governance.add_argument("--failure-audit-json", default="")
+    p_governance.add_argument("--failure-audit-md", default="")
+    p_governance.add_argument("--gate-min-word-score", type=float, default=0.05, help="Recorded runtime threshold used only to calculate audit score margins.")
     p_governance.set_defaults(func=cmd_governance_eval)
 
     p_sensitivity = sub.add_parser("sensitivity")

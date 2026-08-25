@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from trace_recall.governance_capture import (  # noqa: E402
-    capture_record, convert_research_records, evaluate_governance, load_annotations,
+    build_failure_audits, capture_record, convert_research_records, evaluate_governance, load_annotations,
 )
 
 
@@ -49,6 +49,43 @@ class GovernanceCaptureTests(unittest.TestCase):
         captured = convert_research_records([research()], {2: {"expectation": "SHOULD_RECALL", "words": ["memory"]}})[0]
         artificial = {"observed": captured["observed"], "expectation": "SHOULD_RECALL", "words": ["memory"]}
         self.assertEqual(evaluate_governance([captured])["should_recall_hit_rate"], evaluate_governance([artificial])["should_recall_hit_rate"])
+
+    def test_candidate_propagation_is_not_three_turn_failures(self):
+        row = research()
+        row["recall"]["selected_words"] = []
+        row["recall"]["stage_diagnostics"] = [
+            {"stage": "RAW_ACTIVATION", "identifier": "memory", "accepted": True},
+            {"stage": "ACTIVATION_GATE", "identifier": "memory", "accepted": False},
+            {"stage": "RECALL_SELECTION", "identifier": "memory", "accepted": False},
+            {"stage": "WORKING_MEMORY", "identifier": "memory", "accepted": False},
+        ]
+        result = evaluate_governance(convert_research_records([row], {2: {"expectation": "SHOULD_RECALL", "words": ["memory"]}}))
+        self.assertEqual(result["candidate_observations_by_stage"], {"ACTIVATION_GATE": 1, "RAW_ACTIVATION": 1, "RECALL_SELECTION": 1, "WORKING_MEMORY": 1})
+        self.assertEqual(result["candidate_suppressions_by_stage"], {"ACTIVATION_GATE": 1})
+        self.assertEqual(result["turn_level_root_cause_failures"], {"ACTIVATION_GATE": 1})
+
+    def test_unobserved_response_does_not_claim_must_not_speak_success(self):
+        row = research()
+        row["response"] = {"enabled": False, "skipped": True, "text": ""}
+        result = evaluate_governance(convert_research_records([row], {2: {"expectation": "MUST_NOT_SPEAK", "words": ["secret"]}}))
+        self.assertEqual(result["annotation_counts"], {"MUST_NOT_SPEAK": 1})
+        self.assertNotIn("MUST_NOT_SPEAK", result["expectation_denominators"])
+        self.assertIsNone(result["must_not_speak_leakage"])
+
+    def test_failure_audit_records_gate_margin_and_root_cause(self):
+        row = research()
+        row["recall"]["selected_words"] = []
+        row["recall"]["stage_diagnostics"] = [
+            {"stage": "EXTRACTION", "identifier": "query", "accepted": True},
+            {"stage": "RAW_ACTIVATION", "identifier": "memory", "accepted": True, "output_score": 0.04, "activation_source": "thread:t1", "raw_frequency": 2, "reinforcement_contribution": 0.1},
+            {"stage": "ACTIVATION_GATE", "identifier": "memory", "accepted": False, "reason": "below gate", "input_score": 0.04, "output_score": 0.0},
+            {"stage": "RECALL_SELECTION", "identifier": "memory", "accepted": False, "reason": "below gate"},
+            {"stage": "WORKING_MEMORY", "identifier": "memory", "accepted": False, "reason": "below gate"},
+        ]
+        captured = convert_research_records([row], {2: {"expectation": "SHOULD_RECALL", "words": ["memory"]}})
+        audit = build_failure_audits(captured, 0.05)[0]
+        self.assertAlmostEqual(audit["targets"][0]["score_minus_gate_threshold"], -0.01)
+        self.assertEqual(audit["targets"][0]["classification"], "gate suppression")
 
 
 if __name__ == "__main__":
