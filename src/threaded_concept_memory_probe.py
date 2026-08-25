@@ -72,6 +72,9 @@ from trace_recall.composition_features import analyze_composition_features, comp
 from trace_recall.composition_validation import composition_validation_markdown, validate_composition_signal
 from trace_recall.long_horizon import compare_long_horizon, long_horizon_markdown, select_annotation_turns, summarize_long_horizon
 from trace_recall.gate_pressure import analyze_gate_pressure, compare_gate_pressure, gate_pressure_markdown, select_pressure_review_turns
+from trace_recall.path_growth import analyze_path_origin, compare_path_origin, path_growth_markdown, select_path_review_queue
+from trace_recall.repeated_experience import analyze_repeated_experience, compare_repeated_experience, repeated_experience_markdown, select_repetition_review_queue
+from trace_recall.storage_identity import analyze_storage_identity, compare_storage_identity, select_storage_identity_review_queue, storage_identity_markdown
 from trace_recall.governance import AdmissionAction, AdmissionHook, classify_outcome
 from trace_recall.governance_capture import (
     activation_path_markdown, build_activation_path_analyses, build_failure_audits,
@@ -2821,6 +2824,45 @@ def cmd_gate_pressure_analysis(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_path_growth_analysis(args: argparse.Namespace) -> int:
+    short = analyze_path_origin(read_governance_jsonl(Path(args.short_research_log)), Path(args.short_db))
+    long = analyze_path_origin(read_governance_jsonl(Path(args.long_research_log)), Path(args.long_db))
+    comparison = compare_path_origin(short, long)
+    result = {"schema_version": 1, "path_growth_100": short, "path_growth_1000": long, "comparison": comparison}
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), path_growth_markdown(short, long, comparison))
+    if args.review_queue:
+        write_governance_jsonl(Path(args.review_queue), select_path_review_queue(long, args.review_limit))
+    print(f"[Path Growth Analysis] 100={short['ask_count']} 1000={long['ask_count']} root={comparison['root_cause']}")
+    return 0
+
+
+def cmd_repeated_experience_analysis(args: argparse.Namespace) -> int:
+    short = analyze_repeated_experience(read_governance_jsonl(Path(args.short_research_log)), Path(args.short_db))
+    long = analyze_repeated_experience(read_governance_jsonl(Path(args.long_research_log)), Path(args.long_db))
+    comparison = compare_repeated_experience(short, long)
+    result = {"schema_version": 1, "repetition_100": short, "repetition_1000": long, "comparison": comparison}
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), repeated_experience_markdown(short, long, comparison))
+    if args.review_queue:
+        write_governance_jsonl(Path(args.review_queue), select_repetition_review_queue(long, args.review_limit))
+    print(f"[Repeated Experience Analysis] 100={short['ask_count']} 1000={long['ask_count']} root={comparison['root_cause']}")
+    return 0
+
+
+def cmd_storage_identity_analysis(args: argparse.Namespace) -> int:
+    short = analyze_storage_identity(read_governance_jsonl(Path(args.short_research_log)), Path(args.short_db))
+    long = analyze_storage_identity(read_governance_jsonl(Path(args.long_research_log)), Path(args.long_db))
+    comparison = compare_storage_identity(short, long)
+    result = {"schema_version": 1, "identity_100": short, "identity_1000": long, "comparison": comparison}
+    write_text(Path(args.output_json), json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    write_text(Path(args.report_md), storage_identity_markdown(short, long, comparison))
+    if args.review_queue:
+        write_governance_jsonl(Path(args.review_queue), select_storage_identity_review_queue(long, args.review_limit))
+    print(f"[Storage Identity Analysis] 100={short['thread_count']} 1000={long['thread_count']} classification={comparison['identity_classification']}")
+    return 0
+
+
 def cmd_governance_eval(args: argparse.Namespace) -> int:
     scenario_rows = read_governance_jsonl(Path(args.scenario_file))
     captured = evaluate_governance(scenario_rows)
@@ -4124,6 +4166,39 @@ def make_parser() -> argparse.ArgumentParser:
     p_pressure.add_argument("--review-queue", default="")
     p_pressure.add_argument("--review-limit", type=int, default=25)
     p_pressure.set_defaults(func=cmd_gate_pressure_analysis)
+
+    p_path = sub.add_parser("path-growth-analysis", help="Diagnose storage, fanout, and repeated-path growth without changing recall.")
+    p_path.add_argument("--short-research-log", required=True)
+    p_path.add_argument("--long-research-log", required=True)
+    p_path.add_argument("--short-db", required=True)
+    p_path.add_argument("--long-db", required=True)
+    p_path.add_argument("--output-json", required=True)
+    p_path.add_argument("--report-md", required=True)
+    p_path.add_argument("--review-queue", default="")
+    p_path.add_argument("--review-limit", type=int, default=20)
+    p_path.set_defaults(func=cmd_path_growth_analysis)
+
+    p_repetition = sub.add_parser("repeated-experience-analysis", help="Diagnose repeated Experience Thread storage without changing Production behavior.")
+    p_repetition.add_argument("--short-research-log", required=True)
+    p_repetition.add_argument("--long-research-log", required=True)
+    p_repetition.add_argument("--short-db", required=True)
+    p_repetition.add_argument("--long-db", required=True)
+    p_repetition.add_argument("--output-json", required=True)
+    p_repetition.add_argument("--report-md", required=True)
+    p_repetition.add_argument("--review-queue", default="")
+    p_repetition.add_argument("--review-limit", type=int, default=20)
+    p_repetition.set_defaults(func=cmd_repeated_experience_analysis)
+
+    p_identity = sub.add_parser("storage-identity-analysis", help="Compare offline Experience Thread identity candidates without changing storage.")
+    p_identity.add_argument("--short-research-log", required=True)
+    p_identity.add_argument("--long-research-log", required=True)
+    p_identity.add_argument("--short-db", required=True)
+    p_identity.add_argument("--long-db", required=True)
+    p_identity.add_argument("--output-json", required=True)
+    p_identity.add_argument("--report-md", required=True)
+    p_identity.add_argument("--review-queue", default="")
+    p_identity.add_argument("--review-limit", type=int, default=20)
+    p_identity.set_defaults(func=cmd_storage_identity_analysis)
 
     p_governance = sub.add_parser("governance-eval", help="Evaluate captured or artificial governance fixtures with one metric implementation.")
     p_governance.add_argument("--scenario-file", required=True)

@@ -76,3 +76,15 @@ or Connection Weight.
 The one recommended next step is: **increase the dataset**. The strategy table
 must cover more than the known Turn 11/97 competition and Turn 29 fatigue cases
 before any composition strategy can be considered for production research.
+
+## Path growth origin analysis
+
+The Phase 3.2 command and integrity rules are documented in [`path_growth/README.md`](path_growth/README.md). It diagnoses storage growth, connection fanout, and repeated paths without changing Production recall.
+
+## Repeated Experience storage analysis
+
+The Phase 3.3 command and integrity boundary are documented in [`repeated_experience/README.md`](repeated_experience/README.md). The analysis keeps structural identity, state equivalence, and recall utility separate and never mutates Production storage.
+
+## Experience Thread storage identity
+
+The Phase 3.4 command, identity levels, counterfactual boundary, and three identity principles are documented in [`storage_identity/README.md`](storage_identity/README.md). No candidate model is connected to Production storage.

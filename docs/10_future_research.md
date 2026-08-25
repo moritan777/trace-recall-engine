@@ -161,3 +161,15 @@ Only structurally generated `mixed-script` candidates may be promoted. Terminal-
 ## Governance integration boundary
 
 A generic admission hook now accepts a candidate plus opaque context metadata and returns `ALLOW` or `SUPPRESS` with a reason. Future AIKanojyo research may supply Relationship, Mood, Boundary, or Privacy decisions at this boundary, but none of those semantics belongs to or is currently implemented by Trace Recall Engine. The next integration experiment should therefore validate one external policy adapter against stage diagnostics before adding any further engine behavior.
+
+## Phase 3.2 boundary
+
+Path-growth diagnostics are observational. High fanout, repeated signatures, and path concentration are not automatic pruning candidates. Any future path traversal research must preserve Production Activation, Gate, Selection, Fatigue, Reinforcement, Connection Weight, and Working Memory behavior until separately evaluated.
+
+## Phase 3.3 boundary
+
+Repeated storage and state reinforcement can be observed together without declaring either a bug. Exact structural duplicates may retain different timestamps, strength, frequency, source, or participant origin. Future storage-identity research must first define which saved state is semantically required; Phase 3.3 does not implement deduplication or change Production storage/Recall behavior.
+
+## Phase 3.4 identity principles
+
+Same word set is not necessarily the same Experience. The same Experience is not necessarily the same state. Repeating one Experience does not prove that multiple Experiences exist. Current `date`/`created_at` values are generated from storage time, so using them as identity can merely make every Thread unique. Any future identity/state work must resolve event provenance before changing count-mode instance storage.
