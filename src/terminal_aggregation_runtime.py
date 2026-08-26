@@ -87,29 +87,42 @@ class TerminalAggregationActivationEngine(probe.ActivationEngine):
                         queue = remaining
 
                 links = self.store.get_links_for_word(node_id)
-                if next_depth == self.max_depth:
-                    terminal_stats.physical_terminal_paths += len(incoming_scores) * len(links)
-                    terminal_stats.distinct_terminal_edges += len(links)
-                    terminal_stats.maximum_edge_multiplicity = max(terminal_stats.maximum_edge_multiplicity, len(incoming_scores))
-
-                incoming_total = sum(incoming_scores)
                 for link in links:
                     thread = self.store.get_thread(link.thread_id)
                     if thread is None:
                         continue
                     effective_strength = self._thread_effective_strength(thread, now)
                     factor = link.weight_in_thread * effective_strength * probe.DEPTH_DECAY.get(next_depth, 0.03)
-                    thread_score = incoming_total * factor
-                    if thread_score <= 0.001:
-                        continue
+
+                    if next_depth == self.max_depth:
+                        # Baseline applies the 0.001 admission threshold to every
+                        # physical path before accumulation. Preserve that exact
+                        # boundary without multiplying every path by the edge
+                        # factor: convert the threshold into incoming-score space.
+                        if factor <= 0:
+                            continue
+                        incoming_cutoff = 0.001 / factor
+                        accepted_scores = [value for value in incoming_scores if value > incoming_cutoff]
+                        if not accepted_scores:
+                            continue
+                        thread_score = sum(accepted_scores) * factor
+                        terminal_stats.physical_terminal_paths += len(accepted_scores)
+                        terminal_stats.distinct_terminal_edges += 1
+                        terminal_stats.maximum_edge_multiplicity = max(terminal_stats.maximum_edge_multiplicity, len(accepted_scores))
+                    else:
+                        thread_score = score * factor
+                        if thread_score <= 0.001:
+                            continue
+                        accepted_scores = [score]
+
                     thread_base_scores[link.thread_id] = thread_base_scores.get(link.thread_id, 0.0) + thread_score
                     thread_matched_words.setdefault(link.thread_id, set()).add(node.word)
                     if node.word in direct_input_word_set:
                         thread_direct_matched_words.setdefault(link.thread_id, set()).add(node.word)
                     probe.add_activated_by(thread_activated_by, link.thread_id, f"word:{node.word}")
                     reason = "word->thread"
-                    if next_depth == self.max_depth and len(incoming_scores) > 1:
-                        reason = f"word->thread terminal-aggregated multiplicity={len(incoming_scores)}"
+                    if next_depth == self.max_depth and len(accepted_scores) > 1:
+                        reason = f"word->thread terminal-aggregated multiplicity={len(accepted_scores)}"
                     record_trace("word", node.word, "thread", link.thread_id, next_depth, thread_score, reason)
                     if next_depth < self.max_depth and thread_score > visited_thread_score.get(link.thread_id, 0.0):
                         visited_thread_score[link.thread_id] = thread_score
