@@ -49,6 +49,7 @@ class TerminalAggregationRuntimeTests(unittest.TestCase):
         self.assertEqual([x.word for x in gate_a.words], [x.word for x in gate_b.words])
         self.assertEqual([x.word for x in gate_a.suppressed_words], [x.word for x in gate_b.suppressed_words])
         self.assertEqual(gate_a.outcome, gate_b.outcome)
+        self.assertEqual(gate_a.topic_reentry_words, gate_b.topic_reentry_words)
 
     def test_runtime_prototype_reduces_terminal_edge_work(self):
         prototype = TerminalAggregationActivationEngine(self.store, half_life_days=10_000, max_depth=3, thread_strength_mode="count")
@@ -59,6 +60,13 @@ class TerminalAggregationRuntimeTests(unittest.TestCase):
         self.assertGreater(stats.distinct_terminal_edges, 0)
         self.assertGreaterEqual(stats.physical_terminal_paths, stats.distinct_terminal_edges)
         self.assertGreaterEqual(stats.maximum_edge_multiplicity, 1)
+        self.assertEqual(stats.operations_saved, stats.physical_terminal_paths - stats.distinct_terminal_edges)
+
+    def test_default_engine_is_still_default_off(self):
+        baseline = probe.ActivationEngine(self.store, max_depth=3, thread_strength_mode="count")
+        result = baseline.activate([probe.ExtractedWord("カフェ", 1.0)])
+        self.assertFalse(hasattr(baseline, "last_terminal_aggregation_stats"))
+        self.assertFalse(hasattr(result, "terminal_aggregation_stats"))
 
 
 if __name__ == "__main__":
