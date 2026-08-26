@@ -49,6 +49,26 @@ class TerminalAggregationTests(unittest.TestCase):
         self.assertEqual(result["turns"][0]["physical_terminal_path_count"], 2)
         self.assertEqual(result["turns"][0]["distinct_terminal_edge_count"], 1)
 
+    def test_research_record_accepts_string_form_selected_groups(self):
+        records = [{
+            "turn": 10,
+            "recall": {
+                "activation_analysis": {
+                    "paths": [
+                        {"from_type": "word", "from_id": "カフェ", "to_type": "thread", "to_id": "T", "depth": 3, "score": 0.1},
+                    ],
+                    "candidates": ["カフェ"],
+                },
+                "selected_thread_groups": ["カフェ|帰り"],
+                "selected_words": ["カフェ"],
+            },
+        }]
+        result = analyze_research_records(records)
+        row = result["turns"][0]
+        self.assertEqual(row["observed_candidate_order"], ["カフェ"])
+        self.assertEqual(row["observed_selected_thread_groups"], ["カフェ|帰り"])
+        self.assertEqual(row["observed_selected_words"], ["カフェ"])
+
 
 if __name__ == "__main__":
     unittest.main()
