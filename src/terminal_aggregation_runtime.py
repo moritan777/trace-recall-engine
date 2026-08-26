@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -12,6 +14,11 @@ class TerminalAggregationRuntimeStats:
     physical_terminal_paths: int = 0
     distinct_terminal_edges: int = 0
     maximum_edge_multiplicity: int = 0
+    activation_elapsed_ms: float = 0.0
+
+    @property
+    def operations_saved(self) -> int:
+        return self.physical_terminal_paths - self.distinct_terminal_edges
 
     @property
     def aggregation_ratio(self) -> float:
@@ -21,13 +28,20 @@ class TerminalAggregationRuntimeStats:
 
 
 class TerminalAggregationActivationEngine(probe.ActivationEngine):
-    """Opt-in runtime prototype that aggregates only terminal word->thread work."""
+    """Opt-in runtime prototype aggregating only terminal word->thread work.
+
+    Storage, traversal depth, pre-terminal propagation, Gate, Fatigue,
+    Reinforcement, ThreadGroup selection and Working Memory are unchanged.
+    """
+
+    cumulative_stats = TerminalAggregationRuntimeStats()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.last_terminal_aggregation_stats = TerminalAggregationRuntimeStats()
 
     def activate(self, input_words: list[probe.ExtractedWord], top_words: int = 20, top_threads: int = 8) -> probe.ActivationResult:
+        started = time.perf_counter()
         now = probe.now_iso()
         known_words = self.store.get_all_words()
         direct_input_word_set = {probe.normalize_word(w.word) for w in input_words if probe.normalize_word(w.word)}
@@ -46,7 +60,10 @@ class TerminalAggregationActivationEngine(probe.ActivationEngine):
         queue: list[tuple[str, str, float, int]] = []
         visited_word_score: dict[str, float] = {}
         visited_thread_score: dict[str, float] = {}
-        terminal_stats = TerminalAggregationRuntimeStats()
+
+        # Every physical score reaching a terminal word is retained here.  The
+        # invariant outgoing edge factor is applied once per distinct edge.
+        terminal_inputs: dict[str, list[float]] = {}
 
         def record_trace(from_type: str, from_id: str, to_type: str, to_id: str, depth: int, score: float, reason: str) -> None:
             traces.append(probe.ActivationTrace(from_type, from_id, to_type, to_id, depth, score, reason))
@@ -74,57 +91,25 @@ class TerminalAggregationActivationEngine(probe.ActivationEngine):
                 if node is None:
                     continue
 
-                incoming_scores = [score]
                 if next_depth == self.max_depth:
-                    remaining: list[tuple[str, str, float, int]] = []
-                    for queued in queue:
-                        q_type, q_id, q_score, q_depth = queued
-                        if q_type == "word" and q_id == node_id and q_depth == depth:
-                            incoming_scores.append(q_score)
-                        else:
-                            remaining.append(queued)
-                    if len(incoming_scores) > 1:
-                        queue = remaining
+                    terminal_inputs.setdefault(node_id, []).append(score)
+                    continue
 
-                links = self.store.get_links_for_word(node_id)
-                for link in links:
+                for link in self.store.get_links_for_word(node_id):
                     thread = self.store.get_thread(link.thread_id)
                     if thread is None:
                         continue
                     effective_strength = self._thread_effective_strength(thread, now)
-                    factor = link.weight_in_thread * effective_strength * probe.DEPTH_DECAY.get(next_depth, 0.03)
-
-                    if next_depth == self.max_depth:
-                        # Baseline applies the 0.001 admission threshold to every
-                        # physical path before accumulation. Preserve that exact
-                        # boundary without multiplying every path by the edge
-                        # factor: convert the threshold into incoming-score space.
-                        if factor <= 0:
-                            continue
-                        incoming_cutoff = 0.001 / factor
-                        accepted_scores = [value for value in incoming_scores if value > incoming_cutoff]
-                        if not accepted_scores:
-                            continue
-                        thread_score = sum(accepted_scores) * factor
-                        terminal_stats.physical_terminal_paths += len(accepted_scores)
-                        terminal_stats.distinct_terminal_edges += 1
-                        terminal_stats.maximum_edge_multiplicity = max(terminal_stats.maximum_edge_multiplicity, len(accepted_scores))
-                    else:
-                        thread_score = score * factor
-                        if thread_score <= 0.001:
-                            continue
-                        accepted_scores = [score]
-
+                    thread_score = score * link.weight_in_thread * effective_strength * probe.DEPTH_DECAY.get(next_depth, 0.03)
+                    if thread_score <= 0.001:
+                        continue
                     thread_base_scores[link.thread_id] = thread_base_scores.get(link.thread_id, 0.0) + thread_score
                     thread_matched_words.setdefault(link.thread_id, set()).add(node.word)
                     if node.word in direct_input_word_set:
                         thread_direct_matched_words.setdefault(link.thread_id, set()).add(node.word)
                     probe.add_activated_by(thread_activated_by, link.thread_id, f"word:{node.word}")
-                    reason = "word->thread"
-                    if next_depth == self.max_depth and len(accepted_scores) > 1:
-                        reason = f"word->thread terminal-aggregated multiplicity={len(accepted_scores)}"
-                    record_trace("word", node.word, "thread", link.thread_id, next_depth, thread_score, reason)
-                    if next_depth < self.max_depth and thread_score > visited_thread_score.get(link.thread_id, 0.0):
+                    record_trace("word", node.word, "thread", link.thread_id, next_depth, thread_score, "word->thread")
+                    if thread_score > visited_thread_score.get(link.thread_id, 0.0):
                         visited_thread_score[link.thread_id] = thread_score
                         queue.append(("thread", link.thread_id, thread_score, next_depth))
 
@@ -142,6 +127,35 @@ class TerminalAggregationActivationEngine(probe.ActivationEngine):
                     if word_score > visited_word_score.get(node.word_id, 0.0):
                         visited_word_score[node.word_id] = word_score
                         queue.append(("word", node.word_id, word_score, next_depth))
+
+        terminal_stats = TerminalAggregationRuntimeStats()
+        terminal_decay = probe.DEPTH_DECAY.get(self.max_depth, 0.03)
+        for node_id, physical_scores in terminal_inputs.items():
+            node = self.store.get_word_by_id(node_id)
+            if node is None:
+                continue
+            for link in self.store.get_links_for_word(node_id):
+                thread = self.store.get_thread(link.thread_id)
+                if thread is None:
+                    continue
+                factor = link.weight_in_thread * self._thread_effective_strength(thread, now) * terminal_decay
+                if factor <= 0:
+                    continue
+                cutoff = 0.001 / factor
+                accepted_scores = [value for value in physical_scores if value > cutoff]
+                if not accepted_scores:
+                    continue
+                multiplicity = len(accepted_scores)
+                thread_score = math.fsum(accepted_scores) * factor
+                terminal_stats.physical_terminal_paths += multiplicity
+                terminal_stats.distinct_terminal_edges += 1
+                terminal_stats.maximum_edge_multiplicity = max(terminal_stats.maximum_edge_multiplicity, multiplicity)
+                thread_base_scores[link.thread_id] = thread_base_scores.get(link.thread_id, 0.0) + thread_score
+                thread_matched_words.setdefault(link.thread_id, set()).add(node.word)
+                if node.word in direct_input_word_set:
+                    thread_direct_matched_words.setdefault(link.thread_id, set()).add(node.word)
+                probe.add_activated_by(thread_activated_by, link.thread_id, f"word:{node.word}")
+                record_trace("word", node.word, "thread", link.thread_id, self.max_depth, thread_score, f"word->thread terminal-aggregated multiplicity={multiplicity}")
 
         for thread_id, base in thread_base_scores.items():
             direct_count = len(thread_direct_matched_words.get(thread_id, set()))
@@ -171,14 +185,32 @@ class TerminalAggregationActivationEngine(probe.ActivationEngine):
                 probe.add_word_activation(word_scores, word_best_depth, word_threads, word_activated_by, node.word, [thread_id], boost, 2, f"mutual:{thread_id}")
                 record_trace("thread", thread_id, "word", node.word, 2, boost, "mutual-amplification")
 
-        activated_words = [probe.ActivatedWord(word=w, score=s, best_depth=word_best_depth.get(w, 99), thread_ids=sorted(word_threads.get(w, set())), activated_by=word_activated_by.get(w, [])[:6]) for w, s in sorted(word_scores.items(), key=lambda kv: kv[1], reverse=True) if s > 0.001][:top_words]
+        activated_words = [
+            probe.ActivatedWord(word=w, score=s, best_depth=word_best_depth.get(w, 99), thread_ids=sorted(word_threads.get(w, set())), activated_by=word_activated_by.get(w, [])[:6])
+            for w, s in sorted(word_scores.items(), key=lambda kv: kv[1], reverse=True) if s > 0.001
+        ][:top_words]
 
         activated_threads: list[probe.ActivatedThread] = []
         for thread_id, score in sorted(thread_scores.items(), key=lambda kv: kv[1], reverse=True)[:top_threads]:
             thread = self.store.get_thread(thread_id)
             if thread is None:
                 continue
-            activated_threads.append(probe.ActivatedThread(thread_id=thread_id, score=score, base_score=thread_base_scores.get(thread_id, 0.0), common_bonus=thread_common_bonus.get(thread_id, 0.0), words=thread.words, matched_words=sorted(thread_matched_words.get(thread_id, set())), activated_by=thread_activated_by.get(thread_id, [])[:8], date=thread.date, canonical_key=thread.canonical_key, thread_strength=thread.strength, effective_strength=self._thread_effective_strength(thread, now), same_key_thread_count=self.store.count_threads_by_canonical_key(thread.canonical_key), created_by=thread.created_by))
+            activated_threads.append(probe.ActivatedThread(
+                thread_id=thread_id, score=score, base_score=thread_base_scores.get(thread_id, 0.0),
+                common_bonus=thread_common_bonus.get(thread_id, 0.0), words=thread.words,
+                matched_words=sorted(thread_matched_words.get(thread_id, set())),
+                activated_by=thread_activated_by.get(thread_id, [])[:8], date=thread.date,
+                canonical_key=thread.canonical_key, thread_strength=thread.strength,
+                effective_strength=self._thread_effective_strength(thread, now),
+                same_key_thread_count=self.store.count_threads_by_canonical_key(thread.canonical_key),
+                created_by=thread.created_by,
+            ))
 
+        terminal_stats.activation_elapsed_ms = (time.perf_counter() - started) * 1000.0
         self.last_terminal_aggregation_stats = terminal_stats
+        cumulative = type(self).cumulative_stats
+        cumulative.physical_terminal_paths += terminal_stats.physical_terminal_paths
+        cumulative.distinct_terminal_edges += terminal_stats.distinct_terminal_edges
+        cumulative.maximum_edge_multiplicity = max(cumulative.maximum_edge_multiplicity, terminal_stats.maximum_edge_multiplicity)
+        cumulative.activation_elapsed_ms += terminal_stats.activation_elapsed_ms
         return probe.ActivationResult(input_words, activated_words, activated_threads, traces)
