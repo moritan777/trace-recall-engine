@@ -11,6 +11,26 @@ def _path_key(path: dict[str, Any]) -> tuple[str, str]:
     return str(path.get("from_id", "")), str(path.get("to_id", ""))
 
 
+def _candidate_word(value: Any) -> Any:
+    if isinstance(value, dict):
+        return value.get("word")
+    return value
+
+
+def _selected_group_id(value: Any) -> Any:
+    """Normalize captured selected-group observations without inventing schema.
+
+    Research Logger schema v2 has existed in more than one observational shape.
+    Some runs store selected thread groups as mapping objects, while others store
+    already-normalized string identifiers. The offline validator must accept both
+    and preserve the observed representation's identifier rather than assuming a
+    newer object-only schema.
+    """
+    if isinstance(value, dict):
+        return value.get("canonical_key") or value.get("representative_thread_id") or value.get("thread_id")
+    return value
+
+
 def analyze_terminal_paths(
     paths: Iterable[dict[str, Any]],
     *,
@@ -20,7 +40,7 @@ def analyze_terminal_paths(
     """Offline-only arithmetic equivalence analysis for terminal word->thread paths.
 
     This deliberately does not alter traversal, storage, activation, gate, fatigue,
-    thread-group selection, reinforcement, or working memory.  Every physical path
+    thread-group selection, reinforcement, or working memory. Every physical path
     remains represented in ``contributors``; only the arithmetic sum for identical
     terminal (word, thread) edges is compared with the baseline physical-path sum.
     """
@@ -43,8 +63,6 @@ def analyze_terminal_paths(
     for (word, thread_id), contributors in sorted(grouped.items()):
         individual = [float(p.get("score", 0.0)) for p in contributors]
         baseline_sum = sum(individual)
-        # Counterfactual arithmetic: one terminal edge operation after preserving
-        # every incoming contribution/provenance item.
         aggregated_sum = sum(individual)
         baseline_by_thread[thread_id] += baseline_sum
         aggregated_by_thread[thread_id] += aggregated_sum
@@ -114,15 +132,14 @@ def analyze_research_records(
             continue
         row = analyze_terminal_paths(paths, terminal_depth=terminal_depth, numeric_tolerance=numeric_tolerance)
         row["turn"] = record.get("turn")
-        # These are observations copied from the captured Production result.  The
-        # offline arithmetic does not reconstruct or mutate downstream policy.
-        row["observed_candidate_order"] = [x.get("word") for x in activation_analysis.get("candidates", [])]
+        row["observed_candidate_order"] = [
+            _candidate_word(x) for x in activation_analysis.get("candidates", [])
+        ]
         row["observed_selected_thread_groups"] = [
-            x.get("canonical_key") or x.get("representative_thread_id")
-            for x in recall.get("selected_thread_groups", [])
+            _selected_group_id(x) for x in recall.get("selected_thread_groups", [])
         ]
         row["observed_selected_words"] = [
-            x.get("word") if isinstance(x, dict) else x for x in recall.get("selected_words", [])
+            _candidate_word(x) for x in recall.get("selected_words", [])
         ]
         turns.append(row)
 
@@ -135,8 +152,6 @@ def analyze_research_records(
     if not turns:
         judgement = "INSUFFICIENT_DATA"
     elif numeric_ok and provenance_ok:
-        # Full Gate/ThreadGroup/WM replay is intentionally not claimed from trace
-        # arithmetic alone.  This classification is therefore arithmetic-only.
         judgement = "TERMINAL_ARITHMETIC_EQUIVALENT"
     elif numeric_ok:
         judgement = "NUMERICALLY_EQUIVALENT_BUT_SEMANTIC_DIFFERENCE"
