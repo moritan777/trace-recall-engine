@@ -49,8 +49,9 @@ class DiagnosticEvent:
 class DiagnosticRecorder:
     """Optional in-memory recorder; omitting it has no behavioural effect."""
 
-    def __init__(self) -> None:
+    def __init__(self, include_activation_paths: bool = True) -> None:
         self.events: list[DiagnosticEvent] = []
+        self.include_activation_paths = include_activation_paths
 
     def record(self, stage: RecallStage, identifier: str, accepted: bool, reason: str, **values: Any) -> DiagnosticEvent:
         if not reason.strip():
