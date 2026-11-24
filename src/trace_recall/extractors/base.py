@@ -85,7 +85,8 @@ def finalize_extracted_words(
     metadata for a later, separately evaluated storage/Recall migration.
     Policy failures are intentionally propagated to the caller.
     """
-    policy = policy or IdentityWordPolicy()
+    if policy is None:
+        policy = IdentityWordPolicy()
     by_canonical: dict[str, ExtractedWord] = {}
     for item in words:
         surface = normalize_word(item.word)
