@@ -6,8 +6,14 @@ This module preserves the pre-refactor fallback extraction behavior.
 from __future__ import annotations
 
 import re
+import unicodedata
 
 from .base import ExtractedWord, dedupe_extracted_words, normalize_text, normalize_word
+
+# Latin letters including accented forms (Latin-1 Supplement and Latin
+# Extended-A/B, e.g. á é ő ű), excluding the × and ÷ signs. Without these an
+# accented letter acted as a word separator: "házakban" -> "h" + "zakban".
+LATIN_WORD_CHARS = "A-Za-z0-9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F"
 
 
 class FallbackTraceExtractor:
@@ -18,7 +24,8 @@ class FallbackTraceExtractor:
 
 
 def fallback_extract_words(text: str) -> list[ExtractedWord]:
-    text = normalize_text(text)
+    # NFC so a decomposed accent (a + U+0301) is one letter, not a separator.
+    text = normalize_text(unicodedata.normalize("NFC", text))
     known_terms = [
         "チーズケーキ", "コーヒー", "紅茶", "好き",
         "カフェ", "帰り", "食べる", "映画", "ポップコーン",
@@ -36,7 +43,7 @@ def fallback_extract_words(text: str) -> list[ExtractedWord]:
     if "カッター" in text and "カッターナイフ" not in [w.word for w in found]:
         found.append(ExtractedWord("カッターナイフ", 0.9))
 
-    chunks = re.findall(r"[A-Za-z0-9]+|[ぁ-んァ-ン一-龥ー]{2,}", text)
+    chunks = re.findall(rf"[{LATIN_WORD_CHARS}]+|[ぁ-んァ-ン一-龥ー]{{2,}}", text)
     stop = {"です", "ます", "す", "だった", "って", "これ", "それ", "今日", "明日", "昨日", "する", "した", "ある", "いる", "もの", "なもの"}
     for ch in chunks:
         ch = normalize_word(ch)
