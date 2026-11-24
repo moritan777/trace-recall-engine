@@ -1081,13 +1081,14 @@ class ActivationGate:
                     activation_source=",".join(aw.activated_by), raw_frequency=node.seen_count if node else 0,
                     reinforcement_contribution=max(0.0, node.strength - 1.0) if node else 0.0,
                 )
-            for path in activation.traces:
-                self.diagnostics.record(
-                    RecallStage.RAW_ACTIVATION, path.to_id, True, path.reason,
-                    input_score=path.score, output_score=path.score,
-                    activation_source=path.from_id, source_trace=path.from_id,
-                    connection=f"{path.from_type}->{path.to_type}", destination=path.to_id,
-                )
+            if self.diagnostics.include_activation_paths:
+                for path in activation.traces:
+                    self.diagnostics.record(
+                        RecallStage.RAW_ACTIVATION, path.to_id, True, path.reason,
+                        input_score=path.score, output_score=path.score,
+                        activation_source=path.from_id, source_trace=path.from_id,
+                        connection=f"{path.from_type}->{path.to_type}", destination=path.to_id,
+                    )
 
         def fatigue_prompt_for(word: str) -> int:
             if self.store is None:
@@ -1186,8 +1187,17 @@ class ActivationGate:
         gated_threads = self._group_threads(preliminary_threads)
 
         gated_words: list[GatedWord] = []
-        for aw in activation.activated_words:
+        for word_index, aw in enumerate(activation.activated_words):
+            # The current implementation checks the cap before per-word score,
+            # thread-membership, and fatigue checks. Keep that order unchanged.
             if len(gated_words) >= self.max_prompt_words:
+                if self.diagnostics is not None:
+                    for dropped in activation.activated_words[word_index:]:
+                        self.diagnostics.record(
+                            RecallStage.CAP_DROPPED, dropped.word, False,
+                            "max_prompt_words reached before per-word gate/fatigue checks",
+                            input_score=dropped.score, output_score=0.0,
+                        )
                 break
 
             in_selected_thread = any(tid in selected_thread_ids for tid in aw.thread_ids)
@@ -1195,10 +1205,27 @@ class ActivationGate:
 
             if aw.score < self.min_word_score and not is_direct:
                 suppressed_word_names.add(aw.word)
+                if self.diagnostics is not None:
+                    self.diagnostics.record(
+                        RecallStage.POST_SCORE_SELECTION, aw.word, False, "below min_word_score",
+                        input_score=aw.score, output_score=0.0,
+                    )
                 continue
             if not in_selected_thread and not is_direct:
                 suppressed_word_names.add(aw.word)
+                if self.diagnostics is not None:
+                    self.diagnostics.record(
+                        RecallStage.POST_SCORE_SELECTION, aw.word, False, "outside selected threads",
+                        input_score=aw.score, output_score=0.0,
+                    )
                 continue
+
+            if self.diagnostics is not None:
+                self.diagnostics.record(
+                    RecallStage.POST_SCORE_SELECTION, aw.word, True,
+                    "passed word-score and selected-thread checks",
+                    input_score=aw.score, output_score=aw.score,
+                )
 
             fatigue = fatigue_prompt_for(aw.word)
             fatigue_suppressed = fatigue >= self.fatigue_threshold and not is_asked_override(aw.word)
@@ -1207,6 +1234,12 @@ class ActivationGate:
                 reason = "input word / asked override" if fatigue_suppressed else "input word"
             elif fatigue_suppressed:
                 suppressed_word_names.add(aw.word)
+                if self.diagnostics is not None:
+                    self.diagnostics.record(
+                        RecallStage.POST_FATIGUE, aw.word, False, "recently_exposed",
+                        input_score=aw.score, output_score=0.0,
+                        fatigue_contribution=float(fatigue),
+                    )
                 continue
             elif aw.best_depth <= 2:
                 role = "core"
@@ -1215,6 +1248,13 @@ class ActivationGate:
                 role = "support"
                 reason = "multi-hop support"
 
+            if self.diagnostics is not None:
+                self.diagnostics.record(
+                    RecallStage.POST_FATIGUE, aw.word, True,
+                    "passed fatigue policy" if not fatigue_suppressed else "direct input override",
+                    input_score=aw.score, output_score=aw.score,
+                    fatigue_contribution=float(fatigue),
+                )
             gated_words.append(GatedWord(aw.word, aw.score, aw.best_depth, role, reason, fatigue, False))
             visible_word_names.add(aw.word)
 
@@ -2962,8 +3002,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 "- weighted_mode: excluded from current evaluation scope",
                 f"- response_generation: `{eval_response_generation_label(args)}`",
                 "",
-                "| turn | mode | response_skipped | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough | prompt_thread_group_count | wm_user_origin | wm_assistant_origin | response_used_group_count | resp_user_origin | resp_assistant_origin | origin_mixed | recall_efficiency | prompt_word_count |",
-                "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+                "| turn | mode | response_skipped | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough | prompt_thread_group_count | wm_user_origin | wm_assistant_origin | response_used_group_count | resp_user_origin | resp_assistant_origin | origin_mixed | recall_efficiency | recall_efficiency_status | prompt_word_count |",
+                "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|",
             ]
         )
 
@@ -2975,13 +3015,15 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 if getattr(args, "research_log_jsonl", None) or getattr(args, "research_log_dir", None):
                     research_records.append(build_research_log_record(event, args))
                 metrics_rows.append(flatten_eval_metrics(event))
+                row_metrics = dict(metrics)
+                row_metrics["recall_efficiency_display"] = "N/A" if metrics["recall_efficiency"] is None else f"{metrics['recall_efficiency']:.3f}"
                 report_lines.append(
                     "| {turn} | {mode} | {response_skipped} | {expected_hit_count} | {unexpected_hit_count} | {recall_precision_like:.3f} | "
                     "{recall_noise_count} | {fatigue_suppressed_count} | {response_used_expected_count} | "
                     "{response_used_unexpected_count} | {prompt_tokens_rough} | {prompt_thread_group_count} | "
                     "{working_memory_user_origin_group_count} | {working_memory_assistant_origin_group_count} | {response_used_group_count} | "
                     "{response_used_user_origin_group_count} | {response_used_assistant_origin_group_count} | {origin_mixed_group_count} | "
-                    "{recall_efficiency:.3f} | {prompt_word_count} |".format(**metrics)
+                    "{recall_efficiency_display} | {recall_efficiency_status} | {prompt_word_count} |".format(**row_metrics)
                 )
 
         write_jsonl(Path(args.events_jsonl), events)
@@ -3097,10 +3139,15 @@ def run_eval_turn(
 
     turn_start = time.perf_counter()
     recall_start = time.perf_counter()
-    diagnostics = DiagnosticRecorder() if (getattr(args, "research_log_jsonl", "") or getattr(args, "research_log_dir", "")) else None
-    if diagnostics is not None:
-        for word in words:
-            diagnostics.record(RecallStage.EXTRACTION, word.word, True, "extractor output", input_score=word.weight, output_score=word.weight, activation_source=getattr(args, "extractor", ""))
+    # Evaluation diagnostics are collected even when optional Research Logger
+    # files are disabled; the recorder is observational and does not steer recall.
+    diagnostics = DiagnosticRecorder(
+        include_activation_paths=bool(
+            getattr(args, "research_log_jsonl", "") or getattr(args, "research_log_dir", "")
+        )
+    )
+    for word in words:
+        diagnostics.record(RecallStage.EXTRACTION, word.word, True, "extractor output", input_score=word.weight, output_score=word.weight, activation_source=getattr(args, "extractor", ""))
     activation = engine.activate(words, args.top_words, args.top_threads)
     gate = build_gate(args, store, diagnostics)
     gated = gate.gate(activation) if gate is not None else GatedContext([], [], [], "Gate disabled.")
@@ -3142,6 +3189,7 @@ def run_eval_turn(
         prompt=prompt,
         response_text=response_text,
         response_skipped=response_skipped,
+        stage_diagnostics=diagnostics.to_jsonable(),
     )
     return {
         "turn": turn,
@@ -3306,10 +3354,14 @@ def build_research_log_record(event: dict[str, Any], args: argparse.Namespace) -
             "recall_expected_hits": metrics.get("recall_expected_hits", []),
             "recall_unexpected_hits": metrics.get("recall_unexpected_hits", []),
             "working_memory_recall_precision": metrics.get("working_memory_recall_precision", 0.0),
+            "precision_like_scope": metrics.get("recall_precision_like_scope", "working_memory_plus_response"),
             "spoken_expected_hits": metrics.get("spoken_expected_hits", []),
             "spoken_unexpected_hits": metrics.get("spoken_unexpected_hits", []),
             "spoken_suppressed_words": metrics.get("spoken_suppressed_words", []),
-            "recall_efficiency": metrics.get("recall_efficiency", 0.0),
+            "recall_efficiency": metrics.get("recall_efficiency"),
+            "recall_efficiency_status": metrics.get("recall_efficiency_status", "measured"),
+            "stage_counts": metrics.get("stage_counts", {}),
+            "dropped_reason_counts": metrics.get("dropped_reason_counts", {}),
         },
         "governance_observation_config": {
             "gate_min_word_score": float(getattr(args, "gate_min_word_score", 0.05)),
@@ -3360,9 +3412,14 @@ def research_log_markdown(record: dict[str, Any]) -> str:
         f"| Response used expected | {ev.get('response_used_expected_count', 0)} |",
         f"| Response used unexpected | {ev.get('response_used_unexpected_count', 0)} |",
         f"| Precision-like | {float(ev.get('precision_like', 0.0)):.3f} |",
+        f"| Precision-like scope | {ev.get('precision_like_scope', 'working_memory_plus_response')} |",
+        f"| Recall efficiency | {('N/A' if ev.get('recall_efficiency') is None else format(float(ev.get('recall_efficiency')), '.3f'))} |",
+        f"| Recall efficiency status | {ev.get('recall_efficiency_status', 'measured')} |",
         f"| Prompt rough tokens | {record.get('prompt', {}).get('rough_tokens', 0)} |",
         f"| Recall time ms | {float(timing.get('recall_ms', 0.0)):.1f} |",
         f"| LLM response time ms | {float(timing.get('llm_response_ms', 0.0)):.1f} |", "",
+        "## Stage Counts", "", block(ev.get("stage_counts", {})), "",
+        "## Dropped Reasons", "", block(ev.get("dropped_reason_counts", {})), "",
         "## Human Notes", "", "<!-- Add interpretation here. -->", "",
     ]
     return "\n".join(lines)
@@ -3391,6 +3448,7 @@ def evaluate_recall_turn(
     prompt: str,
     response_text: str,
     response_skipped: bool = False,
+    stage_diagnostics: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     gated_word_set = {gw.word for gw in gated.words}
     working_memory_group_count = len(gated.threads)
@@ -3410,6 +3468,28 @@ def evaluate_recall_turn(
     precision_like = (len(expected_hits) / denom) if denom else (1.0 if not unexpected_hits else 0.0)
     wm_denom = len(recall_expected) + len(recall_unexpected)
     wm_precision = len(recall_expected) / wm_denom if wm_denom else 1.0
+    stage_events = stage_diagnostics or []
+    def stage_events_for(stage: str) -> list[dict[str, Any]]:
+        return [event for event in stage_events if event.get("stage") == stage]
+    post_score_events = stage_events_for("POST_SCORE_SELECTION")
+    post_fatigue_events = stage_events_for("POST_FATIGUE")
+    cap_events = stage_events_for("CAP_DROPPED")
+    admission_events = stage_events_for("EXTERNAL_ADMISSION")
+    stage_counts = {
+        "raw_activation": len(activation.activated_words),
+        "post_score_selection": sum(1 for event in post_score_events if event.get("accepted")),
+        "post_fatigue": sum(1 for event in post_fatigue_events if event.get("accepted")),
+        "cap_dropped": len(cap_events),
+        "external_admission_dropped": sum(1 for event in admission_events if not event.get("accepted")),
+        "working_memory": len(gated_word_set),
+    }
+    dropped_reason_counts: dict[str, int] = {}
+    for event in post_score_events + post_fatigue_events + cap_events + admission_events:
+        if event.get("accepted"):
+            continue
+        reason = str(event.get("reason") or "unspecified")
+        dropped_reason_counts[reason] = dropped_reason_counts.get(reason, 0) + 1
+    recall_efficiency = None if response_skipped else ((len(response_used_groups) / working_memory_group_count) if working_memory_group_count else 0.0)
     return {
         "turn": turn,
         "mode": mode,
@@ -3426,6 +3506,7 @@ def evaluate_recall_turn(
         "expected_hit_count": len(expected_hits),
         "unexpected_hit_count": len(unexpected_hits),
         "recall_precision_like": precision_like,
+        "recall_precision_like_scope": "working_memory_only_no_response" if response_skipped else "working_memory_plus_response",
         "legacy_combined_metric": True,
         "recall_expected_hits": recall_expected,
         "recall_unexpected_hits": recall_unexpected,
@@ -3449,7 +3530,10 @@ def evaluate_recall_turn(
         "response_used_user_origin_group_count": sum(1 for th in response_used_threads if th.dominant_created_by == "user"),
         "response_used_assistant_origin_group_count": sum(1 for th in response_used_threads if th.dominant_created_by == "assistant"),
         "origin_mixed_group_count": sum(1 for th in gated.threads if len(th.created_by_counts) > 1),
-        "recall_efficiency": (len(response_used_groups) / working_memory_group_count) if working_memory_group_count else 0.0,
+        "recall_efficiency": recall_efficiency,
+        "recall_efficiency_status": "not_applicable_no_response" if response_skipped else "measured",
+        "stage_counts": stage_counts,
+        "dropped_reason_counts": dropped_reason_counts,
         "working_memory_word_count": working_memory_word_count,
         "response_used_groups": response_used_groups,
         "expected_hits": expected_hits,
@@ -3520,6 +3604,7 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "expected_hit_count": metrics["expected_hit_count"],
         "unexpected_hit_count": metrics["unexpected_hit_count"],
         "recall_precision_like": f"{metrics['recall_precision_like']:.6f}",
+        "recall_precision_like_scope": metrics.get("recall_precision_like_scope", "working_memory_plus_response"),
         "extractor_backend": extraction.get("actual_extractor", "UNKNOWN"),
         "extractor_fallback_used": str(extraction.get("fallback_used", False)).lower(),
         "response_backend": response.get("backend", "skipped"),
@@ -3545,7 +3630,16 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "response_used_user_origin_group_count": metrics["response_used_user_origin_group_count"],
         "response_used_assistant_origin_group_count": metrics["response_used_assistant_origin_group_count"],
         "origin_mixed_group_count": metrics["origin_mixed_group_count"],
-        "recall_efficiency": f"{metrics['recall_efficiency']:.6f}",
+        "recall_efficiency": "N/A" if metrics["recall_efficiency"] is None else f"{metrics['recall_efficiency']:.6f}",
+        "recall_efficiency_status": metrics["recall_efficiency_status"],
+        "raw_activation_count": metrics["stage_counts"]["raw_activation"],
+        "post_score_selection_count": metrics["stage_counts"]["post_score_selection"],
+        "post_fatigue_count": metrics["stage_counts"]["post_fatigue"],
+        "cap_dropped_count": metrics["stage_counts"]["cap_dropped"],
+        "external_admission_dropped_count": metrics["stage_counts"]["external_admission_dropped"],
+        "working_memory_stage_count": metrics["stage_counts"]["working_memory"],
+        "stage_counts": json.dumps(metrics["stage_counts"], ensure_ascii=False, sort_keys=True),
+        "dropped_reason_counts": json.dumps(metrics["dropped_reason_counts"], ensure_ascii=False, sort_keys=True),
         "working_memory_word_count": metrics["working_memory_word_count"],
         "response_used_groups": json.dumps(metrics["response_used_groups"], ensure_ascii=False),
         "prompt_only": json.dumps(metrics["prompt_only"], ensure_ascii=False),
@@ -3578,6 +3672,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "expected_hit_count",
         "unexpected_hit_count",
         "recall_precision_like",
+        "recall_precision_like_scope",
         "extractor_backend", "extractor_fallback_used", "response_backend", "response_fallback_used",
         "recall_expected_hit_count", "recall_unexpected_hit_count", "working_memory_recall_precision",
         "spoken_expected_hit_count", "spoken_unexpected_hit_count", "spoken_suppressed_count",
@@ -3594,6 +3689,15 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "response_used_assistant_origin_group_count",
         "origin_mixed_group_count",
         "recall_efficiency",
+        "recall_efficiency_status",
+        "raw_activation_count",
+        "post_score_selection_count",
+        "post_fatigue_count",
+        "cap_dropped_count",
+        "external_admission_dropped_count",
+        "working_memory_stage_count",
+        "stage_counts",
+        "dropped_reason_counts",
         "working_memory_word_count",
         "response_used_groups",
         "prompt_only",
@@ -3617,7 +3721,12 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
     unexpected = sum(int(r["unexpected_hit_count"]) for r in rows)
     fatigue = sum(int(r["fatigue_suppressed_count"]) for r in rows)
     avg_precision = sum(float(r["recall_precision_like"]) for r in rows) / len(rows)
-    avg_efficiency = sum(float(r["recall_efficiency"]) for r in rows) / len(rows)
+    applicable_efficiency = [
+        float(r["recall_efficiency"]) for r in rows
+        if r.get("recall_efficiency") not in (None, "", "N/A")
+        and r.get("recall_efficiency_status") != "not_applicable_no_response"
+    ]
+    avg_efficiency = sum(applicable_efficiency) / len(applicable_efficiency) if applicable_efficiency else None
     wm_groups = sum(int(r["working_memory_group_count"]) for r in rows)
     response_groups = sum(int(r["response_used_group_count"]) for r in rows)
     wm_words = sum(int(r["working_memory_word_count"]) for r in rows)
@@ -3638,6 +3747,20 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
     spoken_unexpected = sum(int(r["spoken_unexpected_hit_count"]) for r in rows)
     spoken_suppressed = sum(int(r["spoken_suppressed_count"]) for r in rows)
     wm_precision = recall_expected / (recall_expected + recall_unexpected) if recall_expected + recall_unexpected else 1.0
+    dropped_reason_totals: dict[str, int] = {}
+    for row in rows:
+        raw_reasons = row.get("dropped_reason_counts", "{}")
+        try:
+            reason_counts = json.loads(raw_reasons) if isinstance(raw_reasons, str) else raw_reasons
+        except (TypeError, json.JSONDecodeError):
+            reason_counts = {}
+        if isinstance(reason_counts, dict):
+            for reason, count in reason_counts.items():
+                dropped_reason_totals[str(reason)] = dropped_reason_totals.get(str(reason), 0) + int(count)
+    precision_scopes: dict[str, int] = {}
+    for row in rows:
+        scope = str(row.get("recall_precision_like_scope", "unknown"))
+        precision_scopes[scope] = precision_scopes.get(scope, 0) + 1
     return [
         "",
         "## Summary",
@@ -3648,7 +3771,8 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- unexpected_hit_count_total: {unexpected}",
         f"- fatigue_suppressed_count_total: {fatigue}",
         f"- average_recall_precision_like: {avg_precision:.3f}",
-        f"- Legacy combined precision: {avg_precision:.3f}",
+        f"- recall_precision_like_scope_counts: {json.dumps(precision_scopes, ensure_ascii=False, sort_keys=True)}",
+        f"- Legacy precision-like field (scope shown above): {avg_precision:.3f}",
         f"- Working Memory Recall Precision: {wm_precision:.3f}",
         f"- Working Memory unexpected hits: {recall_unexpected}",
         f"- Spoken unexpected hits: {spoken_unexpected}",
@@ -3667,7 +3791,15 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- Average end-to-end ms / p95: {avg('end_to_end_ms'):.1f} / {p95('end_to_end_ms'):.1f}",
         f"- working_memory_group_count_total: {wm_groups}",
         f"- response_used_group_count_total: {response_groups}",
-        f"- average_recall_efficiency: {avg_efficiency:.3f}",
+        f"- average_recall_efficiency: {avg_efficiency:.3f}" if avg_efficiency is not None else "- average_recall_efficiency: N/A (not_applicable_no_response)",
+        f"- recall_efficiency_applicable_turns: {len(applicable_efficiency)}",
+        f"- raw_activation_count_total: {sum(int(r.get('raw_activation_count', 0) or 0) for r in rows)}",
+        f"- post_score_selection_count_total: {sum(int(r.get('post_score_selection_count', 0) or 0) for r in rows)}",
+        f"- post_fatigue_count_total: {sum(int(r.get('post_fatigue_count', 0) or 0) for r in rows)}",
+        f"- cap_dropped_count_total: {sum(int(r.get('cap_dropped_count', 0) or 0) for r in rows)}",
+        f"- external_admission_dropped_count_total: {sum(int(r.get('external_admission_dropped_count', 0) or 0) for r in rows)}",
+        f"- working_memory_stage_count_total: {sum(int(r.get('working_memory_stage_count', 0) or 0) for r in rows)}",
+        f"- dropped_reason_counts_total: {json.dumps(dropped_reason_totals, ensure_ascii=False, sort_keys=True)}",
         f"- working_memory_word_count_total: {wm_words}",
     ]
 

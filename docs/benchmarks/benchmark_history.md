@@ -74,7 +74,7 @@ Input → Word → Thread → Word → Thread
 
 ThreadGroup、Activation Gate、Conversation Fatigueを含めた状態で1000ターン評価を実施。
 
-Promptサイズは増加せず、Recall Precisionも高水準を維持。
+Promptサイズは増加せず、no-response評価におけるWorking Memory候補のprecision-like指標も高水準を維持。最終LLM応答の精度を測定したものではない。
 
 ここで保存方式ではなく、Recall Selectionこそが重要な研究対象であることが明確になった。
 
@@ -92,11 +92,11 @@ Prompt Tokens、ThreadGroup数、Working Memoryサイズはいずれも安定。
 
 ## 10000ターン評価
 
-10000ターン規模でも、ThreadGroup数、Promptサイズ、Recall Precision、Conversation Fatigueはいずれも安定。
+10000ターン規模でも、ThreadGroup数、Promptサイズ、Working Memory候補のprecision-like指標、Conversation Fatigueはいずれも安定。no-response評価のため、最終LLM応答の精度とresponse-aware Recall Efficiencyは評価対象外。
 
 Trace Recall Engineは、Conversation長ではなくWorking Memoryサイズでスケールすることを確認。
 
-この結果により、長期会話を前提としたRecall Engineの基本設計が成立することを確認した。
+この結果により、no-responseの範囲で長期会話を前提としたRecall / Working Memoryの基本設計が安定していることを確認した。最終応答品質の成立を示すものではない。
 
 ↓
 

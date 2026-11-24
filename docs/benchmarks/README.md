@@ -28,7 +28,7 @@ CSV, JSONL, SQLite databases, and sensitivity outputs are local generated artifa
 | 100T | Weighted or Count? | Count was selected as the current Baseline. |
 | 1,000T | Does Count remain usable at longer scale? | Long-term Count behavior remained usable in the public stress scenario. |
 | 3,000T | Does the pipeline scale further? | Working Memory and prompt size remained bounded in the stress scenario. |
-| 10,000T | Does practical-scale use collapse? | Prompt size did not grow with total history; the 10,000T summary reports Recall Precision 0.927, average prompt size 429 tokens, average ThreadGroups 1.78, and 764 fatigue suppressions. |
+| 10,000T | Does practical-scale use collapse? | Prompt size did not grow with total history; the 10,000T no-response summary reports a Working Memory precision-like value of 0.927 (not final response precision), average prompt size 429 tokens, average ThreadGroups 1.78, and 764 fatigue suppressions. |
 
 ## Key Findings
 

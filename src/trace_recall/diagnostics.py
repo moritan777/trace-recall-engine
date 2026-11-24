@@ -10,6 +10,9 @@ from typing import Any
 class RecallStage(str, Enum):
     EXTRACTION = "EXTRACTION"
     RAW_ACTIVATION = "RAW_ACTIVATION"
+    POST_SCORE_SELECTION = "POST_SCORE_SELECTION"
+    POST_FATIGUE = "POST_FATIGUE"
+    CAP_DROPPED = "CAP_DROPPED"
     ACTIVATION_GATE = "ACTIVATION_GATE"
     RECALL_SELECTION = "RECALL_SELECTION"
     EXTERNAL_ADMISSION = "EXTERNAL_ADMISSION"
@@ -46,8 +49,9 @@ class DiagnosticEvent:
 class DiagnosticRecorder:
     """Optional in-memory recorder; omitting it has no behavioural effect."""
 
-    def __init__(self) -> None:
+    def __init__(self, include_activation_paths: bool = True) -> None:
         self.events: list[DiagnosticEvent] = []
+        self.include_activation_paths = include_activation_paths
 
     def record(self, stage: RecallStage, identifier: str, accepted: bool, reason: str, **values: Any) -> DiagnosticEvent:
         if not reason.strip():

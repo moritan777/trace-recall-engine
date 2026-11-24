@@ -120,7 +120,12 @@ Optional research logs can also be generated with `--research-log-jsonl`, `--res
 - prompt_thread_group_count
 - prompt_word_count
 - prompt_tokens_rough
-- recall_efficiency
+- recall_efficiency (response-enabled turns only; `null` / `N/A` when response generation is skipped)
+- recall_efficiency_status (`measured` or `not_applicable_no_response`)
+
+`--no-response` evaluates the selected Working Memory, not what an LLM response actually used. In that mode, `recall_precision_like` is scoped as `working_memory_only_no_response`; it must not be described as final response precision. Response-aware `recall_efficiency` is `null`, not `0.0`, and summary averages exclude non-applicable turns.
+
+Evaluation records also include stage counters for raw activation, post-score selection, post-fatigue, cap-dropped candidates, external-admission drops, and final Working Memory, plus dropped-reason counts. The cap counter follows the current implementation order: the prompt-word cap is checked before per-word score/thread and fatigue checks.
 
 ### Conversation Policy
 
@@ -199,7 +204,7 @@ Across long-term benchmarks:
 - Working Memory remained compact.
 - ThreadGroup count did not grow uncontrollably.
 - Conversation Fatigue continued to suppress repetitive conversation.
-- Count mode maintained high Recall Precision without prompt explosion.
+- Count mode maintained high Working Memory precision-like scores without prompt explosion in the no-response benchmarks; these are not final response-quality measurements.
 
 These observations suggest that the architecture scales with conversation length without requiring proportional prompt growth in the evaluated scenarios.
 
