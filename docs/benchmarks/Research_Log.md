@@ -92,7 +92,7 @@ Conversation Fatigue
 
 Promptサイズは増加せず、
 
-Recall Precisionも高水準を維持。
+no-response評価におけるWorking Memory候補のprecision-like指標も高水準を維持。最終LLM応答の精度を測定したものではない。
 
 ここで保存方式ではなく、
 
@@ -124,7 +124,7 @@ ThreadGroup数
 
 Promptサイズ
 
-Recall Precision
+Working Memory候補のprecision-like指標
 
 Conversation Fatigue
 
@@ -132,7 +132,7 @@ Conversation Fatigue
 
 Trace Recall Engineは、Conversation長ではなくWorking Memoryサイズでスケールすることを確認。
 
-この結果により、長期会話を前提としたRecall Engineの基本設計が成立することを実証した。
+この結果はno-responseの範囲で長期会話におけるRecall / Working Memoryの安定性を示すものであり、最終応答品質の実証ではない。
 
 ↓
 
