@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import threaded_concept_memory_probe as probe
 from trace_recall.diagnostics import DiagnosticRecorder
 from trace_recall.extractors.base import ExtractedWord
+from trace_recall.governance import AdmissionAction, AdmissionDecision
 
 
 class EvaluationDiagnosticsTests(unittest.TestCase):
@@ -46,6 +47,80 @@ class EvaluationDiagnosticsTests(unittest.TestCase):
         summary = probe.build_eval_report_summary([flattened])
         self.assertTrue(
             any("average_recall_efficiency: N/A" in line for line in summary)
+        )
+
+    def test_response_enabled_efficiency_remains_numeric(self):
+        metrics = probe.evaluate_recall_turn(
+            turn=2,
+            mode="ask",
+            expected_words=[],
+            unexpected_words=[],
+            activation=probe.ActivationResult([], [], [], []),
+            gated=probe.GatedContext([], [], [], "empty"),
+            prompt="",
+            response_text="",
+            response_skipped=False,
+        )
+        self.assertEqual(metrics["recall_efficiency"], 0.0)
+        self.assertEqual(metrics["recall_efficiency_status"], "measured")
+
+    def test_external_admission_rejections_are_counted_separately(self):
+        activation = probe.ActivationResult(
+            input_words=[ExtractedWord("alpha", 1.0)],
+            activated_words=[
+                probe.ActivatedWord("alpha", 1.0, 0, ["thread-1"], ["alpha"]),
+            ],
+            activated_threads=[
+                probe.ActivatedThread(
+                    thread_id="thread-1",
+                    score=1.0,
+                    base_score=1.0,
+                    common_bonus=0.0,
+                    words=["alpha"],
+                    matched_words=["alpha"],
+                    activated_by=["alpha"],
+                    date="2026-01-01",
+                    canonical_key="alpha",
+                )
+            ],
+            traces=[],
+        )
+        recorder = DiagnosticRecorder()
+        gate = probe.ActivationGate(
+            max_prompt_words=2,
+            diagnostics=recorder,
+            admission_hook=lambda candidate, context: AdmissionDecision(
+                AdmissionAction.SUPPRESS, "external policy"
+            ),
+        )
+        gated = gate.gate(activation)
+        self.assertEqual(gated.words, [])
+        events = recorder.to_jsonable()
+        admission = [
+            event for event in events
+            if event["stage"] == "EXTERNAL_ADMISSION"
+        ]
+        self.assertEqual(len(admission), 1)
+        self.assertFalse(admission[0]["accepted"])
+        self.assertEqual(admission[0]["reason"], "external policy")
+
+        metrics = probe.evaluate_recall_turn(
+            turn=3,
+            mode="ask_no_response",
+            expected_words=[],
+            unexpected_words=[],
+            activation=activation,
+            gated=gated,
+            prompt="",
+            response_text="",
+            response_skipped=True,
+            stage_diagnostics=events,
+        )
+        self.assertEqual(
+            metrics["stage_counts"]["external_admission_dropped"], 1
+        )
+        self.assertEqual(
+            metrics["dropped_reason_counts"]["external policy"], 1
         )
 
     def test_gate_diagnostics_preserve_cap_before_score_and_fatigue_order(self):
