@@ -1081,13 +1081,14 @@ class ActivationGate:
                     activation_source=",".join(aw.activated_by), raw_frequency=node.seen_count if node else 0,
                     reinforcement_contribution=max(0.0, node.strength - 1.0) if node else 0.0,
                 )
-            for path in activation.traces:
-                self.diagnostics.record(
-                    RecallStage.RAW_ACTIVATION, path.to_id, True, path.reason,
-                    input_score=path.score, output_score=path.score,
-                    activation_source=path.from_id, source_trace=path.from_id,
-                    connection=f"{path.from_type}->{path.to_type}", destination=path.to_id,
-                )
+            if self.diagnostics.include_activation_paths:
+                for path in activation.traces:
+                    self.diagnostics.record(
+                        RecallStage.RAW_ACTIVATION, path.to_id, True, path.reason,
+                        input_score=path.score, output_score=path.score,
+                        activation_source=path.from_id, source_trace=path.from_id,
+                        connection=f"{path.from_type}->{path.to_type}", destination=path.to_id,
+                    )
 
         def fatigue_prompt_for(word: str) -> int:
             if self.store is None:
@@ -3140,7 +3141,11 @@ def run_eval_turn(
     recall_start = time.perf_counter()
     # Evaluation diagnostics are collected even when optional Research Logger
     # files are disabled; the recorder is observational and does not steer recall.
-    diagnostics = DiagnosticRecorder()
+    diagnostics = DiagnosticRecorder(
+        include_activation_paths=bool(
+            getattr(args, "research_log_jsonl", "") or getattr(args, "research_log_dir", "")
+        )
+    )
     for word in words:
         diagnostics.record(RecallStage.EXTRACTION, word.word, True, "extractor output", input_score=word.weight, output_score=word.weight, activation_source=getattr(args, "extractor", ""))
     activation = engine.activate(words, args.top_words, args.top_threads)
