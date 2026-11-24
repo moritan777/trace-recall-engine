@@ -3667,6 +3667,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "expected_hit_count",
         "unexpected_hit_count",
         "recall_precision_like",
+        "recall_precision_like_scope",
         "extractor_backend", "extractor_fallback_used", "response_backend", "response_fallback_used",
         "recall_expected_hit_count", "recall_unexpected_hit_count", "working_memory_recall_precision",
         "spoken_expected_hit_count", "spoken_unexpected_hit_count", "spoken_suppressed_count",
@@ -3741,6 +3742,20 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
     spoken_unexpected = sum(int(r["spoken_unexpected_hit_count"]) for r in rows)
     spoken_suppressed = sum(int(r["spoken_suppressed_count"]) for r in rows)
     wm_precision = recall_expected / (recall_expected + recall_unexpected) if recall_expected + recall_unexpected else 1.0
+    dropped_reason_totals: dict[str, int] = {}
+    for row in rows:
+        raw_reasons = row.get("dropped_reason_counts", "{}")
+        try:
+            reason_counts = json.loads(raw_reasons) if isinstance(raw_reasons, str) else raw_reasons
+        except (TypeError, json.JSONDecodeError):
+            reason_counts = {}
+        if isinstance(reason_counts, dict):
+            for reason, count in reason_counts.items():
+                dropped_reason_totals[str(reason)] = dropped_reason_totals.get(str(reason), 0) + int(count)
+    precision_scopes: dict[str, int] = {}
+    for row in rows:
+        scope = str(row.get("recall_precision_like_scope", "unknown"))
+        precision_scopes[scope] = precision_scopes.get(scope, 0) + 1
     return [
         "",
         "## Summary",
@@ -3751,6 +3766,7 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- unexpected_hit_count_total: {unexpected}",
         f"- fatigue_suppressed_count_total: {fatigue}",
         f"- average_recall_precision_like: {avg_precision:.3f}",
+        f"- recall_precision_like_scope_counts: {json.dumps(precision_scopes, ensure_ascii=False, sort_keys=True)}",
         f"- Legacy combined precision: {avg_precision:.3f}",
         f"- Working Memory Recall Precision: {wm_precision:.3f}",
         f"- Working Memory unexpected hits: {recall_unexpected}",
@@ -3778,6 +3794,7 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- cap_dropped_count_total: {sum(int(r.get('cap_dropped_count', 0) or 0) for r in rows)}",
         f"- external_admission_dropped_count_total: {sum(int(r.get('external_admission_dropped_count', 0) or 0) for r in rows)}",
         f"- working_memory_stage_count_total: {sum(int(r.get('working_memory_stage_count', 0) or 0) for r in rows)}",
+        f"- dropped_reason_counts_total: {json.dumps(dropped_reason_totals, ensure_ascii=False, sort_keys=True)}",
         f"- working_memory_word_count_total: {wm_words}",
     ]
 
