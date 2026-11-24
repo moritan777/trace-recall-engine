@@ -205,6 +205,77 @@ class EvaluationDiagnosticsTests(unittest.TestCase):
             1,
         )
 
+    def _cap_case(self):
+        recorder = DiagnosticRecorder()
+        activation = probe.ActivationResult(
+            input_words=[ExtractedWord("alpha", 1.0), ExtractedWord("beta", 1.0)],
+            activated_words=[
+                probe.ActivatedWord("alpha", 1.0, 0, ["thread-1"], ["alpha"]),
+                probe.ActivatedWord("beta", 0.9, 0, ["thread-1"], ["beta"]),
+            ],
+            activated_threads=[
+                probe.ActivatedThread(
+                    thread_id="thread-1", score=1.0, base_score=1.0, common_bonus=0.0,
+                    words=["alpha", "beta"], matched_words=["alpha", "beta"],
+                    activated_by=["alpha", "beta"], date="2026-01-01", canonical_key="alpha|beta",
+                )
+            ],
+            traces=[],
+        )
+        gate = probe.ActivationGate(
+            max_prompt_threads=2, max_core_words_per_thread=2, max_prompt_words=1,
+            min_thread_score=0.05, min_word_score=0.05, diagnostics=recorder,
+        )
+        gated = gate.gate(activation)
+        return activation, gated, recorder.to_jsonable()
+
+    def test_expected_stage_trace_locates_loss_stage(self):
+        activation, gated, events = self._cap_case()
+        metrics = probe.evaluate_recall_turn(
+            turn=1, mode="ask_no_response",
+            expected_words=["alpha", "beta", "gamma", "delta"], unexpected_words=[],
+            activation=activation, gated=gated, prompt="context: alpha",
+            response_text="", response_skipped=True, stage_diagnostics=events,
+            stored_expected_words={"alpha", "beta", "gamma"},
+        )
+        trace = metrics["expected_stage_trace"]
+        loss = {w: info["loss_stage"] for w, info in trace["per_word"].items()}
+        self.assertEqual(loss, {
+            "alpha": "survived",      # reached prompt; response not measured
+            "beta": "cap",            # activated, dropped by prompt-word cap
+            "gamma": "raw_activation",  # stored but never activated
+            "delta": "stored",        # never stored
+        })
+        self.assertIsNone(trace["per_word"]["alpha"]["stages"]["response"])
+        self.assertFalse(trace["per_word"]["beta"]["stages"]["working_memory"])
+        self.assertEqual(trace["survival_counts"]["raw_activation"], 2)
+        self.assertEqual(trace["measured_counts"]["response"], 0)
+
+    def test_expected_stage_trace_reports_response_when_enabled(self):
+        activation, gated, events = self._cap_case()
+        metrics = probe.evaluate_recall_turn(
+            turn=1, mode="ask", expected_words=["alpha"], unexpected_words=[],
+            activation=activation, gated=gated, prompt="context: alpha",
+            response_text="nothing relevant", response_skipped=False, stage_diagnostics=events,
+        )
+        info = metrics["expected_stage_trace"]["per_word"]["alpha"]
+        self.assertIsNone(info["stages"]["stored"])  # no store lookup given
+        self.assertEqual(info["loss_stage"], "response")
+
+    def test_expected_stage_trace_flows_into_csv_summary(self):
+        activation, gated, events = self._cap_case()
+        metrics = probe.evaluate_recall_turn(
+            turn=1, mode="ask_no_response", expected_words=["alpha", "beta"], unexpected_words=[],
+            activation=activation, gated=gated, prompt="alpha", response_text="",
+            response_skipped=True, stage_diagnostics=events,
+        )
+        row = probe.flatten_eval_metrics({"metrics": metrics})
+        self.assertEqual(row["expected_total"], 2)
+        self.assertEqual(row["expected_survived_cap"], 1)
+        summary = "\n".join(probe.build_eval_report_summary([row]))
+        self.assertIn("## Expected Word Stage Survival", summary)
+        self.assertIn('"cap": 1', summary)
+
 
 if __name__ == "__main__":
     unittest.main()
