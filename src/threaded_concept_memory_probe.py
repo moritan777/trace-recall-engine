@@ -66,6 +66,7 @@ from typing import Any, Optional
 from trace_recall.extractors import ExtractedWord, TraceExtractor, create_extractor, fallback_extract_words
 from trace_recall.extractors.base import clamp, dedupe_extracted_words, finalize_extracted_words, normalize_text, normalize_word, parse_json_object, WordPolicy
 from trace_recall.extractors.base import IdentityWordPolicy, WordPolicyEvent
+from trace_recall.extractors.policies import HungarianWordPolicy
 from dataclasses import asdict as _asdict
 from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
@@ -2840,7 +2841,11 @@ def cmd_oracle_replay(args: argparse.Namespace) -> int:
 def cmd_eval_extractor(args: argparse.Namespace) -> int:
     extractor = create_extractor(args)
     scenarios = load_extractor_scenarios(Path(args.scenario))
-    rows = [evaluate_extractor_scenario(item, extractor, args.extractor) for item in scenarios]
+    eval_word_policy = resolve_word_policy(getattr(args, "word_policy", None))
+    rows = [
+        evaluate_extractor_scenario(item, extractor, args.extractor, word_policy=eval_word_policy)
+        for item in scenarios
+    ]
     write_extractor_eval_csv(Path(args.metrics_csv), rows)
     write_jsonl(Path(args.details_jsonl), rows)
     write_text(Path(args.report_md), build_extractor_eval_report(rows, Path(args.scenario), args.extractor))
@@ -3561,6 +3566,7 @@ def trace_expected_stages(
 
 WORD_POLICIES: dict[str, Any] = {
     "identity": IdentityWordPolicy,
+    "hu": HungarianWordPolicy,
 }
 
 
