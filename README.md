@@ -31,12 +31,14 @@ Development story, motivations, and research background.
 
 ![Trace Recall Engine 10,000-turn benchmark](docs/assets/trace_recall_10000t_benchmark.svg)
 
-The 10,000-turn benchmark suggests that the recall pipeline remains stable at long conversation scale:
+The 10,000-turn **no-response** benchmark suggests that the recall pipeline remains stable at long conversation scale:
 
-- Recall Precision: 0.927
+- Working Memory precision-like value: 0.927 (not final LLM response precision)
 - Avg Prompt Size: 429 tokens
 - Avg ThreadGroups: 1.78
 - Fatigue Suppressed: 764
+
+Because response generation was skipped, response quality and response-aware Recall Efficiency were not evaluated.
 
 See the [benchmark history and evaluation conditions](docs/benchmarks/README.md) for the benchmark sequence, scope, and limitations.
 
