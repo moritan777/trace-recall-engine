@@ -3767,7 +3767,7 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- fatigue_suppressed_count_total: {fatigue}",
         f"- average_recall_precision_like: {avg_precision:.3f}",
         f"- recall_precision_like_scope_counts: {json.dumps(precision_scopes, ensure_ascii=False, sort_keys=True)}",
-        f"- Legacy combined precision: {avg_precision:.3f}",
+        f"- Legacy precision-like field (scope shown above): {avg_precision:.3f}",
         f"- Working Memory Recall Precision: {wm_precision:.3f}",
         f"- Working Memory unexpected hits: {recall_unexpected}",
         f"- Spoken unexpected hits: {spoken_unexpected}",
