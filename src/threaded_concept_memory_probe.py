@@ -3001,8 +3001,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 "- weighted_mode: excluded from current evaluation scope",
                 f"- response_generation: `{eval_response_generation_label(args)}`",
                 "",
-                "| turn | mode | response_skipped | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough | prompt_thread_group_count | wm_user_origin | wm_assistant_origin | response_used_group_count | resp_user_origin | resp_assistant_origin | origin_mixed | recall_efficiency | prompt_word_count |",
-                "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+                "| turn | mode | response_skipped | expected_hit_count | unexpected_hit_count | precision_like | recall_noise_count | fatigue_suppressed_count | response_used_expected_count | response_used_unexpected_count | prompt_tokens_rough | prompt_thread_group_count | wm_user_origin | wm_assistant_origin | response_used_group_count | resp_user_origin | resp_assistant_origin | origin_mixed | recall_efficiency | recall_efficiency_status | prompt_word_count |",
+                "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|",
             ]
         )
 
@@ -3022,7 +3022,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
                     "{response_used_unexpected_count} | {prompt_tokens_rough} | {prompt_thread_group_count} | "
                     "{working_memory_user_origin_group_count} | {working_memory_assistant_origin_group_count} | {response_used_group_count} | "
                     "{response_used_user_origin_group_count} | {response_used_assistant_origin_group_count} | {origin_mixed_group_count} | "
-                    "{recall_efficiency_display} | {prompt_word_count} |".format(**row_metrics)
+                    "{recall_efficiency_display} | {recall_efficiency_status} | {prompt_word_count} |".format(**row_metrics)
                 )
 
         write_jsonl(Path(args.events_jsonl), events)
