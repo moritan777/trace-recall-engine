@@ -2393,7 +2393,12 @@ def _oracle_evaluation(expected_words: set[str], final_words: list[str], diagnos
         results.append({"word": word, "status": status})
     return {"oracle_result": results, **counts}
 
-def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor, extractor_name: str) -> dict[str, Any]:
+def evaluate_extractor_scenario(
+    item: dict[str, Any],
+    extractor: TraceExtractor,
+    extractor_name: str,
+    word_policy: WordPolicy | None = None,
+) -> dict[str, Any]:
     started = time.perf_counter()
     raw_extracted = extractor.extract(str(item["input"]))
     participant_normalized = normalize_participant_references(
@@ -2401,7 +2406,7 @@ def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor,
         str(item.get("role", "user")),
         raw_extracted,
     )
-    extracted = finalize_extracted_words(participant_normalized)
+    extracted = finalize_extracted_words(participant_normalized, policy=word_policy)
     elapsed_ms = (time.perf_counter() - started) * 1000.0
     raw_extracted_words = [normalize_word(word.word) for word in raw_extracted if normalize_word(word.word)]
     extracted_words = [normalize_word(word.word) for word in extracted if normalize_word(word.word)]
