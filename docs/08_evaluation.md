@@ -204,7 +204,7 @@ Across long-term benchmarks:
 - Working Memory remained compact.
 - ThreadGroup count did not grow uncontrollably.
 - Conversation Fatigue continued to suppress repetitive conversation.
-- Count mode maintained high Recall Precision without prompt explosion.
+- Count mode maintained high Working Memory precision-like scores without prompt explosion in the no-response benchmarks; these are not final response-quality measurements.
 
 These observations suggest that the architecture scales with conversation length without requiring proportional prompt growth in the evaluated scenarios.
 
