@@ -97,7 +97,7 @@ def finalize_extracted_words(
         candidate = ExtractedWord(
             word=surface,
             weight=clamp(float(item.weight), 0.1, 2.0),
-            canonical_word=canonical,
+            canonical_word=canonical if canonical != surface else None,
         )
         existing = by_canonical.get(canonical)
         if existing is None or candidate.weight > existing.weight:
