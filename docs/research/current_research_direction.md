@@ -109,3 +109,16 @@ The generator records candidate `source` and `reason` metadata for oracle diagno
 Mixed Script promotion is experimental and disabled by default. Enable it only for A/B runs with `--enable-mixed-script-promotion` together with the `local-rule` extractor.
 
 Only structurally generated `mixed-script` candidates may be promoted. Terminal-boundary and general alternate candidates remain diagnostic-only, and baseline reconciliation between extractor evaluation and oracle replay is required before interpreting A/B gains.
+
+## Language-aware Word Finalization Boundary
+
+A shared Word Finalizer now sits after candidate extraction and participant-reference normalization on the runtime and extractor-evaluation paths.
+
+- Extractors continue to own candidate generation and retain their existing extraction behavior.
+- The finalizer applies a WordPolicy contract: surface-form canonicalization and candidate retention.
+- Deduplication uses the canonical form, while the selected surface form remains in ExtractedWord.word.
+- A differing canonical form is carried as ExtractedWord.canonical_word metadata only; current Memory storage and Recall continue to use the surface form.
+- IdentityWordPolicy is the default and preserves current Japanese behavior.
+- Policy exceptions propagate rather than silently falling back to an unprocessed candidate list.
+
+This is an integration seam, not completed multilingual Memory support. Canonical forms are not persisted or used by Recall yet. Storage identity, alias retention, migrations, and Recall matching require a separate design and evaluation before a language-specific canonicalizer is enabled in production.
