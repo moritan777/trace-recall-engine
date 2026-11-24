@@ -120,7 +120,11 @@ class WordPolicyFailureTests(unittest.TestCase):
             [ExtractedWord("házban", 0.8), ExtractedWord("házat", 1.2)], policy=policy, events=events
         )
         self.assertEqual([(r.word, r.canonical_word) for r in result], [("házat", "ház")])
-        self.assertEqual(events, [])
+        # A different surface merged into the same canonical form is now recorded.
+        self.assertEqual(
+            [(e.surface, e.failure_type, e.action) for e in events],
+            [("házban", "merged_into_canonical", "dropped")],
+        )
 
 
 if __name__ == "__main__":

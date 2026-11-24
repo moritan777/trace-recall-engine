@@ -45,6 +45,11 @@ POLICY_REJECTED = "rejected_by_policy"      # should_keep() returned False -> dr
 SHOULD_KEEP_ERROR = "should_keep_error"     # should_keep() raised -> kept as surface
 CANONICALIZE_ERROR = "canonicalize_error"   # canonicalize() raised -> surface used as canonical
 CANONICALIZE_EMPTY = "canonicalize_empty"   # canonicalize() returned empty -> surface used as canonical
+MERGED_DUPLICATE = "merged_into_canonical"  # another surface with the same canonical form won -> dropped
+
+# Failure types are logged as warnings when events are not collected.
+# Rejections and merges are normal policy behavior and are not logged.
+POLICY_FAILURE_TYPES = frozenset({SHOULD_KEEP_ERROR, CANONICALIZE_ERROR, CANONICALIZE_EMPTY})
 
 ACTION_DROPPED = "dropped"
 ACTION_KEPT_SURFACE = "kept_surface"
@@ -123,6 +128,11 @@ def finalize_extracted_words(
       form is used as the canonical form (canonicalize_error /
       canonicalize_empty).
 
+    - another surface with the same canonical form has a higher weight:
+      the lower-weight surface is dropped (merged_into_canonical); the
+      detail names the surviving surface. Identical surfaces are not
+      recorded, so the identity policy produces no merge events.
+
     Only an explicit should_keep() == False drops a candidate.
 
     When ``events`` is not given, failures (not rejections) are still emitted
@@ -160,6 +170,14 @@ def finalize_extracted_words(
         existing = by_canonical.get(canonical)
         if existing is None or candidate.weight > existing.weight:
             by_canonical[canonical] = candidate
+            loser, winner = existing, candidate
+        else:
+            loser, winner = candidate, existing
+        if loser is not None and loser.word != winner.word:
+            _record_policy_event(
+                events, loser.word, MERGED_DUPLICATE, ACTION_DROPPED,
+                detail=f"kept {winner.word!r} for canonical {canonical!r}",
+            )
     return sorted(
         by_canonical.values(),
         key=lambda item: item.weight,
@@ -173,10 +191,12 @@ def _record_policy_event(
     failure_type: str,
     action: str,
     exc: BaseException | None = None,
+    detail: str = "",
 ) -> None:
-    detail = f"{type(exc).__name__}: {exc}" if exc is not None else ""
+    if exc is not None:
+        detail = f"{type(exc).__name__}: {exc}"
     if events is None:
-        if failure_type != POLICY_REJECTED:
+        if failure_type in POLICY_FAILURE_TYPES:
             logger.warning(
                 "word policy %s for %r (%s)%s",
                 failure_type, surface, action, f": {detail}" if detail else "",

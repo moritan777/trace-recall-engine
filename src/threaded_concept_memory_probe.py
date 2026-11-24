@@ -65,6 +65,8 @@ from typing import Any, Optional
 
 from trace_recall.extractors import ExtractedWord, TraceExtractor, create_extractor, fallback_extract_words
 from trace_recall.extractors.base import clamp, dedupe_extracted_words, finalize_extracted_words, normalize_text, normalize_word, parse_json_object, WordPolicy
+from trace_recall.extractors.base import IdentityWordPolicy, WordPolicyEvent
+from dataclasses import asdict as _asdict
 from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.composition_stress import composition_stress_markdown, evaluate_composition_stress
@@ -1951,7 +1953,10 @@ def extract_normalized_words(
     text: str,
     role: str,
     word_policy: WordPolicy | None = None,
+    policy_events: list[WordPolicyEvent] | None = None,
 ) -> list[ExtractedWord]:
+    if word_policy is None:
+        word_policy = resolve_word_policy(getattr(args, "word_policy", None))
     words = extractor.extract(text)
     if not getattr(args, "disable_participant_reference", False):
         words = normalize_participant_references(
@@ -1960,7 +1965,7 @@ def extract_normalized_words(
             words,
             debug=getattr(args, "debug_participant_reference", False),
         )
-    return finalize_extracted_words(words, policy=word_policy)
+    return finalize_extracted_words(words, policy=word_policy, events=policy_events)
 
 
 def cmd_add(args: argparse.Namespace) -> int:
@@ -3129,7 +3134,8 @@ def run_eval_turn(
     unexpected_words = [normalize_word(str(w)) for w in item.get("unexpected_words", []) if normalize_word(str(w))]
     end_to_end_start = time.perf_counter()
     extractor_start = time.perf_counter()
-    words = extract_normalized_words(args, extractor, user_text, role)
+    word_policy_events: list[WordPolicyEvent] = []
+    words = extract_normalized_words(args, extractor, user_text, role, policy_events=word_policy_events)
     extractor_ms = (time.perf_counter() - extractor_start) * 1000.0
     extractor_metadata = dict(getattr(extractor, "last_result_metadata", {}) or {})
     if not extractor_metadata:
@@ -3208,6 +3214,7 @@ def run_eval_turn(
         stage_diagnostics=diagnostics.to_jsonable(),
         stored_expected_words={w for w in expected_words if store.get_word_by_text(w) is not None},
     )
+    metrics["word_policy_events"] = [_asdict(e) for e in word_policy_events]
     return {
         "turn": turn,
         "mode": mode,
@@ -3552,6 +3559,57 @@ def trace_expected_stages(
 
 
 
+WORD_POLICIES: dict[str, Any] = {
+    "identity": IdentityWordPolicy,
+}
+
+
+def resolve_word_policy(name: str | None) -> WordPolicy:
+    """Return the WordPolicy selected by --word-policy (default: identity)."""
+    key = (name or "identity").strip().lower()
+    if key not in WORD_POLICIES:
+        raise ValueError(f"unknown word policy {name!r}; choose from {sorted(WORD_POLICIES)}")
+    return WORD_POLICIES[key]()
+
+
+WORD_POLICY_EVENT_TYPES = (
+    "rejected_by_policy",
+    "should_keep_error",
+    "canonicalize_error",
+    "canonicalize_empty",
+    "merged_into_canonical",
+)
+
+WORD_POLICY_CSV_FIELDS = (
+    "word_policy_event_count",
+    *(f"word_policy_{name}" for name in WORD_POLICY_EVENT_TYPES),
+    "word_policy_events",
+)
+
+
+def _flatten_word_policy_events(events: list[dict[str, Any]] | None) -> dict[str, Any]:
+    events = events or []
+    row: dict[str, Any] = {"word_policy_event_count": len(events)}
+    for name in WORD_POLICY_EVENT_TYPES:
+        row[f"word_policy_{name}"] = sum(1 for e in events if e.get("failure_type") == name)
+    row["word_policy_events"] = json.dumps(
+        [[e.get("surface", ""), e.get("failure_type", ""), e.get("action", "")] for e in events],
+        ensure_ascii=False,
+    )
+    return row
+
+
+def _word_policy_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
+    totals = {name: sum(int(r.get(f"word_policy_{name}", 0) or 0) for r in rows) for name in WORD_POLICY_EVENT_TYPES}
+    lines = ["", "## Word Policy Events", "",
+             "Candidates rejected, merged, or failed in the word policy. Failures keep the surface form; "
+             "rejections and merges drop the candidate.", ""]
+    lines.append(f"- word_policy_event_count_total: {sum(totals.values())}")
+    for name in WORD_POLICY_EVENT_TYPES:
+        lines.append(f"- {name}: {totals[name]}")
+    return lines
+
+
 EXPECTED_STAGE_CSV_FIELDS = (
     "expected_total",
     *(f"expected_survived_{stage}" for stage in EXPECTED_STAGE_ORDER),
@@ -3807,6 +3865,7 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "stage_counts": json.dumps(metrics["stage_counts"], ensure_ascii=False, sort_keys=True),
         "dropped_reason_counts": json.dumps(metrics["dropped_reason_counts"], ensure_ascii=False, sort_keys=True),
         **_flatten_expected_stage_trace(metrics.get("expected_stage_trace")),
+        **_flatten_word_policy_events(metrics.get("word_policy_events")),
         "working_memory_word_count": metrics["working_memory_word_count"],
         "response_used_groups": json.dumps(metrics["response_used_groups"], ensure_ascii=False),
         "prompt_only": json.dumps(metrics["prompt_only"], ensure_ascii=False),
@@ -3866,6 +3925,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "stage_counts",
         "dropped_reason_counts",
         *EXPECTED_STAGE_CSV_FIELDS,
+        *WORD_POLICY_CSV_FIELDS,
         "working_memory_word_count",
         "response_used_groups",
         "prompt_only",
@@ -3970,6 +4030,7 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- dropped_reason_counts_total: {json.dumps(dropped_reason_totals, ensure_ascii=False, sort_keys=True)}",
         f"- working_memory_word_count_total: {wm_words}",
         *_expected_stage_summary_lines(rows),
+        *_word_policy_summary_lines(rows),
     ]
 
 
@@ -4421,6 +4482,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
     parser.add_argument("--model", default=os.getenv("LLM_MODEL", "local-model"))
     parser.add_argument("--extractor", choices=["llm", "fallback", "local-rule"], default="llm", help="Trace extractor implementation to use; defaults to llm.")
+    parser.add_argument("--word-policy", choices=sorted(WORD_POLICIES), default="identity", help="Language word policy applied after extraction (default: identity = current behavior).")
     parser.add_argument("--extractor-model", default=os.getenv("LLM_EXTRACTOR_MODEL", ""), help="Optional model override for word extraction; defaults to --model.")
     parser.add_argument("--response-model", default=os.getenv("LLM_RESPONSE_MODEL", ""), help="Optional model override for response generation; defaults to --model.")
     parser.add_argument("--debug-extractor", action="store_true", help="Print LLM extractor prompt, raw response, parsed words, and Python-filtered words.")
@@ -4503,6 +4565,7 @@ def make_parser() -> argparse.ArgumentParser:
 
     p_eval_extractor = sub.add_parser("eval-extractor", aliases=["extractor-eval"])
     p_eval_extractor.add_argument("--extractor", choices=["llm", "fallback", "local-rule"], default="llm")
+    p_eval_extractor.add_argument("--word-policy", choices=sorted(WORD_POLICIES), default="identity", help="Language word policy applied after extraction (default: identity = current behavior).")
     p_eval_extractor.add_argument("--scenario", default=str(DEFAULT_EXTRACTOR_SCENARIO_FILE))
     p_eval_extractor.add_argument("--base-url", default=os.getenv("LLM_BASE_URL", ""))
     p_eval_extractor.add_argument("--api-key", default=os.getenv("LLM_API_KEY", ""))
@@ -4533,6 +4596,7 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--api-key", default=argparse.SUPPRESS)
     p_eval.add_argument("--model", default=argparse.SUPPRESS)
     p_eval.add_argument("--extractor", choices=["llm", "fallback", "local-rule"], default=argparse.SUPPRESS)
+    p_eval.add_argument("--word-policy", choices=sorted(WORD_POLICIES), default="identity", help="Language word policy applied after extraction (default: identity = current behavior).")
     p_eval.add_argument("--extractor-model", default=argparse.SUPPRESS)
     p_eval.add_argument("--response-model", default=argparse.SUPPRESS)
     p_eval.add_argument("--debug-extractor", action="store_true", default=argparse.SUPPRESS)
