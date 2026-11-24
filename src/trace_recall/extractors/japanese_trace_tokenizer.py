@@ -37,6 +37,8 @@ class JapaneseTraceTokenizer:
 
     CONNECTIVE_BOUNDARIES = ("だけど", "じゃ", "それで", "すると", "だから", "なので", "でも", "けど", "のに")
     PARTICLE_BOUNDARIES = ("から", "まで", "など", "は", "が", "を", "に", "へ", "で", "と", "も", "の")
+    # Single-kana particles that attach to a preceding protected span.
+    ATTACHED_PARTICLES = "のなはがをにへでともや"
     SENTENCE_BOUNDARY_RE = re.compile(r"[。！？…\n]+")
     SURFACE_RE = re.compile(r"[A-Za-z0-9ぁ-んァ-ン一-龥ー._+\-/]+(?:\s+[A-Za-z0-9][A-Za-z0-9._+\-/]*)*")
     SHORT_KEEP_LENGTH = 4
@@ -52,11 +54,15 @@ class JapaneseTraceTokenizer:
 
     def tokenize(self, text: str, protected_spans: list[ProtectedSpanLike] | None = None) -> list[TokenCandidate]:
         protected_ranges = [(s.start, s.end) for s in (protected_spans or [])]
+        protected_ends = {e for _s, e in protected_ranges}
         tokens: list[TokenCandidate] = []
         split_count = 0
         for start, end in self._sentence_segments(text):
             for surf in self.SURFACE_RE.finditer(text, start, end):
                 for seg_start, seg_end in self._residual_segments(surf.start(), surf.end(), protected_ranges):
+                    seg_start = self._skip_attached_particle(text, seg_start, seg_end, protected_ends)
+                    if seg_start >= seg_end:
+                        continue
                     phrase = text[seg_start:seg_end]
                     pieces = self._split_phrase(phrase, seg_start, protected_ranges)
                     split_count += max(0, len(pieces) - 1)
@@ -144,6 +150,18 @@ class JapaneseTraceTokenizer:
                     emitted += 1
                     if emitted >= self.MAX_ALTERNATES_PER_START:
                         break
+
+    def _skip_attached_particle(self, text: str, seg_start: int, seg_end: int, protected_ends: set[int]) -> int:
+        """Drop one particle that attaches to the protected span just before it.
+
+        A residual segment that starts right after a protected span (for example
+        ``ギター|の練習`` or ``静か|な音楽``) begins with a particle belonging to that
+        span, not with the next word. Only this structural position is handled, so
+        words that legitimately start with the same kana (``のりこ``) are untouched.
+        """
+        if seg_start in protected_ends and seg_end - seg_start >= 2 and text[seg_start] in self.ATTACHED_PARTICLES:
+            return seg_start + 1
+        return seg_start
 
     def _sentence_segments(self, text: str) -> list[tuple[int, int]]:
         segments: list[tuple[int, int]] = []

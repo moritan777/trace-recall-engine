@@ -102,3 +102,41 @@ class MixedScriptPromotionTests(unittest.TestCase):
         self.assertNotIn("のりこ", extracted)
         terminal = {c["text"] for c in extractor.last_diagnostics["candidate_spans"] if c["source"] == "terminal-boundary"}
         self.assertIn("のりこ", terminal)
+
+
+class SegmentationFixTests(unittest.TestCase):
+    def _contains(self, text: str, expected: set[str]) -> None:
+        extracted = words(text)
+        self.assertTrue(expected <= extracted, f"missing {expected - extracted}; extracted={sorted(extracted)}")
+
+    def test_particle_attached_to_protected_span_is_not_kept(self):
+        extracted = words("明日はギターの練習をする")
+        self.assertIn("練習", extracted)
+        self.assertNotIn("の練習", extracted)
+
+    def test_attached_particle_rule_keeps_names_starting_with_no(self):
+        self._contains("のりこは紅茶が好き", {"のりこ", "紅茶"})
+
+    def test_script_split_adds_word_after_modifier(self):
+        extracted = words("元カノの話はまだ苦手")
+        self.assertIn("苦手", extracted)
+        self.assertIn("まだ苦手", extracted)  # additive: original chunk is kept
+
+    def test_script_split_trims_conditional_suffix(self):
+        self._contains("本を読むなら窓際の席が好き", {"読む", "窓際"})
+
+    def test_script_split_does_not_emit_single_kana(self):
+        extracted = words("お茶が好き")
+        self.assertIn("お茶", extracted)
+        self.assertNotIn("お", extracted)
+
+    def test_bridge_compound_rejoins_modifier(self):
+        self._contains("のりこは恋愛映画が好き", {"恋愛映画", "映画"})
+        self._contains("みつきはSF映画が好き", {"SF映画", "好き"})
+
+    def test_bridge_compound_ignores_hiragana_head(self):
+        extracted = words("みつきの誕生日")
+        self.assertNotIn("みつき誕生日", extracted)
+
+    def test_month_day_date_is_protected(self):
+        self._contains("みつきの誕生日は7月15日", {"7月15日", "誕生日"})

@@ -100,6 +100,12 @@ class LocalRuleTraceExtractor:
         candidates: list[_Candidate] = [_Candidate(s.word, s.weight, s.start, s.source) for s in protected_spans]
         tokenizer_tokens = self.tokenizer.tokenize(normalized, protected_spans)
         candidates.extend(self._chunk_candidates(normalized, protected_spans, tokenizer_tokens))
+        script_split_candidates = self._script_split_candidates(
+            [*tokenizer_tokens, *(s for s in protected_spans if s.source == "mixed_script")]
+        )
+        candidates.extend(script_split_candidates)
+        bridge_compound_candidates = self._bridge_compound_candidates(protected_spans, tokenizer_tokens)
+        candidates.extend(bridge_compound_candidates)
         promoted_mixed_script_words = self._mixed_script_promotion_candidates(normalized, candidates)
         candidates.extend(promoted_mixed_script_words)
         words, removed = self._dedupe(candidates)
@@ -113,6 +119,8 @@ class LocalRuleTraceExtractor:
             "removed_stop_words": removed,
             "compound_candidates": [c.word for c in candidates if c.source == "compound"],
             "bridge_candidates": [c.word for c in candidates if c.source == "bridge"],
+            "script_split_candidates": [c.word for c in script_split_candidates],
+            "bridge_compound_candidates": [c.word for c in bridge_compound_candidates],
             "protected_match_count": len(protected_spans),
             "protected_match_length": sum(s.end - s.start for s in protected_spans),
             "db_dictionary_hit_rate": self._db_dictionary_hit_rate(protected_spans),
@@ -163,7 +171,7 @@ class LocalRuleTraceExtractor:
         patterns = [
             (r"https?://[^\s　]+", "url", 1.0),
             (r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "email", 1.0),
-            (r"\d{4}年\d{1,2}月\d{1,2}日|\d{4}[-/]\d{1,2}[-/]\d{1,2}", "date", 1.0),
+            (r"(?:\d{4}年)?\d{1,2}月\d{1,2}日|\d{4}[-/]\d{1,2}[-/]\d{1,2}", "date", 1.0),
             (r"[A-Za-z0-9]+[ぁ-んァ-ン一-龥ー]+", "mixed_script", 1.0),
             (r"[ァ-ンー]{3,}|[一-龥]{1,3}カノ", "compound", 1.0),
         ]
@@ -227,6 +235,62 @@ class LocalRuleTraceExtractor:
                 out.append(_Candidate(cleaned, 0.8, int(getattr(token, "start", 0)), "tokenizer"))
         return out
 
+
+    # Additive candidates. The original chunk is kept; these only add a cue
+    # when a chunk visibly contains a modifier/predicate in front of a word.
+    SCRIPT_SPLIT_WEIGHT = 0.7
+    BRIDGE_COMPOUND_WEIGHT = 0.9
+    MAX_BRIDGE_COMPOUND_LENGTH = 8
+    PIECE_SUFFIX_RE = re.compile(r"(なら|たら|ので|から|って)$")
+
+    def _script_split_candidates(self, tokenizer_tokens: list[object]) -> list[_Candidate]:
+        """Split a chunk at hiragana-to-kanji transitions, e.g. まだ|苦手, 熱い|鍋.
+
+        In Japanese surface text a kanji that follows hiragana usually starts a
+        new content word. The original chunk stays a candidate; pieces shorter
+        than two characters are not emitted.
+        """
+        out: list[_Candidate] = []
+        for token in tokenizer_tokens:
+            text = str(getattr(token, "text", getattr(token, "word", "")))
+            start = int(getattr(token, "start", 0))
+            cuts = [i for i in range(1, len(text)) if _is_hiragana(text[i - 1]) and _is_kanji(text[i])]
+            if not cuts:
+                continue
+            bounds = [0, *cuts, len(text)]
+            for a, b in zip(bounds, bounds[1:]):
+                piece = self.PIECE_SUFFIX_RE.sub("", text[a:b])
+                if len(piece) > 2:
+                    piece = piece.rstrip("はがをにへでもやの")
+                piece = self._clean_surface(piece)
+                if len(piece) < 2 or piece in self.STOP_WORDS or piece == text:
+                    continue
+                out.append(_Candidate(piece, self.SCRIPT_SPLIT_WEIGHT, start + a, "script_split"))
+        return out
+
+    def _bridge_compound_candidates(self, protected_spans: list[_ProtectedSpan], tokenizer_tokens: list[object]) -> list[_Candidate]:
+        """Rejoin a modifier cut off by a protected bridge word, e.g. SF|映画 -> SF映画."""
+        heads: dict[int, tuple[str, int]] = {}
+        for token in tokenizer_tokens:
+            text = str(getattr(token, "text", ""))
+            start = int(getattr(token, "start", 0))
+            if text:
+                heads[start + len(text)] = (text, start)
+        for span in protected_spans:
+            if span.word not in self.BRIDGE_WORDS:
+                heads.setdefault(span.end, (span.word, span.start))
+        out: list[_Candidate] = []
+        for span in protected_spans:
+            if span.word not in self.BRIDGE_WORDS or span.start not in heads:
+                continue
+            head, head_start = heads[span.start]
+            if not head or _is_hiragana(head[-1]) or head in self.TIME_WORDS:
+                continue
+            word = head + span.word
+            if len(word) > self.MAX_BRIDGE_COMPOUND_LENGTH:
+                continue
+            out.append(_Candidate(word, self.BRIDGE_COMPOUND_WEIGHT, head_start, "bridge_compound"))
+        return out
 
     def _mixed_script_promotion_candidates(self, text: str, existing: list[_Candidate]) -> list[_Candidate]:
         if not self.enable_mixed_script_promotion:
@@ -321,3 +385,11 @@ class LocalRuleTraceExtractor:
                 best[word] = (c.weight, c.pos)
         ordered = sorted(best.items(), key=lambda kv: (kv[1][1], -kv[1][0], kv[0]))
         return [ExtractedWord(word, weight) for word, (weight, _pos) in ordered], removed
+
+
+def _is_hiragana(ch: str) -> bool:
+    return "\u3041" <= ch <= "\u309f"
+
+
+def _is_kanji(ch: str) -> bool:
+    return "\u4e00" <= ch <= "\u9fff" or ch == "\u3005"

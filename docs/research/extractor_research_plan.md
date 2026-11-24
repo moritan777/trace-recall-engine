@@ -109,3 +109,16 @@ The generator records candidate `source` and `reason` metadata for oracle diagno
 Mixed Script promotion is experimental and disabled by default. Enable it only for A/B runs with `--enable-mixed-script-promotion` together with the `local-rule` extractor.
 
 Only structurally generated `mixed-script` candidates may be promoted. Terminal-boundary and general alternate candidates remain diagnostic-only, and baseline reconciliation between extractor evaluation and oracle replay is required before interpreting A/B gains.
+
+## Local Rule Segmentation Fixes (v0.1)
+
+Driven by the expected-word stage survival diagnostic: 24 of 26 `stored` losses in the 100T fixture were surface-boundary errors, not missing extraction.
+
+- Attached particle: a residual segment starting right after a protected span drops one attached particle (`ギター|の練習` -> `練習`, `静か|な音楽` -> `音楽`). Words that merely start with the same kana (`のりこ`) are not affected.
+- Script split (additive): chunks are also split at hiragana-to-kanji transitions (`まだ苦手` -> `苦手`, `読むなら窓際` -> `読む`, `窓際`). The original chunk is kept; pieces shorter than two characters are not emitted.
+- Bridge compound (additive): a non-hiragana modifier cut off by a bridge word is rejoined (`SF|映画` -> `SF映画`).
+- Month-day dates without a year are protected (`7月15日`).
+
+100T local-rule no-response: stored 111 -> 128, prompt 72 -> 83 of 137 expected words; unexpected hits 9 -> 10; Working Memory words 341 -> 364. Extractor generalization expected hits 80 -> 95; core benchmark unchanged (35).
+
+Not fixed: `やけど` (split by the `けど` connective), `おはよう`, `気になる`, tense forms such as `晴れた` for `晴れ`. Single-kanji pieces (`鍋`) are deliberately not emitted to avoid hub words; allowing them gave +2 in the 100T fixture and is left for a separate evaluation.
