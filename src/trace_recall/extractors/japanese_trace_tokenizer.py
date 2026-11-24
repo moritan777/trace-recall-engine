@@ -40,7 +40,13 @@ class JapaneseTraceTokenizer:
     # Single-kana particles that attach to a preceding protected span.
     ATTACHED_PARTICLES = "のなはがをにへでともや"
     SENTENCE_BOUNDARY_RE = re.compile(r"[。！？…\n]+")
-    SURFACE_RE = re.compile(r"[A-Za-z0-9ぁ-んァ-ン一-龥ー._+\-/]+(?:\s+[A-Za-z0-9][A-Za-z0-9._+\-/]*)*")
+    # Latin classes include accented letters (U+00C0-U+024F minus × ÷) so a word
+    # such as "házakban" is not cut at "á".
+    SURFACE_RE = re.compile(
+        r"[A-Za-z0-9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024Fぁ-んァ-ン一-龥ー._+\-/]+"
+        r"(?:\s+[A-Za-z0-9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F]"
+        r"[A-Za-z0-9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F._+\-/]*)*"
+    )
     SHORT_KEEP_LENGTH = 4
     MIN_SPLIT_LENGTH = 5
     MAX_ALTERNATE_LENGTH = 12
