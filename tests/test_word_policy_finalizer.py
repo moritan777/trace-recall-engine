@@ -7,6 +7,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from threaded_concept_memory_probe import ExtractedWord, extract_normalized_words
 from trace_recall.extractors.base import (
+    CANONICALIZE_EMPTY,
+    CANONICALIZE_ERROR,
     IdentityWordPolicy,
     finalize_extracted_words,
 )
@@ -49,7 +51,7 @@ class WordPolicyFinalizerTests(unittest.TestCase):
         self.assertEqual(result[0].canonical_word, "házak")
         self.assertEqual(result[0].weight, 1.2)
 
-    def test_policy_empty_canonical_form_rejects_candidate(self):
+    def test_policy_empty_canonical_form_falls_back_to_surface(self):
         class EmptyCanonicalPolicy:
             def canonicalize(self, word: str) -> str:
                 return ""
@@ -57,10 +59,11 @@ class WordPolicyFinalizerTests(unittest.TestCase):
             def should_keep(self, word: str) -> bool:
                 return True
 
-        self.assertEqual(
-            finalize_extracted_words([ExtractedWord("word", 1.0)], EmptyCanonicalPolicy()),
-            [],
-        )
+        events = []
+        result = finalize_extracted_words([ExtractedWord("word", 1.0)], EmptyCanonicalPolicy(), events=events)
+
+        self.assertEqual([(item.word, item.canonical_word) for item in result], [("word", None)])
+        self.assertEqual([event.failure_type for event in events], [CANONICALIZE_EMPTY])
 
     def test_policy_errors_are_not_silently_treated_as_success(self):
         class BrokenPolicy:
@@ -70,8 +73,24 @@ class WordPolicyFinalizerTests(unittest.TestCase):
             def should_keep(self, word: str) -> bool:
                 return True
 
-        with self.assertRaisesRegex(RuntimeError, "adapter failed"):
-            finalize_extracted_words([ExtractedWord("word", 1.0)], BrokenPolicy())
+        # The candidate survives as its surface form, but the failure is visible:
+        # recorded when events are collected, logged as a warning otherwise.
+        events = []
+        result = finalize_extracted_words([ExtractedWord("word", 1.0)], BrokenPolicy(), events=events)
+        self.assertEqual([item.word for item in result], ["word"])
+        self.assertEqual(events[0].failure_type, CANONICALIZE_ERROR)
+        self.assertIn("adapter failed", events[0].detail)
+
+        with self.assertLogs("trace_recall.extractors.base", level="WARNING") as logs:
+            result = finalize_extracted_words([ExtractedWord("word", 1.0)], BrokenPolicy())
+        self.assertEqual([item.word for item in result], ["word"])
+        self.assertIn("canonicalize_error", logs.output[0])
+        self.assertIn("adapter failed", logs.output[0])
+
+    def test_policy_rejection_without_events_is_not_logged(self):
+        with self.assertNoLogs("trace_recall.extractors.base", level="WARNING"):
+            result = finalize_extracted_words([ExtractedWord("az", 1.0)], CaseFoldPolicy())
+        self.assertEqual(result, [])
 
     def test_runtime_entry_point_uses_the_shared_finalizer(self):
         class StubExtractor:
