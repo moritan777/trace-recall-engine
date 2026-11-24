@@ -3190,6 +3190,7 @@ def run_eval_turn(
         response_text=response_text,
         response_skipped=response_skipped,
         stage_diagnostics=diagnostics.to_jsonable(),
+        stored_expected_words={w for w in expected_words if store.get_word_by_text(w) is not None},
     )
     return {
         "turn": turn,
@@ -3438,6 +3439,149 @@ def write_research_logs(jsonl_path: Path | None, md_dir: Path | None, records: l
     except Exception as exc:
         print(f"[warn] Research Logger write failed: {exc}", file=sys.stderr)
 
+EXPECTED_STAGE_ORDER = (
+    "stored",
+    "raw_activation",
+    # The gate checks the prompt-word cap before per-word score checks.
+    "cap",
+    "post_score_selection",
+    "post_fatigue",
+    "external_admission",
+    "working_memory",
+    "prompt",
+    "response",
+)
+
+
+def trace_expected_stages(
+    expected_words: list[str],
+    activation: ActivationResult,
+    gated: GatedContext,
+    prompt: str,
+    response_text: str,
+    response_skipped: bool,
+    stage_events: list[dict[str, Any]],
+    stored_words: set[str] | None = None,
+) -> dict[str, Any]:
+    """Observe where each expected word survives or is lost.
+
+    Observational only: this does not change recall behavior. The first stage
+    where a word fails is its loss stage. ``None`` means "not measured" (for
+    example ``stored`` when no store lookup was given, or ``response`` in
+    no-response mode); unmeasured stages are skipped, not counted as loss.
+    """
+    activated = {aw.word for aw in activation.activated_words}
+    gated_set = {gw.word for gw in gated.words}
+
+    def accepted_in(stage: str, word: str) -> bool | None:
+        events = [e for e in stage_events if e.get("stage") == stage and e.get("identifier") == word]
+        if not events:
+            return None
+        return any(bool(e.get("accepted")) for e in events)
+
+    per_word: dict[str, dict[str, Any]] = {}
+    for word in expected_words:
+        if not word or word in per_word:
+            continue
+        cap_dropped = accepted_in("CAP_DROPPED", word) is not None
+        admission = accepted_in("EXTERNAL_ADMISSION", word)
+        status: dict[str, bool | None] = {
+            "stored": None if stored_words is None else word in stored_words,
+            "raw_activation": word in activated,
+            "post_score_selection": accepted_in("POST_SCORE_SELECTION", word),
+            "cap": not cap_dropped,
+            "post_fatigue": accepted_in("POST_FATIGUE", word),
+            "external_admission": True if admission is None else admission,
+            "working_memory": word in gated_set,
+            "prompt": word in gated_set and word in prompt,
+            "response": None if response_skipped else bool(response_text) and word in response_text,
+        }
+        unmeasurable = set()
+        if stored_words is None:
+            unmeasurable.add("stored")
+        if response_skipped:
+            unmeasurable.add("response")
+        loss_stage = None
+        for stage in EXPECTED_STAGE_ORDER:
+            if status[stage] is False:
+                loss_stage = stage
+                break
+        if loss_stage is not None:
+            # Stages after the loss stage were not reached.
+            after = EXPECTED_STAGE_ORDER[EXPECTED_STAGE_ORDER.index(loss_stage) + 1:]
+            for stage in after:
+                if stage not in unmeasurable:
+                    status[stage] = False
+        per_word[word] = {"stages": status, "loss_stage": loss_stage or "survived"}
+
+    survival_counts = {stage: 0 for stage in EXPECTED_STAGE_ORDER}
+    measured_counts = {stage: 0 for stage in EXPECTED_STAGE_ORDER}
+    loss_stage_counts: dict[str, int] = {}
+    for info in per_word.values():
+        for stage, value in info["stages"].items():
+            if value is None:
+                continue
+            measured_counts[stage] += 1
+            if value:
+                survival_counts[stage] += 1
+        loss = info["loss_stage"]
+        loss_stage_counts[loss] = loss_stage_counts.get(loss, 0) + 1
+    return {
+        "expected_total": len(per_word),
+        "per_word": per_word,
+        "survival_counts": survival_counts,
+        "measured_counts": measured_counts,
+        "loss_stage_counts": loss_stage_counts,
+    }
+
+
+
+EXPECTED_STAGE_CSV_FIELDS = (
+    "expected_total",
+    *(f"expected_survived_{stage}" for stage in EXPECTED_STAGE_ORDER),
+    *(f"expected_measured_{stage}" for stage in EXPECTED_STAGE_ORDER),
+    "expected_loss_stage_counts",
+    "expected_stage_per_word",
+)
+
+
+def _flatten_expected_stage_trace(trace: dict[str, Any] | None) -> dict[str, Any]:
+    trace = trace or {"expected_total": 0, "per_word": {}, "survival_counts": {}, "measured_counts": {}, "loss_stage_counts": {}}
+    row: dict[str, Any] = {"expected_total": trace["expected_total"]}
+    for stage in EXPECTED_STAGE_ORDER:
+        row[f"expected_survived_{stage}"] = trace["survival_counts"].get(stage, 0)
+        row[f"expected_measured_{stage}"] = trace["measured_counts"].get(stage, 0)
+    row["expected_loss_stage_counts"] = json.dumps(trace["loss_stage_counts"], ensure_ascii=False, sort_keys=True)
+    row["expected_stage_per_word"] = json.dumps({w: info["loss_stage"] for w, info in trace["per_word"].items()}, ensure_ascii=False, sort_keys=True)
+    return row
+
+
+def _expected_stage_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
+    total = sum(int(r.get("expected_total", 0) or 0) for r in rows)
+    lines = ["", "## Expected Word Stage Survival", "",
+             "Observational. Each expected word is followed through the pipeline; the first failed stage is its loss stage. "
+             "Stages with measured=0 were not measured in this run (e.g. response in no-response mode).", "",
+             f"- expected_total: {total}", "",
+             "| stage | survived | measured | survival_rate |", "|---|---:|---:|---:|"]
+    for stage in EXPECTED_STAGE_ORDER:
+        survived = sum(int(r.get(f"expected_survived_{stage}", 0) or 0) for r in rows)
+        measured = sum(int(r.get(f"expected_measured_{stage}", 0) or 0) for r in rows)
+        rate = f"{survived / measured:.3f}" if measured else "N/A"
+        lines.append(f"| {stage} | {survived} | {measured} | {rate} |")
+    loss_totals: dict[str, int] = {}
+    for r in rows:
+        raw = r.get("expected_loss_stage_counts", "{}")
+        try:
+            counts = json.loads(raw) if isinstance(raw, str) else (raw or {})
+        except (TypeError, json.JSONDecodeError):
+            counts = {}
+        for k, v in counts.items():
+            loss_totals[str(k)] = loss_totals.get(str(k), 0) + int(v)
+    lines.append("")
+    lines.append(f"- expected_loss_stage_counts_total: {json.dumps(loss_totals, ensure_ascii=False, sort_keys=True)}")
+    return lines
+
+
 def evaluate_recall_turn(
     turn: int,
     mode: str,
@@ -3449,6 +3593,7 @@ def evaluate_recall_turn(
     response_text: str,
     response_skipped: bool = False,
     stage_diagnostics: list[dict[str, Any]] | None = None,
+    stored_expected_words: set[str] | None = None,
 ) -> dict[str, Any]:
     gated_word_set = {gw.word for gw in gated.words}
     working_memory_group_count = len(gated.threads)
@@ -3489,6 +3634,10 @@ def evaluate_recall_turn(
             continue
         reason = str(event.get("reason") or "unspecified")
         dropped_reason_counts[reason] = dropped_reason_counts.get(reason, 0) + 1
+    expected_stage_trace = trace_expected_stages(
+        expected_words, activation, gated, prompt, response_text, response_skipped,
+        stage_events, stored_words=stored_expected_words,
+    )
     recall_efficiency = None if response_skipped else ((len(response_used_groups) / working_memory_group_count) if working_memory_group_count else 0.0)
     return {
         "turn": turn,
@@ -3534,6 +3683,7 @@ def evaluate_recall_turn(
         "recall_efficiency_status": "not_applicable_no_response" if response_skipped else "measured",
         "stage_counts": stage_counts,
         "dropped_reason_counts": dropped_reason_counts,
+        "expected_stage_trace": expected_stage_trace,
         "working_memory_word_count": working_memory_word_count,
         "response_used_groups": response_used_groups,
         "expected_hits": expected_hits,
@@ -3640,6 +3790,7 @@ def flatten_eval_metrics(event: dict[str, Any]) -> dict[str, Any]:
         "working_memory_stage_count": metrics["stage_counts"]["working_memory"],
         "stage_counts": json.dumps(metrics["stage_counts"], ensure_ascii=False, sort_keys=True),
         "dropped_reason_counts": json.dumps(metrics["dropped_reason_counts"], ensure_ascii=False, sort_keys=True),
+        **_flatten_expected_stage_trace(metrics.get("expected_stage_trace")),
         "working_memory_word_count": metrics["working_memory_word_count"],
         "response_used_groups": json.dumps(metrics["response_used_groups"], ensure_ascii=False),
         "prompt_only": json.dumps(metrics["prompt_only"], ensure_ascii=False),
@@ -3698,6 +3849,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "working_memory_stage_count",
         "stage_counts",
         "dropped_reason_counts",
+        *EXPECTED_STAGE_CSV_FIELDS,
         "working_memory_word_count",
         "response_used_groups",
         "prompt_only",
@@ -3801,6 +3953,7 @@ def build_eval_report_summary(rows: list[dict[str, Any]]) -> list[str]:
         f"- working_memory_stage_count_total: {sum(int(r.get('working_memory_stage_count', 0) or 0) for r in rows)}",
         f"- dropped_reason_counts_total: {json.dumps(dropped_reason_totals, ensure_ascii=False, sort_keys=True)}",
         f"- working_memory_word_count_total: {wm_words}",
+        *_expected_stage_summary_lines(rows),
     ]
 
 

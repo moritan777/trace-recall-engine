@@ -127,6 +127,10 @@ Optional research logs can also be generated with `--research-log-jsonl`, `--res
 
 Evaluation records also include stage counters for raw activation, post-score selection, post-fatigue, cap-dropped candidates, external-admission drops, and final Working Memory, plus dropped-reason counts. The cap counter follows the current implementation order: the prompt-word cap is checked before per-word score/thread and fatigue checks.
 
+### Expected Word Stage Survival
+
+Each expected word of an ask turn is followed through `stored → raw_activation → cap → post_score_selection → post_fatigue → external_admission → working_memory → prompt → response`. The first failed stage is recorded as its loss stage (`survived` if none failed). Stage order follows the current gate implementation (cap before per-word score checks). Unmeasurable stages are reported as not measured, not as loss: `response` in no-response mode, and `stored` when no store lookup is available. `stored` is an exact-text lookup, so a loss there means the expected surface form never became a Word node (extraction miss or surface mismatch), not that the experience was never taught. This metric is observational and does not change recall behavior.
+
 ### Conversation Policy
 
 - fatigue_suppressed_count
