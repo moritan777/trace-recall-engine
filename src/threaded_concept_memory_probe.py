@@ -64,7 +64,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from trace_recall.extractors import ExtractedWord, TraceExtractor, create_extractor, fallback_extract_words
-from trace_recall.extractors.base import clamp, dedupe_extracted_words, normalize_text, normalize_word, parse_json_object
+from trace_recall.extractors.base import clamp, dedupe_extracted_words, finalize_extracted_words, normalize_text, normalize_word, parse_json_object, WordPolicy
 from trace_recall.extractors.llm import LLMTraceExtractor
 from trace_recall.diagnostics import DiagnosticRecorder, RecallStage
 from trace_recall.composition_stress import composition_stress_markdown, evaluate_composition_stress
@@ -1945,16 +1945,22 @@ def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemorySto
     return store, extractor, engine, generator
 
 
-def extract_normalized_words(args: argparse.Namespace, extractor: TraceExtractor, text: str, role: str) -> list[ExtractedWord]:
+def extract_normalized_words(
+    args: argparse.Namespace,
+    extractor: TraceExtractor,
+    text: str,
+    role: str,
+    word_policy: WordPolicy | None = None,
+) -> list[ExtractedWord]:
     words = extractor.extract(text)
-    if getattr(args, "disable_participant_reference", False):
-        return words
-    return normalize_participant_references(
-        text,
-        role,
-        words,
-        debug=getattr(args, "debug_participant_reference", False),
-    )
+    if not getattr(args, "disable_participant_reference", False):
+        words = normalize_participant_references(
+            text,
+            role,
+            words,
+            debug=getattr(args, "debug_participant_reference", False),
+        )
+    return finalize_extracted_words(words, policy=word_policy)
 
 
 def cmd_add(args: argparse.Namespace) -> int:
@@ -2387,10 +2393,20 @@ def _oracle_evaluation(expected_words: set[str], final_words: list[str], diagnos
         results.append({"word": word, "status": status})
     return {"oracle_result": results, **counts}
 
-def evaluate_extractor_scenario(item: dict[str, Any], extractor: TraceExtractor, extractor_name: str) -> dict[str, Any]:
+def evaluate_extractor_scenario(
+    item: dict[str, Any],
+    extractor: TraceExtractor,
+    extractor_name: str,
+    word_policy: WordPolicy | None = None,
+) -> dict[str, Any]:
     started = time.perf_counter()
     raw_extracted = extractor.extract(str(item["input"]))
-    extracted = normalize_participant_references(str(item["input"]), str(item.get("role", "user")), raw_extracted)
+    participant_normalized = normalize_participant_references(
+        str(item["input"]),
+        str(item.get("role", "user")),
+        raw_extracted,
+    )
+    extracted = finalize_extracted_words(participant_normalized, policy=word_policy)
     elapsed_ms = (time.perf_counter() - started) * 1000.0
     raw_extracted_words = [normalize_word(word.word) for word in raw_extracted if normalize_word(word.word)]
     extracted_words = [normalize_word(word.word) for word in extracted if normalize_word(word.word)]
