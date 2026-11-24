@@ -22,8 +22,8 @@ class TracePrinciplePersonWordTests(unittest.TestCase):
     def make_store(self):
         tmp = tempfile.TemporaryDirectory()
         store = ThreadedConceptMemoryStore(str(Path(tmp.name) / "memory.db"))
-        self.addCleanup(store.close)
         self.addCleanup(tmp.cleanup)
+        self.addCleanup(store.close)
         return store
 
     def words(self, *items):

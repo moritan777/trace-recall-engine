@@ -31,9 +31,22 @@ class LongHorizonTests(unittest.TestCase):
     def test_summary_includes_db_scale_diffusion_frequency_and_fatigue(self):
         with tempfile.TemporaryDirectory() as td:
             db = Path(td) / "memory.db"
-            with sqlite3.connect(db) as connection:
-                connection.executescript("CREATE TABLE words(x); CREATE TABLE threads(x); CREATE TABLE word_threads(x); INSERT INTO words VALUES(1); INSERT INTO threads VALUES(1); INSERT INTO word_threads VALUES(1);")
-            result = summarize_long_horizon([record(1), record(2, False, True)], db)
+            connection = sqlite3.connect(db)
+            try:
+                connection.executescript(
+                    "CREATE TABLE words(x); "
+                    "CREATE TABLE threads(x); "
+                    "CREATE TABLE word_threads(x); "
+                    "INSERT INTO words VALUES(1); "
+                    "INSERT INTO threads VALUES(1); "
+                    "INSERT INTO word_threads VALUES(1);"
+                )
+            finally:
+                connection.close()
+
+            result = summarize_long_horizon(
+                [record(1), record(2, False, True)], db
+            )
         self.assertEqual(result["word_node_count"], 1)
         self.assertEqual(result["topic_fatigue_suppressions"], 1)
         self.assertEqual(result["contributing_paths_per_selected_word"], 1.0)
