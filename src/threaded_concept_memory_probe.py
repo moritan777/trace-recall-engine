@@ -59,7 +59,7 @@ import sqlite3
 import sys
 import urllib.request
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -289,6 +289,9 @@ class GatedThreadGroup:
     member_thread_ids: list[str]
     created_by_counts: dict[str, int]
     dominant_created_by: str | None
+    # Verbatim provenance for the already-selected member threads. This is
+    # display evidence only; it never participates in activation or gating.
+    source_texts: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -1057,6 +1060,7 @@ class ActivationGate:
         admission_hook: AdmissionHook | None = None,
         diagnostics: DiagnosticRecorder | None = None,
         context_metadata: Optional[dict[str, Any]] = None,
+        cap_after_group: bool = False,
     ) -> None:
         self.max_prompt_threads = max_prompt_threads
         self.max_core_words_per_thread = max_core_words_per_thread
@@ -1070,6 +1074,7 @@ class ActivationGate:
         self.admission_hook = admission_hook
         self.diagnostics = diagnostics
         self.context_metadata = context_metadata or {}
+        self.cap_after_group = bool(cap_after_group)
 
     def gate(self, activation: ActivationResult) -> GatedContext:
         input_word_set = {normalize_word(w.word) for w in activation.input_words if normalize_word(w.word)}
@@ -1111,7 +1116,7 @@ class ActivationGate:
 
         selected_threads: list[ActivatedThread] = []
         for th in activation.activated_threads:
-            if len(selected_threads) >= self.max_prompt_threads:
+            if not self.cap_after_group and len(selected_threads) >= self.max_prompt_threads:
                 break
             if th.score < self.min_thread_score:
                 continue
@@ -1358,6 +1363,15 @@ class ActivationGate:
                 origin = normalize_created_by(th.created_by)
                 created_by_counts[origin] = created_by_counts.get(origin, 0) + 1
             dominant_created_by = max(created_by_counts.items(), key=lambda kv: (kv[1], kv[0]))[0] if created_by_counts else None
+            source_texts: list[str] = []
+            if self.store is not None and hasattr(self.store, "get_thread"):
+                for thread_id in member_thread_ids:
+                    stored_thread = self.store.get_thread(thread_id)
+                    if stored_thread is None or not stored_thread.source_text:
+                        continue
+                    source = stored_thread.source_text.strip()
+                    if source and source not in source_texts:
+                        source_texts.append(source)
             result.append(
                 GatedThreadGroup(
                     canonical_key=key,
@@ -1376,6 +1390,7 @@ class ActivationGate:
                     member_thread_ids=member_thread_ids,
                     created_by_counts=created_by_counts,
                     dominant_created_by=dominant_created_by,
+                    source_texts=source_texts,
                 )
             )
         result.sort(key=lambda th: (th.group_score, th.score), reverse=True)
@@ -1457,7 +1472,9 @@ def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadg
     lines.append("Only this gated context should be used for the response.")
 
     if prompt_view == "threadgroup":
-        lines.extend(format_threadgroup_view(gated, origin_order))
+        lines.extend(format_threadgroup_view(gated, origin_order, include_source=False))
+    elif prompt_view == "threadgroup-source":
+        lines.extend(format_threadgroup_view(gated, origin_order, include_source=True))
     elif prompt_view == "recall-state":
         lines.extend(format_recall_state_view(gated, origin_order))
     elif prompt_view == "edge":
@@ -1474,8 +1491,10 @@ def format_gated_recall_context(gated: GatedContext, prompt_view: str = "threadg
     return lines
 
 
-def format_threadgroup_view(gated: GatedContext, origin_order: str = "none") -> list[str]:
+def format_threadgroup_view(gated: GatedContext, origin_order: str = "none", include_source: bool = False) -> list[str]:
     lines: list[str] = ["", "[Gated Thread Groups]"]
+    if include_source:
+        lines.append("Source lines are verbatim past utterances from the selected threads; interpret them in their own context.")
     for th in ordered_thread_groups(gated.threads, origin_order):
         direct = ", ".join(th.direct_words) if th.direct_words else "-"
         core = " / ".join(th.core_words) if th.core_words else "-"
@@ -1486,6 +1505,9 @@ def format_threadgroup_view(gated: GatedContext, origin_order: str = "none") -> 
             f"score={th.score:.3f} group_score={th.group_score:.3f} base={th.base_score:.3f}{bonus} "
             f"eff={th.effective_strength:.3f} direct={direct} core={core} support={support}"
         )
+        if include_source:
+            for source in th.source_texts:
+                lines.append(f'  source={json.dumps(source, ensure_ascii=False)}')
 
     lines.append("")
     lines.append("[Gated Words]")
@@ -1856,8 +1878,8 @@ def ordered_thread_groups(threads: list[GatedThreadGroup], origin_order: str = "
 
 def normalize_prompt_view(value: str) -> str:
     value = (value or "threadgroup").strip().lower()
-    if value not in {"threadgroup", "recall-state", "edge"}:
-        raise ValueError(f"prompt_view must be one of: threadgroup, recall-state, edge (got {value!r})")
+    if value not in {"threadgroup", "threadgroup-source", "recall-state", "edge"}:
+        raise ValueError(f"prompt_view must be one of: threadgroup, threadgroup-source, recall-state, edge (got {value!r})")
     return value
 
 
@@ -1933,6 +1955,7 @@ def build_gate(args: argparse.Namespace, store: Optional[ThreadedConceptMemorySt
         fatigue_recent_turns=args.fatigue_recent_turns,
         fatigue_threshold=args.fatigue_threshold,
         diagnostics=diagnostics,
+        cap_after_group=getattr(args, "gate_cap_after_group", False),
     )
 
 
@@ -1944,7 +1967,8 @@ def build_components(args: argparse.Namespace) -> tuple[ThreadedConceptMemorySto
         extractor.set_trace_vocabulary_provider(store)
     engine = ActivationEngine(store, args.half_life_days, args.max_depth, args.common_bonus, args.mutual_amplification, args.thread_strength_mode)
     response_timeout = getattr(args, "response_timeout", None) or args.timeout
-    generator = ResponseGenerator(args.base_url, args.api_key, response_model, response_timeout)
+    response_base_url = getattr(args, "chat_base_url", "") or args.base_url
+    generator = ResponseGenerator(response_base_url, args.api_key, response_model, response_timeout)
     return store, extractor, engine, generator
 
 
@@ -3798,6 +3822,7 @@ def gated_thread_group_to_dict(th: GatedThreadGroup) -> dict[str, Any]:
         "member_thread_ids": th.member_thread_ids,
         "created_by_counts": th.created_by_counts,
         "dominant_created_by": th.dominant_created_by,
+        "source_texts": th.source_texts,
     }
 
 
@@ -4507,13 +4532,14 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mutual-amplification", type=float, default=0.12, help="Small word boost from strong co-activated threads.")
     parser.add_argument("--response-include-trace", action="store_true")
     parser.add_argument("--response-trace-limit", type=int, default=10)
-    parser.add_argument("--prompt-view", choices=["threadgroup", "recall-state", "edge"], default="threadgroup")
+    parser.add_argument("--prompt-view", choices=["threadgroup", "threadgroup-source", "recall-state", "edge"], default="threadgroup")
     parser.add_argument("--origin-order", choices=["none", "group"], default="none", help="Prompt display ordering only; does not affect recall scores or gate selection.")
     parser.add_argument("--role", choices=["user", "assistant"], default="user", help="Speaker origin for add command traces.")
     parser.add_argument("--thread-strength-mode", choices=["weighted", "count"], default="count", help="Deprecated: count is fixed for Trace-based Recall Engine v1; weighted is coerced to count.")
     parser.add_argument("--fatigue-recent-turns", type=int, default=10)
     parser.add_argument("--fatigue-threshold", type=int, default=3)
     parser.add_argument("--disable-gate", action="store_true", help="Disable v0.8 Activation Gate and send raw activation summary.")
+    parser.add_argument("--gate-cap-after-group", action="store_true", help="Experiment: apply max thread cap after canonical ThreadGroup aggregation.")
     parser.add_argument("--gate-max-threads", type=int, default=4)
     parser.add_argument("--gate-max-core-words", type=int, default=5)
     parser.add_argument("--gate-max-words", type=int, default=12)
@@ -4620,11 +4646,12 @@ def make_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--mutual-amplification", type=float, default=argparse.SUPPRESS)
     p_eval.add_argument("--response-include-trace", action="store_true", default=argparse.SUPPRESS)
     p_eval.add_argument("--response-trace-limit", type=int, default=argparse.SUPPRESS)
-    p_eval.add_argument("--prompt-view", choices=["threadgroup", "recall-state", "edge"], default=argparse.SUPPRESS)
+    p_eval.add_argument("--prompt-view", choices=["threadgroup", "threadgroup-source", "recall-state", "edge"], default=argparse.SUPPRESS)
     p_eval.add_argument("--origin-order", choices=["none", "group"], default=argparse.SUPPRESS)
     p_eval.add_argument("--fatigue-recent-turns", type=int, default=argparse.SUPPRESS)
     p_eval.add_argument("--fatigue-threshold", type=int, default=argparse.SUPPRESS)
     p_eval.add_argument("--disable-gate", action="store_true", default=argparse.SUPPRESS)
+    p_eval.add_argument("--gate-cap-after-group", action="store_true", default=argparse.SUPPRESS)
     p_eval.add_argument("--gate-max-threads", type=int, default=argparse.SUPPRESS)
     p_eval.add_argument("--gate-max-core-words", type=int, default=argparse.SUPPRESS)
     p_eval.add_argument("--gate-max-words", type=int, default=argparse.SUPPRESS)
@@ -4768,9 +4795,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = make_parser()
     args = parser.parse_args(argv)
 
-    if getattr(args, "chat_base_url", ""):
-        args.base_url = args.chat_base_url
     args.base_url = normalize_llm_base_url(args.base_url)
+    if getattr(args, "chat_base_url", ""):
+        args.chat_base_url = normalize_llm_base_url(args.chat_base_url)
     requested_mode = getattr(args, "thread_strength_mode", FIXED_THREAD_STRENGTH_MODE)
     args.thread_strength_mode = normalize_thread_strength_mode(requested_mode)
     if requested_mode != args.thread_strength_mode:

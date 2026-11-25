@@ -6,7 +6,7 @@ This document records the chronological design shift behind the Trace Recall Eng
 
 ## Configuration
 
-The history covers the 100T Weighted-vs-Count comparison and subsequent Count-mode evaluations at 1000T, 3000T, and 10000T.
+The history covers the 100T Weighted-vs-Count comparison, subsequent Count-mode evaluations at 1000T, 3000T, and 10000T, and the 100T Human-Valid evaluation of source-text-assisted recall.
 
 ## 2026-07-06
 
@@ -100,9 +100,50 @@ Trace Recall Engineは、Conversation長ではなくWorking Memoryサイズで�
 
 ↓
 
+## 2026-11-25 — Human-Valid 100T source-text evaluation
+
+固定された100ターンのdevelopment fixtureを使い、最終応答が人間の会話として破綻していないかを評価した。
+
+この評価はRAG型の厳密な検索精度ではなく、不完全・連想的・再構成的な想起を許容しながら、明確な偽記憶、人物の誤帰属、既知履歴との明確な矛盾を検出することを目的とする。
+
+評価構成:
+
+- LLM Extractor
+- baseline Activation Gate
+- `threadgroup-source` Prompt View
+- local response model
+- `gate-cap-after-group`: disabled
+
+選択済みThreadGroupについて、保存済みの原文 `source_text` をResponse LLMへ渡した。
+
+アプリ側では主語、好み、因果関係、時間関係などの意味ラベルを生成せず、意味解釈はLLMへ委ねた。
+
+51応答をレビューした結果:
+
+- Human-Valid: 48
+- Human-Invalid: 2
+- Undetermined: 1
+- 判定可能50件中のHuman-Valid率: **48 / 50 = 96.0%**
+
+`source_text` の提示により、単語集合だけでは失われていた発話内の関係をLLMが読み取れるケースを確認した。
+
+一方、曖昧な連想や関連記憶の混合は、確定的な過去事実として断定しない限り、必ずしも失敗としない評価方針を採用した。
+
+この結果は繰り返し確認・調整に使用したdevelopment fixture上の結果であり、未見benchmarkや一般的な96%のRecall精度を示すものではない。
+
+次の評価では、構成をfreezeしたうえで未見conversation fixtureを一度だけ実行する。
+
+詳細: [Human-Valid 100T Evaluation](human_valid_100t_source_local/README.md)
+
+行単位評価: [human_valid.csv](human_valid_100t_source_local/human_valid.csv)
+
+↓
+
 ## Results
 
 100TではCount方式の採用を決定し、1000T以降ではCount方式のままWorking Memoryを bounded に保てることを確認した。
+
+その後の100T Human-Valid評価では、選択済みThreadGroupへ原文 `source_text` を添える構成により、51応答中48件をHuman-Valid、2件をHuman-Invalid、1件をUndeterminedと判定した。
 
 ## Findings
 
@@ -126,10 +167,12 @@ AIはどう思い出すか
 
 現在:
 
-RecallされたTraceから、Working Memoryへ何を載せるべきか
+RecallされたTraceから、Working Memoryへ何を載せ、LLMがそれをどのように会話として再構成するか
 
-保存方式の研究は一区切りとなり、今後はRecall Selection・Working Memory Policy・Conversation Policyを中心とした研究へ移行する。
+保存方式の研究は一区切りとなり、現在はRecall Selection・Working Memory Policy・Conversation Policyに加えて、正確なRAG検索とは異なるHuman-Validな想起評価を研究対象としている。
 
 ## Conclusion
 
-Trace Recall Engineの研究対象は、Memory StorageからRecall Selection、Working Memory Policy、Conversation Policyへ移行した。
+Trace Recall Engineの研究対象は、Memory StorageからRecall Selection、Working Memory Policy、Conversation Policy、そして不完全な想起からHuman-Validな応答を成立させる評価へ移行した。
+
+今回の96.0%はdevelopment fixture上のチェックポイントであり、次の研究段階はfreezeした構成による未見fixture評価である。
