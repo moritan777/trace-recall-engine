@@ -56,7 +56,8 @@ class LLMTraceExtractor:
 
     def _extract_with_llm(self, text: str) -> list[ExtractedWord]:
         system = (
-            "You extract Japanese memory trigger words from an utterance.\n"
+            "You extract memory trigger words from an utterance.\n"
+            "Preserve the input language. Do not translate extracted words into another language.\n"
             "\n"
             "Do not classify words.\n"
             "Do not infer relationship labels.\n"
@@ -84,7 +85,8 @@ class LLMTraceExtractor:
             "Do not return only the most specific proper noun when a short bridge word is necessary to reconstruct the connection later.\n"
             "\n"
             "Keep words short.\n"
-            "Use base/common forms when natural.\n"
+            "Preserve meaningful inflection from the original utterance.\n"
+            "Do not stem or lemmatize words merely to simplify them.\n"
             "Avoid full sentences and long phrases.\n"
             "\n"
             "Weight range: 0.4 to 1.4.\n"
