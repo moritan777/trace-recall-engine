@@ -13,7 +13,7 @@ Intentionally NOT in the stop list:
 - negation (nem, sem, ne, nincs, sincs): dropping it would let a recalled
   trace reconstruct the opposite meaning.
 - personal pronouns (én, te, ő, mi, ti, ők): participant reference depends on them.
-- copula / tense carriers (van, volt, lesz): they carry tense.
+- past/future tense carriers (volt, lesz): they carry tense.
 """
 
 from __future__ import annotations
@@ -24,7 +24,11 @@ import unicodedata
 STOP_WORDS = frozenset({
     "a", "az", "egy",
     "és", "s", "de", "hogy", "vagy", "ha", "mert", "pedig", "mint", "sőt", "illetve",
+    "azért", "mivel", "viszont", "azonban", "tehát", "így", "úgy",
+    "ám", "bár", "habár", "noha", "mintha", "miközben", "mialatt",
+    "továbbá", "valamint", "ugyanis", "hiszen",
     "is", "meg", "csak", "már", "még",
+    "van",
 })
 
 

@@ -2863,7 +2863,11 @@ def cmd_oracle_replay(args: argparse.Namespace) -> int:
     return 0
 
 def cmd_eval_extractor(args: argparse.Namespace) -> int:
-    extractor = create_extractor(args)
+    extractor = create_extractor(
+        args,
+        chat_client=call_openai_compatible_chat,
+        normalize_base_url=normalize_llm_base_url,
+    )
     scenarios = load_extractor_scenarios(Path(args.scenario))
     eval_word_policy = resolve_word_policy(getattr(args, "word_policy", None))
     rows = [

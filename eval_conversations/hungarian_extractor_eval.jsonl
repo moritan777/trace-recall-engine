@@ -1,0 +1,24 @@
+{"id":"hu_stop_001","input":"A házakban laktunk.","role":"user","expected_words":["házakban","laktunk"],"forbidden_words":["a"]}
+{"id":"hu_stop_002","input":"Az asztal nagy.","role":"user","expected_words":["asztal","nagy"],"forbidden_words":["az"]}
+{"id":"hu_stop_003","input":"A ház azonban régi.","role":"user","expected_words":["ház","régi"],"forbidden_words":["a","azonban"]}
+{"id":"hu_stop_004","input":"Mivel esik, otthon maradok.","role":"user","expected_words":["esik","otthon","maradok"],"forbidden_words":["mivel"]}
+{"id":"hu_stop_005","input":"A kávé tehát elfogyott.","role":"user","expected_words":["kávé","elfogyott"],"forbidden_words":["a","tehát"]}
+{"id":"hu_stop_006","input":"Hiszen Péter is tudja.","role":"user","expected_words":["Péter","tudja"],"forbidden_words":["hiszen","is"]}
+{"id":"hu_copula_001","input":"A macska a házban van.","role":"user","expected_words":["macska","házban"],"forbidden_words":["a","van"]}
+{"id":"hu_copula_002","input":"A macska tegnap itt volt.","role":"user","expected_words":["macska","tegnap","itt","volt"],"forbidden_words":["a"]}
+{"id":"hu_copula_003","input":"A találkozó holnap lesz.","role":"user","expected_words":["találkozó","holnap","lesz"],"forbidden_words":["a"]}
+{"id":"hu_negation_001","input":"Nem szeretem a kávét.","role":"user","expected_words":["nem","szeretem","kávét"],"forbidden_words":["a"]}
+{"id":"hu_negation_002","input":"Nincs macskám.","role":"user","expected_words":["nincs","macskám"],"forbidden_words":[]}
+{"id":"hu_negation_003","input":"Ne menj oda.","role":"user","expected_words":["ne","menj","oda"],"forbidden_words":[]}
+{"id":"hu_negation_004","input":"Én sem szeretem.","role":"user","expected_words":["én","sem","szeretem"],"forbidden_words":[]}
+{"id":"hu_postposition_001","input":"A macska az asztal alatt van.","role":"user","expected_words":["macska","asztal","alatt"],"forbidden_words":["a","az","van"]}
+{"id":"hu_postposition_002","input":"A ház előtt állok.","role":"user","expected_words":["ház","előtt","állok"],"forbidden_words":["a"]}
+{"id":"hu_postposition_003","input":"Péter mellett ülök.","role":"user","expected_words":["Péter","mellett","ülök"],"forbidden_words":[]}
+{"id":"hu_postposition_004","input":"A két ház között van egy kert.","role":"user","expected_words":["két","ház","között","kert"],"forbidden_words":["a","van","egy"]}
+{"id":"hu_postposition_005","input":"Kávé nélkül dolgozom.","role":"user","expected_words":["kávé","nélkül","dolgozom"],"forbidden_words":[]}
+{"id":"hu_unicode_001","input":"A házakban laktunk.","role":"user","expected_words":["házakban","laktunk"],"forbidden_words":["h","zakban","a"]}
+{"id":"hu_unicode_002","input":"Győr szép város.","role":"user","expected_words":["Győr","szép","város"],"forbidden_words":[]}
+{"id":"hu_unicode_003","input":"Ő szőlőt szeret.","role":"user","expected_words":["ő","szőlőt","szeret"],"forbidden_words":[]}
+{"id":"hu_inflection_001","input":"A házban vagyok.","role":"user","expected_words":["házban","vagyok"],"forbidden_words":["a"]}
+{"id":"hu_inflection_002","input":"A házakban emberek laknak.","role":"user","expected_words":["házakban","emberek","laknak"],"forbidden_words":["a"]}
+{"id":"hu_inflection_003","input":"A házból jövök.","role":"user","expected_words":["házból","jövök"],"forbidden_words":["a"]}
