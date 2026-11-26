@@ -1,0 +1,1910 @@
+﻿turn,user_input,llm_response,relevant_known_facts,relevant_previous_turns,expected_words,unexpected_words,primary_class,secondary_flags,confidence,evaluation_reason,diagnosis_needed,raw_activation_words,post_score_selection_words,post_fatigue_words,working_memory_words,prompt_words,final_prompt,response_used_expected_words,response_used_unexpected_words,expected_stage_trace,drop_reasons,word_policy_events,backend,model,llm_succeeded,fallback_used,generation_failure_type,response_time_ms,evaluator,evaluated_at,evaluation_version
+3,私の名前、覚えてる？,紗季さんですよね。ちゃんと覚えてますよ。,"[{""turn"":1,""text"":""私の名前は紗季です。"",""selection"":""keyword"",""matched_by"":[""expected:紗季""]},{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""keyword"",""matched_by"":[""unexpected:亮介""]}]","[1, 2]","[""紗季""]","[""亮介""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+私の名前、覚えてる？
+
+[Extracted Input Words]
+- 覚えてる (1.10)
+- @user (1.00)
+- 名前 (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=@user|名前|紗季 occurrence=1 origin=user representative=thread_bdd6cf5b0733 score=1.172 group_score=1.172 base=0.808 common_bonus=0.364 eff=1.000 direct=@user, 名前 core=@user / 名前 / 紗季 support=-
+  source=""私の名前は紗季です。""
+
+[Gated Words]
+- @user score=1.060 depth=0 role=direct fatigue=0 reason=input word
+- 名前 score=1.060 depth=0 role=direct fatigue=0 reason=input word
+- 紗季 score=0.157 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+5,朝に飲むものは何だった？,朝は白湯を飲むと落ち着くって言ってたよね。,"[{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":4,""text"":""朝は白湯を飲むと落ち着きます。"",""selection"":""keyword"",""matched_by"":[""expected:白湯""]}]","[2, 4]","[""白湯"", ""朝""]","[""コーヒー""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+朝に飲むものは何だった？
+
+[Extracted Input Words]
+- 朝 (1.00)
+- 飲む (1.00)
+- もの (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=朝|白湯|落ち着く|飲む occurrence=1 origin=user representative=thread_9a63299a2ee2 score=1.081 group_score=1.081 base=0.745 common_bonus=0.335 eff=1.000 direct=飲む, 朝 core=飲む / 朝 / 白湯 / 落ち着く support=-
+  source=""朝は白湯を飲むと落ち着きます。""
+
+[Gated Words]
+- 飲む score=1.109 depth=0 role=direct fatigue=0 reason=input word
+- 朝 score=0.988 depth=0 role=direct fatigue=0 reason=input word
+- 白湯 score=0.217 depth=2 role=core fatigue=0 reason=inside selected thread
+- 落ち着く score=0.188 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+7,青いマグカップは誰からもらった？,祖母からもらったよ。,"[{""turn"":4,""text"":""朝は白湯を飲むと落ち着きます。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":6,""text"":""青いマグカップは祖母からもらいました。"",""selection"":""keyword"",""matched_by"":[""expected:マグカップ"",""expected:祖母"",""expected:青い""]}]","[4, 6]","[""青い"", ""マグカップ"", ""祖母""]","[""母""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+青いマグカップは誰からもらった？
+
+[Extracted Input Words]
+- マグカップ (1.40)
+- 青い (1.20)
+- もらった (1.10)
+- 誰 (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=もらった|マグカップ|祖母|青い occurrence=1 origin=user representative=thread_d7a2aaba50d2 score=6.291 group_score=6.291 base=2.247 common_bonus=4.044 eff=1.000 direct=マグカップ, 青い, もらった core=マグカップ / 青い / もらった / 祖母 support=-
+  source=""青いマグカップは祖母からもらいました。""
+
+[Gated Words]
+- マグカップ score=2.283 depth=0 role=direct fatigue=0 reason=input word
+- 青い score=1.677 depth=0 role=direct fatigue=0 reason=input word
+- もらった score=1.265 depth=0 role=direct fatigue=0 reason=input word
+- 祖母 score=0.573 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+9,雨の日に行きたい場所は？,雨の日は図書館で過ごすのが好きなので、あそこに行きたいな。落ち着いて本を読めるからいいですよね。,"[{""turn"":6,""text"":""青いマグカップは祖母からもらいました。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":8,""text"":""雨の日は図書館で過ごすのが好きです。"",""selection"":""keyword"",""matched_by"":[""expected:図書館""]}]","[6, 8]","[""雨"", ""図書館""]","[""映画館""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+雨の日に行きたい場所は？
+
+[Extracted Input Words]
+- 雨の日 (1.20)
+- 場所 (1.10)
+- 行きたい (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=図書館|好き|過ごす|雨の日 occurrence=1 origin=user representative=thread_5ab6c8074949 score=0.713 group_score=0.713 base=0.713 eff=1.000 direct=雨の日 core=雨の日 / 図書館 / 好き / 過ごす support=-
+  source=""雨の日は図書館で過ごすのが好きです。""
+
+[Gated Words]
+- 雨の日 score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- 図書館 score=0.186 depth=2 role=core fatigue=0 reason=inside selected thread
+- 好き score=0.123 depth=2 role=core fatigue=0 reason=inside selected thread
+- 過ごす score=0.112 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+11,苦手な食べ物って何？,辛いカレーはちょっと苦手だな。思い出したけど、辛いものはあんまり得意じゃないかも。,"[{""turn"":8,""text"":""雨の日は図書館で過ごすのが好きです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":10,""text"":""辛いカレーは苦手です。"",""selection"":""keyword"",""matched_by"":[""expected:カレー"",""expected:苦手"",""expected:辛い""]}]","[8, 10]","[""辛い"", ""カレー"", ""苦手""]","[""甘い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+苦手な食べ物って何？
+
+[Extracted Input Words]
+- 食べ物 (1.30)
+- 苦手 (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=カレー|苦手|辛い occurrence=1 origin=user representative=thread_ba2e67e15f8d score=0.413 group_score=0.413 base=0.413 eff=1.000 direct=苦手 core=苦手 / カレー / 辛い support=-
+  source=""辛いカレーは苦手です。""
+
+[Gated Words]
+- 苦手 score=1.060 depth=0 role=direct fatigue=0 reason=input word
+- カレー score=0.125 depth=2 role=core fatigue=0 reason=inside selected thread
+- 辛い score=0.092 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+13,食べられるカレーもあった？,甘口の豆カレーなら食べられるって言ってたよね。辛いのは苦手みたいだけど、あっちなら大丈夫かな？,"[{""turn"":10,""text"":""辛いカレーは苦手です。"",""selection"":""keyword"",""matched_by"":[""unexpected:辛い""]},{""turn"":12,""text"":""でも甘口の豆カレーなら食べられます。"",""selection"":""keyword"",""matched_by"":[""expected:甘口"",""expected:豆カレー""]}]","[10, 12]","[""甘口"", ""豆カレー"", ""食べる""]","[""辛い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+食べられるカレーもあった？
+
+[Extracted Input Words]
+- カレー (1.40)
+- 食べられる (1.00)
+- あった (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=カレー|苦手|辛い occurrence=1 origin=user representative=thread_ba2e67e15f8d score=1.125 group_score=1.125 base=1.125 eff=1.000 direct=カレー core=カレー / 辛い / 苦手 support=-
+  source=""辛いカレーは苦手です。""
+key=甘口|豆カレー|食べられます occurrence=1 origin=user representative=thread_0dee3bca7d7e score=0.974 group_score=0.974 base=0.974 eff=1.000 direct=- core=豆カレー / 甘口 / 食べられます support=-
+  source=""でも甘口の豆カレーなら食べられます。""
+
+[Gated Words]
+- カレー score=2.293 depth=0 role=direct fatigue=1 reason=input word
+- 豆カレー score=1.986 depth=0 role=core fatigue=0 reason=inside selected thread
+- 辛い score=0.255 depth=2 role=core fatigue=1 reason=inside selected thread
+- 甘口 score=0.206 depth=2 role=core fatigue=0 reason=inside selected thread
+- 苦手 score=0.191 depth=2 role=core fatigue=1 reason=inside selected thread
+- 食べられます score=0.143 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+15,毎年夏に会う友人は誰？,大学時代の友人の真琴のことかな。毎年夏に会っているよね。,"[{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""keyword"",""matched_by"":[""unexpected:亮介""]},{""turn"":12,""text"":""でも甘口の豆カレーなら食べられます。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":14,""text"":""大学時代の友人の真琴とは毎年夏に会います。"",""selection"":""keyword"",""matched_by"":[""expected:真琴""]}]","[2, 12, 14]","[""真琴"", ""夏"", ""会う""]","[""亮介""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+毎年夏に会う友人は誰？
+
+[Extracted Input Words]
+- 友人 (1.30)
+- 夏 (1.20)
+- 会う (1.00)
+- 誰 (1.00)
+- 毎年 (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=会う|友人|夏|大学時代|毎年|真琴 occurrence=1 origin=user representative=thread_48c5bf5ad344 score=9.796 group_score=9.796 base=1.940 common_bonus=7.856 eff=1.000 direct=夏, 会う, 友人, 毎年 core=夏 / 友人 / 会う / 毎年 / 真琴 support=大学時代
+  source=""大学時代の友人の真琴とは毎年夏に会います。""
+
+[Gated Words]
+- 夏 score=1.702 depth=0 role=direct fatigue=0 reason=input word
+- 友人 score=1.482 depth=0 role=direct fatigue=0 reason=input word
+- 会う score=1.182 depth=0 role=direct fatigue=0 reason=input word
+- 真琴 score=1.014 depth=2 role=core fatigue=0 reason=inside selected thread
+- 毎年 score=0.957 depth=0 role=direct fatigue=0 reason=input word
+- 大学時代 score=0.737 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+17,真琴は海と山のどちらが好き？,真琴は海よりも山が好きみたいだよ。,"[{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""keyword"",""matched_by"":[""expected:好き""]},{""turn"":8,""text"":""雨の日は図書館で過ごすのが好きです。"",""selection"":""keyword"",""matched_by"":[""expected:好き""]},{""turn"":14,""text"":""大学時代の友人の真琴とは毎年夏に会います。"",""selection"":""keyword"",""matched_by"":[""expected:真琴""]},{""turn"":16,""text"":""真琴は海より山が好きです。"",""selection"":""keyword"",""matched_by"":[""expected:好き"",""expected:真琴""]}]","[2, 8, 14, 16]","[""真琴"", ""山"", ""好き""]","[""海""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+真琴は海と山のどちらが好き？
+
+[Extracted Input Words]
+- 真琴 (1.40)
+- 海 (1.30)
+- 山 (1.30)
+- 好き (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=より|好き|山|海|真琴 occurrence=1 origin=user representative=thread_0a10e00d54e1 score=17.558 group_score=17.558 base=3.477 common_bonus=14.081 eff=1.000 direct=真琴, 山, 海, 好き core=真琴 / 山 / 海 / 好き / より support=-
+  source=""真琴は海より山が好きです。""
+key=会う|友人|夏|大学時代|毎年|真琴 occurrence=1 origin=user representative=thread_48c5bf5ad344 score=1.290 group_score=1.290 base=1.290 eff=1.000 direct=真琴 core=真琴 / 夏 / 大学時代 / 友人 / 会う support=毎年
+  source=""大学時代の友人の真琴とは毎年夏に会います。""
+key=亮介|兄|写真|好き|撮る occurrence=1 origin=user representative=thread_1a589443e462 score=0.510 group_score=0.510 base=0.510 eff=1.000 direct=好き core=好き / 亮介 / 写真 / 撮る / 兄 support=-
+  source=""兄の亮介は写真を撮るのが好きです。""
+key=図書館|好き|過ごす|雨の日 occurrence=1 origin=user representative=thread_5ab6c8074949 score=0.500 group_score=0.500 base=0.500 eff=1.000 direct=好き core=好き / 図書館 / 雨の日 / 過ごす support=-
+  source=""雨の日は図書館で過ごすのが好きです。""
+
+[Gated Words]
+- 真琴 score=3.016 depth=0 role=direct fatigue=1 reason=input word
+- 海 score=2.003 depth=0 role=direct fatigue=0 reason=input word
+- 山 score=2.003 depth=0 role=direct fatigue=0 reason=input word
+- 好き score=1.600 depth=0 role=direct fatigue=1 reason=input word
+- より score=0.793 depth=2 role=core fatigue=0 reason=inside selected thread
+- 夏 score=0.311 depth=2 role=core fatigue=1 reason=inside selected thread
+- 大学時代 score=0.245 depth=2 role=core fatigue=1 reason=inside selected thread
+- 友人 score=0.217 depth=2 role=core fatigue=1 reason=inside selected thread
+- 会う score=0.215 depth=2 role=core fatigue=1 reason=inside selected thread
+- 毎年 score=0.174 depth=2 role=core fatigue=1 reason=inside selected thread
+- 亮介 score=0.150 depth=2 role=core fatigue=0 reason=inside selected thread
+- 図書館 score=0.131 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""max_prompt_words reached before per-word gate/fatigue checks"": 5}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+19,怖いと話したものは何？,高いところが少し怖いって話していましたね。,"[{""turn"":16,""text"":""真琴は海より山が好きです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":18,""text"":""私は高いところが少し怖いです。"",""selection"":""keyword"",""matched_by"":[""expected:怖い"",""expected:高いところ""]}]","[16, 18]","[""高いところ"", ""怖い""]","[""山""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+怖いと話したものは何？
+
+[Extracted Input Words]
+- 怖い (1.20)
+- 話した (1.00)
+- もの (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=@user|少し|怖い|高いところ occurrence=1 origin=user representative=thread_0d3c29d069d1 score=0.711 group_score=0.711 base=0.711 eff=1.000 direct=怖い core=怖い / 高いところ / @user / 少し support=-
+  source=""私は高いところが少し怖いです。""
+
+[Gated Words]
+- 怖い score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- 高いところ score=0.186 depth=2 role=core fatigue=0 reason=inside selected thread
+- @user score=0.130 depth=2 role=core fatigue=1 reason=inside selected thread
+- 少し score=0.073 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+21,来月の予定を覚えてる？,来月は、低い丘の遊歩道を歩く予定だね。そう思い出したよ。,"[{""turn"":18,""text"":""私は高いところが少し怖いです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":20,""text"":""来月、低い丘の遊歩道を歩く予定です。"",""selection"":""keyword"",""matched_by"":[""expected:来月"",""expected:歩く"",""expected:遊歩道""]}]","[18, 20]","[""来月"", ""丘"", ""遊歩道"", ""歩く""]","[""登山""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+来月の予定を覚えてる？
+
+[Extracted Input Words]
+- 予定 (1.20)
+- 来月 (1.10)
+- 覚えてる (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=予定|低い丘|来月|歩く|遊歩道 occurrence=1 origin=user representative=thread_25e3b7e2466f score=1.241 group_score=1.241 base=0.856 common_bonus=0.385 eff=1.000 direct=予定, 来月 core=予定 / 来月 / 低い丘 / 遊歩道 / 歩く support=-
+  source=""来月、低い丘の遊歩道を歩く予定です。""
+
+[Gated Words]
+- 予定 score=1.272 depth=0 role=direct fatigue=0 reason=input word
+- 来月 score=1.048 depth=0 role=direct fatigue=0 reason=input word
+- 低い丘 score=0.160 depth=2 role=core fatigue=0 reason=inside selected thread
+- 遊歩道 score=0.160 depth=2 role=core fatigue=0 reason=inside selected thread
+- 歩く score=0.102 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+23,帰りに寄りたい場所は？,駅前のパン屋が思い浮かびました。あそこ、寄りたいですよね。,"[{""turn"":8,""text"":""雨の日は図書館で過ごすのが好きです。"",""selection"":""keyword"",""matched_by"":[""unexpected:図書館""]},{""turn"":20,""text"":""来月、低い丘の遊歩道を歩く予定です。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":22,""text"":""帰りに駅前のパン屋へ寄りたいです。"",""selection"":""keyword"",""matched_by"":[""expected:パン屋"",""expected:帰り"",""expected:駅前""]}]","[8, 20, 22]","[""帰り"", ""駅前"", ""パン屋"", ""寄る""]","[""図書館""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+帰りに寄りたい場所は？
+
+[Extracted Input Words]
+- 場所 (1.20)
+- 帰り (1.00)
+- 寄りたい (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=パン屋|寄りたい|帰り|駅前 occurrence=1 origin=user representative=thread_b705fada14d3 score=1.081 group_score=1.081 base=0.745 common_bonus=0.335 eff=1.000 direct=寄りたい, 帰り core=寄りたい / 帰り / パン屋 / 駅前 support=-
+  source=""帰りに駅前のパン屋へ寄りたいです。""
+
+[Gated Words]
+- 寄りたい score=1.109 depth=0 role=direct fatigue=0 reason=input word
+- 帰り score=0.988 depth=0 role=direct fatigue=0 reason=input word
+- パン屋 score=0.217 depth=2 role=core fatigue=0 reason=inside selected thread
+- 駅前 score=0.188 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+25,パン屋で気になっているものは？,くるみパンが気になっているってことかな？駅前のパン屋に寄りたいって話もつながって出てきたよ。,"[{""turn"":10,""text"":""辛いカレーは苦手です。"",""selection"":""keyword"",""matched_by"":[""unexpected:カレー""]},{""turn"":12,""text"":""でも甘口の豆カレーなら食べられます。"",""selection"":""keyword"",""matched_by"":[""unexpected:カレー""]},{""turn"":22,""text"":""帰りに駅前のパン屋へ寄りたいです。"",""selection"":""keyword"",""matched_by"":[""expected:パン屋""]},{""turn"":24,""text"":""そのパン屋ではくるみパンが気になります。"",""selection"":""keyword"",""matched_by"":[""expected:くるみパン"",""expected:パン屋""]}]","[10, 12, 22, 24]","[""パン屋"", ""くるみパン"", ""気になる""]","[""カレー""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+パン屋で気になっているものは？
+
+[Extracted Input Words]
+- パン屋 (1.30)
+- 気になっている (1.00)
+- もの (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=くるみパン|パン屋|気になる occurrence=1 origin=user representative=thread_17e019c6e873 score=1.000 group_score=1.000 base=1.000 eff=1.000 direct=パン屋 core=パン屋 / くるみパン / 気になる support=-
+  source=""そのパン屋ではくるみパンが気になります。""
+key=パン屋|寄りたい|帰り|駅前 occurrence=1 origin=user representative=thread_b705fada14d3 score=0.999 group_score=0.999 base=0.999 eff=1.000 direct=パン屋 core=パン屋 / 駅前 / 寄りたい / 帰り support=-
+  source=""帰りに駅前のパン屋へ寄りたいです。""
+
+[Gated Words]
+- パン屋 score=2.416 depth=0 role=direct fatigue=1 reason=input word
+- くるみパン score=0.303 depth=2 role=core fatigue=0 reason=inside selected thread
+- 駅前 score=0.226 depth=2 role=core fatigue=1 reason=inside selected thread
+- 寄りたい score=0.169 depth=2 role=core fatigue=1 reason=inside selected thread
+- 気になる score=0.158 depth=2 role=core fatigue=0 reason=inside selected thread
+- 帰り score=0.137 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+27,ミントはどこで昼寝する？,ミントは窓辺で昼寝をするみたいだよ。,"[{""turn"":24,""text"":""そのパン屋ではくるみパンが気になります。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":26,""text"":""猫のミントは窓辺で昼寝します。"",""selection"":""keyword"",""matched_by"":[""expected:ミント"",""expected:昼寝"",""expected:窓辺""]}]","[24, 26]","[""ミント"", ""窓辺"", ""昼寝""]","[""庭""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+ミントはどこで昼寝する？
+
+[Extracted Input Words]
+- ミント (1.40)
+- 昼寝する (1.20)
+- どこ (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ミント|昼寝する|猫|窓辺 occurrence=1 origin=user representative=thread_3d5192c94efc score=2.475 group_score=2.475 base=1.707 common_bonus=0.768 eff=1.000 direct=ミント, 昼寝する core=ミント / 昼寝する / 猫 / 窓辺 support=-
+  source=""猫のミントは窓辺で昼寝します。""
+
+[Gated Words]
+- ミント score=2.283 depth=0 role=direct fatigue=0 reason=input word
+- 昼寝する score=1.519 depth=0 role=direct fatigue=0 reason=input word
+- 猫 score=0.308 depth=2 role=core fatigue=0 reason=inside selected thread
+- 窓辺 score=0.308 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+29,ミントが怖がる音は？,ミントは鈴の音を怖がりますね。,"[{""turn"":26,""text"":""猫のミントは窓辺で昼寝します。"",""selection"":""keyword"",""matched_by"":[""expected:ミント""]},{""turn"":28,""text"":""ミントは鈴の音を怖がります。"",""selection"":""keyword"",""matched_by"":[""expected:ミント""]}]","[26, 28]","[""ミント"", ""鈴"", ""音"", ""怖がる""]","[""雨""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+ミントが怖がる音は？
+
+[Extracted Input Words]
+- ミント (1.40)
+- 音 (1.30)
+- 怖がる (1.20)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ミント|怖がる|鈴の音 occurrence=1 origin=user representative=thread_f35d4ce326c5 score=3.914 group_score=3.914 base=2.700 common_bonus=1.215 eff=1.000 direct=ミント, 怖がる core=ミント / 怖がる / 鈴の音 support=-
+  source=""ミントは鈴の音を怖がります。""
+key=ミント|昼寝する|猫|窓辺 occurrence=1 origin=user representative=thread_3d5192c94efc score=1.366 group_score=1.366 base=1.366 eff=1.000 direct=ミント core=ミント / 猫 / 窓辺 / 昼寝する support=-
+  source=""猫のミントは窓辺で昼寝します。""
+
+[Gated Words]
+- ミント score=3.281 depth=0 role=direct fatigue=1 reason=input word
+- 鈴の音 score=1.785 depth=0 role=core fatigue=0 reason=inside selected thread
+- 怖がる score=1.724 depth=0 role=direct fatigue=0 reason=input word
+- 猫 score=0.307 depth=2 role=core fatigue=1 reason=inside selected thread
+- 窓辺 score=0.307 depth=2 role=core fatigue=1 reason=inside selected thread
+- 昼寝する score=0.279 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+31,父が修理しているものは何？,父は古いラジオを修理しているって言ってたね。,"[{""turn"":28,""text"":""ミントは鈴の音を怖がります。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":30,""text"":""父は古いラジオを修理しています。"",""selection"":""keyword"",""matched_by"":[""expected:ラジオ"",""expected:修理"",""expected:古い""]}]","[28, 30]","[""父"", ""古い"", ""ラジオ"", ""修理""]","[""カメラ""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+父が修理しているものは何？
+
+[Extracted Input Words]
+- 父 (1.20)
+- 修理している (1.10)
+- もの (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ラジオ|修理しています|古い|父 occurrence=1 origin=user representative=thread_001f9bac1545 score=0.715 group_score=0.715 base=0.715 eff=1.000 direct=父 core=父 / ラジオ / 修理しています / 古い support=-
+  source=""父は古いラジオを修理しています。""
+
+[Gated Words]
+- 父 score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- ラジオ score=0.186 depth=2 role=core fatigue=0 reason=inside selected thread
+- 修理しています score=0.135 depth=2 role=core fatigue=0 reason=inside selected thread
+- 古い score=0.112 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+33,古いラジオはどんな由来だった？,"お父さんが修理している古いラジオのことかな？
+それか、叔父さんの形見という話も思い出したよ。","[{""turn"":6,""text"":""青いマグカップは祖母からもらいました。"",""selection"":""keyword"",""matched_by"":[""unexpected:祖母""]},{""turn"":30,""text"":""父は古いラジオを修理しています。"",""selection"":""keyword"",""matched_by"":[""expected:ラジオ""]},{""turn"":32,""text"":""そのラジオは叔父の形見です。"",""selection"":""keyword"",""matched_by"":[""expected:ラジオ"",""expected:叔父"",""expected:形見""]}]","[6, 30, 32]","[""ラジオ"", ""叔父"", ""形見""]","[""祖母""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+古いラジオはどんな由来だった？
+
+[Extracted Input Words]
+- ラジオ (1.40)
+- 由来 (1.10)
+- 古い (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ラジオ|修理しています|古い|父 occurrence=1 origin=user representative=thread_001f9bac1545 score=2.136 group_score=2.136 base=1.473 common_bonus=0.663 eff=1.000 direct=ラジオ, 古い core=ラジオ / 古い / 父 / 修理しています support=-
+  source=""父は古いラジオを修理しています。""
+key=ラジオ|叔父|形見 occurrence=1 origin=user representative=thread_595f6646fb70 score=1.074 group_score=1.074 base=1.074 eff=1.000 direct=ラジオ core=ラジオ / 叔父 / 形見 support=-
+  source=""そのラジオは叔父の形見です。""
+
+[Gated Words]
+- ラジオ score=2.599 depth=0 role=direct fatigue=1 reason=input word
+- 古い score=1.161 depth=0 role=direct fatigue=1 reason=input word
+- 父 score=0.309 depth=2 role=core fatigue=1 reason=inside selected thread
+- 修理しています score=0.247 depth=2 role=core fatigue=1 reason=inside selected thread
+- 叔父 score=0.241 depth=2 role=core fatigue=0 reason=inside selected thread
+- 形見 score=0.241 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+35,夜についてお願いしたことは？,夜は大きな音を出さないでほしい、とお願いしていましたね。,"[{""turn"":32,""text"":""そのラジオは叔父の形見です。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":34,""text"":""夜は大きな音を出さないでほしいです。"",""selection"":""keyword"",""matched_by"":[""expected:出さない"",""expected:大きな音""]}]","[32, 34]","[""夜"", ""大きな音"", ""出さない""]","[""音楽""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+夜についてお願いしたことは？
+
+[Extracted Input Words]
+- 夜 (1.20)
+- お願いした (1.00)
+- こと (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=出さないでほしい|夜|大きな音 occurrence=1 origin=user representative=thread_c34034203ba0 score=0.493 group_score=0.493 base=0.493 eff=1.000 direct=夜 core=夜 / 大きな音 / 出さないでほしい support=-
+  source=""夜は大きな音を出さないでほしいです。""
+
+[Gated Words]
+- 夜 score=1.272 depth=0 role=direct fatigue=0 reason=input word
+- 大きな音 score=0.129 depth=2 role=core fatigue=0 reason=inside selected thread
+- 出さないでほしい score=0.094 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+37,眠れない夜にしたいことは？,眠れない夜には、短い詩を読みたいな……なんて思い浮かびました。,"[{""turn"":30,""text"":""父は古いラジオを修理しています。"",""selection"":""keyword"",""matched_by"":[""unexpected:ラジオ""]},{""turn"":32,""text"":""そのラジオは叔父の形見です。"",""selection"":""keyword"",""matched_by"":[""unexpected:ラジオ""]},{""turn"":34,""text"":""夜は大きな音を出さないでほしいです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":36,""text"":""眠れない夜は短い詩を読みたいです。"",""selection"":""keyword"",""matched_by"":[""expected:眠れない"",""expected:短い詩""]}]","[30, 32, 34, 36]","[""眠れない"", ""夜"", ""短い詩"", ""読む""]","[""ラジオ""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+眠れない夜にしたいことは？
+
+[Extracted Input Words]
+- 眠れない (1.20)
+- したいこと (1.10)
+- 夜 (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=夜|眠れない|短い|詩|読みたい occurrence=1 origin=user representative=thread_0cb0ab42fae7 score=1.863 group_score=1.863 base=1.285 common_bonus=0.578 eff=1.000 direct=眠れない, 夜 core=眠れない / 夜 / 詩 / 短い / 読みたい support=-
+  source=""眠れない夜は短い詩を読みたいです。""
+key=出さないでほしい|夜|大きな音 occurrence=1 origin=user representative=thread_c34034203ba0 score=0.534 group_score=0.534 base=0.534 eff=1.000 direct=夜 core=夜 / 大きな音 / 出さないでほしい support=-
+  source=""夜は大きな音を出さないでほしいです。""
+
+[Gated Words]
+- 眠れない score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- 夜 score=1.550 depth=0 role=direct fatigue=1 reason=input word
+- 詩 score=0.233 depth=2 role=core fatigue=0 reason=inside selected thread
+- 短い score=0.148 depth=2 role=core fatigue=0 reason=inside selected thread
+- 読みたい score=0.148 depth=2 role=core fatigue=0 reason=inside selected thread
+- 大きな音 score=0.141 depth=2 role=core fatigue=1 reason=inside selected thread
+- 出さないでほしい score=0.102 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+39,誕生日はいつ？,二月十四日だったと思います。,"[{""turn"":36,""text"":""眠れない夜は短い詩を読みたいです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":38,""text"":""誕生日は二月十四日です。"",""selection"":""keyword"",""matched_by"":[""expected:二月十四日"",""expected:誕生日""]}]","[36, 38]","[""二月十四日"", ""誕生日""]","[""三月""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+誕生日はいつ？
+
+[Extracted Input Words]
+- 誕生日 (1.00)
+- いつ (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=二月十四日|誕生日 occurrence=1 origin=user representative=thread_a7fafc1addbf score=0.408 group_score=0.408 base=0.408 eff=1.000 direct=誕生日 core=誕生日 / 二月十四日 support=-
+  source=""誕生日は二月十四日です。""
+
+[Gated Words]
+- 誕生日 score=1.060 depth=0 role=direct fatigue=0 reason=input word
+- 二月十四日 score=0.124 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+41,誕生日に食べたいものは？,以前に、誕生日には苺のタルトを食べたいって言っていましたね。それなら、今年も苺のタルトがいいですか？,"[{""turn"":38,""text"":""誕生日は二月十四日です。"",""selection"":""keyword"",""matched_by"":[""expected:誕生日""]},{""turn"":40,""text"":""誕生日には苺のタルトを食べたいです。"",""selection"":""keyword"",""matched_by"":[""expected:タルト"",""expected:誕生日""]}]","[38, 40]","[""誕生日"", ""苺"", ""タルト"", ""食べる""]","[""チーズケーキ""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+誕生日に食べたいものは？
+
+[Extracted Input Words]
+- 誕生日 (1.20)
+- 食べたい (1.00)
+- もの (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=タルト|苺|誕生日|食べたい occurrence=1 origin=user representative=thread_6ab3a10433a8 score=1.423 group_score=1.423 base=0.981 common_bonus=0.442 eff=1.000 direct=誕生日, 食べたい core=誕生日 / 食べたい / タルト / 苺 support=-
+  source=""誕生日には苺のタルトを食べたいです。""
+key=二月十四日|誕生日 occurrence=1 origin=user representative=thread_a7fafc1addbf score=0.574 group_score=0.574 base=0.574 eff=1.000 direct=誕生日 core=誕生日 / 二月十四日 support=-
+  source=""誕生日は二月十四日です。""
+
+[Gated Words]
+- 誕生日 score=1.605 depth=0 role=direct fatigue=1 reason=input word
+- 食べたい score=1.084 depth=0 role=direct fatigue=0 reason=input word
+- タルト score=0.187 depth=2 role=core fatigue=0 reason=inside selected thread
+- 苺 score=0.187 depth=2 role=core fatigue=0 reason=inside selected thread
+- 二月十四日 score=0.176 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+43,苺の好みについて何て言ってた？,苺ジャムは好きだけど、生の苺は少し酸っぱく感じるって言ってたね。あと、誕生日に苺のタルトを食べたいってことも話してたよ。,"[{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""keyword"",""matched_by"":[""expected:好き""]},{""turn"":8,""text"":""雨の日は図書館で過ごすのが好きです。"",""selection"":""keyword"",""matched_by"":[""expected:好き""]},{""turn"":16,""text"":""真琴は海より山が好きです。"",""selection"":""keyword"",""matched_by"":[""expected:好き""]},{""turn"":40,""text"":""誕生日には苺のタルトを食べたいです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":42,""text"":""苺ジャムは好きですが、生の苺は少し酸っぱく感じます。"",""selection"":""keyword"",""matched_by"":[""expected:好き"",""expected:生の苺"",""expected:苺ジャム""]}]","[2, 8, 16, 40, 42]","[""苺ジャム"", ""好き"", ""生の苺"", ""酸っぱい""]","[""嫌い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+苺の好みについて何て言ってた？
+
+[Extracted Input Words]
+- 苺 (1.40)
+- 好み (1.00)
+- 何て言ってた (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=好き|少し|感じます|生の苺|苺ジャム|酸っぱく occurrence=1 origin=user representative=thread_d2efc67fd9c5 score=1.739 group_score=1.739 base=1.739 eff=1.000 direct=- core=生の苺 / 苺ジャム / 酸っぱく / 好き / 感じます support=少し
+  source=""苺ジャムは好きですが、生の苺は少し酸っぱく感じます。""
+key=タルト|苺|誕生日|食べたい occurrence=1 origin=user representative=thread_6ab3a10433a8 score=0.984 group_score=0.984 base=0.984 eff=1.000 direct=苺 core=苺 / タルト / 誕生日 / 食べたい support=-
+  source=""誕生日には苺のタルトを食べたいです。""
+
+[Gated Words]
+- 苺 score=2.073 depth=0 role=direct fatigue=1 reason=input word
+- 生の苺 score=1.796 depth=0 role=core fatigue=0 reason=inside selected thread
+- 苺ジャム score=1.763 depth=0 role=core fatigue=0 reason=inside selected thread
+- タルト score=0.258 depth=2 role=core fatigue=1 reason=inside selected thread
+- 誕生日 score=0.193 depth=2 role=core fatigue=2 reason=inside selected thread
+- 酸っぱく score=0.187 depth=2 role=core fatigue=0 reason=inside selected thread
+- 好き score=0.181 depth=2 role=core fatigue=0 reason=inside selected thread
+- 食べたい score=0.165 depth=2 role=core fatigue=1 reason=inside selected thread
+- 感じます score=0.130 depth=2 role=core fatigue=0 reason=inside selected thread
+- 少し score=0.091 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+45,仕事で使っているノートの色は？,仕事では緑色のノートを使っています。,"[{""turn"":6,""text"":""青いマグカップは祖母からもらいました。"",""selection"":""keyword"",""matched_by"":[""unexpected:青い""]},{""turn"":42,""text"":""苺ジャムは好きですが、生の苺は少し酸っぱく感じます。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":44,""text"":""仕事では緑色のノートを使っています。"",""selection"":""keyword"",""matched_by"":[""expected:ノート"",""expected:仕事"",""expected:緑色""]}]","[6, 42, 44]","[""仕事"", ""緑色"", ""ノート""]","[""青い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+仕事で使っているノートの色は？
+
+[Extracted Input Words]
+- ノート (1.30)
+- 色 (1.10)
+- 仕事 (1.00)
+- 使っている (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ノート|仕事|使っている|緑色 occurrence=1 origin=user representative=thread_5873ab76e00d score=5.931 group_score=5.931 base=2.118 common_bonus=3.813 eff=1.000 direct=ノート, 仕事, 使っている core=ノート / 仕事 / 使っている / 緑色 support=-
+  source=""仕事では緑色のノートを使っています。""
+
+[Gated Words]
+- ノート score=1.913 depth=0 role=direct fatigue=0 reason=input word
+- 緑色 score=1.528 depth=0 role=core fatigue=0 reason=inside selected thread
+- 仕事 score=1.132 depth=0 role=direct fatigue=0 reason=input word
+- 使っている score=0.932 depth=0 role=direct fatigue=0 reason=input word
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+47,緑色のノートには何を書く？,会議の決定事項だけを書くって言ってましたね。仕事で使っているノートのことかな。,"[{""turn"":20,""text"":""来月、低い丘の遊歩道を歩く予定です。"",""selection"":""keyword"",""matched_by"":[""unexpected:予定""]},{""turn"":44,""text"":""仕事では緑色のノートを使っています。"",""selection"":""keyword"",""matched_by"":[""expected:ノート"",""expected:緑色""]},{""turn"":46,""text"":""緑色のノートには会議の決定だけを書きます。"",""selection"":""keyword"",""matched_by"":[""expected:ノート"",""expected:会議"",""expected:決定"",""expected:緑色""]}]","[20, 44, 46]","[""緑色"", ""ノート"", ""会議"", ""決定"", ""書く""]","[""予定""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+緑色のノートには何を書く？
+
+[Extracted Input Words]
+- ノート (1.30)
+- 緑色 (1.20)
+- 書く (1.00)
+- 何 (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ノート|会議|書く|決定|緑色 occurrence=1 origin=user representative=thread_af8a4a961d41 score=6.468 group_score=6.468 base=2.310 common_bonus=4.158 eff=1.000 direct=ノート, 緑色, 書く core=ノート / 緑色 / 書く / 会議 / 決定 support=-
+  source=""緑色のノートには会議の決定だけを書きます。""
+key=ノート|仕事|使っている|緑色 occurrence=1 origin=user representative=thread_5873ab76e00d score=2.749 group_score=2.749 base=1.896 common_bonus=0.853 eff=1.000 direct=ノート, 緑色 core=ノート / 緑色 / 仕事 / 使っている support=-
+  source=""仕事では緑色のノートを使っています。""
+
+[Gated Words]
+- ノート score=2.670 depth=0 role=direct fatigue=1 reason=input word
+- 緑色 score=2.261 depth=0 role=direct fatigue=1 reason=input word
+- 書く score=1.158 depth=0 role=direct fatigue=0 reason=input word
+- 会議 score=0.570 depth=2 role=core fatigue=0 reason=inside selected thread
+- 決定 score=0.507 depth=2 role=core fatigue=0 reason=inside selected thread
+- 仕事 score=0.236 depth=2 role=core fatigue=1 reason=inside selected thread
+- 使っている score=0.235 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+49,旅行の計画を書くのはどの手帳？,旅行の計画は、黄色い手帳に書くと覚えていました。,"[{""turn"":44,""text"":""仕事では緑色のノートを使っています。"",""selection"":""keyword"",""matched_by"":[""unexpected:緑色""]},{""turn"":46,""text"":""緑色のノートには会議の決定だけを書きます。"",""selection"":""keyword"",""matched_by"":[""unexpected:緑色""]},{""turn"":48,""text"":""旅行の計画は黄色い手帳に書きます。"",""selection"":""keyword"",""matched_by"":[""expected:手帳"",""expected:旅行"",""expected:計画"",""expected:黄色い""]}]","[44, 46, 48]","[""旅行"", ""計画"", ""黄色い"", ""手帳""]","[""緑色""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+旅行の計画を書くのはどの手帳？
+
+[Extracted Input Words]
+- 手帳 (1.40)
+- 旅行 (1.30)
+- 計画 (1.30)
+- 書く (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=手帳|旅行|書く|計画|黄色い occurrence=1 origin=user representative=thread_5622299eb112 score=15.424 group_score=15.424 base=3.054 common_bonus=12.369 eff=1.000 direct=手帳, 旅行, 計画, 書く core=手帳 / 旅行 / 計画 / 書く / 黄色い support=-
+  source=""旅行の計画は黄色い手帳に書きます。""
+key=ノート|会議|書く|決定|緑色 occurrence=1 origin=user representative=thread_af8a4a961d41 score=0.503 group_score=0.503 base=0.503 eff=1.000 direct=書く core=書く / ノート / 緑色 / 会議 / 決定 support=-
+  source=""緑色のノートには会議の決定だけを書きます。""
+
+[Gated Words]
+- 手帳 score=2.060 depth=0 role=direct fatigue=0 reason=input word
+- 旅行 score=1.930 depth=0 role=direct fatigue=0 reason=input word
+- 計画 score=1.764 depth=0 role=direct fatigue=0 reason=input word
+- 書く score=1.427 depth=0 role=direct fatigue=1 reason=input word
+- 黄色い score=0.986 depth=2 role=core fatigue=0 reason=inside selected thread
+- ノート score=0.163 depth=2 role=core fatigue=2 reason=inside selected thread
+- 緑色 score=0.139 depth=2 role=core fatigue=2 reason=inside selected thread
+- 会議 score=0.129 depth=2 role=core fatigue=1 reason=inside selected thread
+- 決定 score=0.110 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+51,去年どこで茶筒を買った？,去年、金沢で買ったのを覚えています。小さな茶筒でしたよね。,"[{""turn"":48,""text"":""旅行の計画は黄色い手帳に書きます。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":50,""text"":""去年、金沢で小さな茶筒を買いました。"",""selection"":""keyword"",""matched_by"":[""expected:去年"",""expected:茶筒"",""expected:金沢""]}]","[48, 50]","[""去年"", ""金沢"", ""茶筒"", ""買う""]","[""京都""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+去年どこで茶筒を買った？
+
+[Extracted Input Words]
+- 茶筒 (1.40)
+- どこ (1.00)
+- 買った (1.00)
+- 去年 (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=去年|小さな|茶筒|買いました|金沢 occurrence=1 origin=user representative=thread_68852308201d score=1.844 group_score=1.844 base=1.272 common_bonus=0.572 eff=1.000 direct=茶筒, 去年 core=茶筒 / 去年 / 金沢 / 小さな / 買いました support=-
+  source=""去年、金沢で小さな茶筒を買いました。""
+
+[Gated Words]
+- 茶筒 score=2.060 depth=0 role=direct fatigue=0 reason=input word
+- 去年 score=0.925 depth=0 role=direct fatigue=0 reason=input word
+- 金沢 score=0.340 depth=2 role=core fatigue=0 reason=inside selected thread
+- 小さな score=0.186 depth=2 role=core fatigue=0 reason=inside selected thread
+- 買いました score=0.186 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+53,茶筒に入れているお茶は？,その茶筒には、焙じ茶を入れていると思います。去年、金沢で買った小さな茶筒ですね。,"[{""turn"":50,""text"":""去年、金沢で小さな茶筒を買いました。"",""selection"":""keyword"",""matched_by"":[""expected:茶筒""]},{""turn"":52,""text"":""その茶筒には焙じ茶を入れています。"",""selection"":""keyword"",""matched_by"":[""expected:焙じ茶"",""expected:茶筒""]}]","[50, 52]","[""茶筒"", ""焙じ茶"", ""入れる""]","[""紅茶""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+茶筒に入れているお茶は？
+
+[Extracted Input Words]
+- 茶筒 (1.30)
+- お茶 (1.30)
+- 入れている (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=去年|小さな|茶筒|買いました|金沢 occurrence=1 origin=user representative=thread_68852308201d score=1.098 group_score=1.098 base=1.098 eff=1.000 direct=茶筒 core=茶筒 / 金沢 / 小さな / 買いました / 去年 support=-
+  source=""去年、金沢で小さな茶筒を買いました。""
+key=入れています|焙じ茶|茶筒 occurrence=1 origin=user representative=thread_31189b74b018 score=1.084 group_score=1.084 base=1.084 eff=1.000 direct=茶筒 core=茶筒 / 焙じ茶 / 入れています support=-
+  source=""その茶筒には焙じ茶を入れています。""
+
+[Gated Words]
+- 茶筒 score=2.670 depth=0 role=direct fatigue=1 reason=input word
+- 金沢 score=0.332 depth=2 role=core fatigue=1 reason=inside selected thread
+- 焙じ茶 score=0.328 depth=2 role=core fatigue=0 reason=inside selected thread
+- 小さな score=0.172 depth=2 role=core fatigue=1 reason=inside selected thread
+- 買いました score=0.172 depth=2 role=core fatigue=1 reason=inside selected thread
+- 入れています score=0.171 depth=2 role=core fatigue=0 reason=inside selected thread
+- 去年 score=0.148 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+56,お茶の好みは変わった？,そうですね、最近は少しずつ好みが変わってきた気がします。以前より、香りの強いものが好きになったかもしれません。,"[{""turn"":4,""text"":""朝は白湯を飲むと落ち着きます。"",""selection"":""keyword"",""matched_by"":[""expected:飲む""]},{""turn"":52,""text"":""その茶筒には焙じ茶を入れています。"",""selection"":""keyword"",""matched_by"":[""expected:焙じ茶""]},{""turn"":54,""text"":""以前は緑茶ばかり飲んでいました。"",""selection"":""keyword"",""matched_by"":[""expected:以前"",""expected:緑茶""]},{""turn"":55,""text"":""最近は焙じ茶もよく飲みます。"",""selection"":""keyword"",""matched_by"":[""expected:最近"",""expected:焙じ茶""]}]","[4, 52, 54, 55]","[""以前"", ""緑茶"", ""最近"", ""焙じ茶"", ""飲む""]","[""コーヒー""]",INVALID_FALSE_MEMORY,"[""UNSUPPORTED_ADDITION""]",HIGH,"The response adds that stronger aromas have become preferable, which is not supported by the earlier tea-history statements.",true,[],[],[],[],[],"[Current Input]
+お茶の好みは変わった？
+
+[Extracted Input Words]
+- お茶 (1.30)
+- 変わった (1.10)
+- 好み (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+No strong gated context.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+
+[Gated Words]
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+58,日曜日にすることは？,日曜日はベランダの植物に水をやることを思い出しました。,"[{""turn"":8,""text"":""雨の日は図書館で過ごすのが好きです。"",""selection"":""keyword"",""matched_by"":[""unexpected:図書館""]},{""turn"":55,""text"":""最近は焙じ茶もよく飲みます。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":57,""text"":""日曜日はベランダの植物に水をやります。"",""selection"":""keyword"",""matched_by"":[""expected:ベランダ"",""expected:日曜日"",""expected:植物""]}]","[8, 55, 57]","[""日曜日"", ""ベランダ"", ""植物"", ""水をやる""]","[""図書館""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+日曜日にすることは？
+
+[Extracted Input Words]
+- 日曜日 (1.20)
+- すること (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ベランダ|日曜日は|植物|水をやる occurrence=1 origin=user representative=thread_2b3281a6268d score=0.352 group_score=0.352 base=0.352 eff=1.000 direct=- core=日曜日は / 植物 / ベランダ / 水をやる support=-
+  source=""日曜日はベランダの植物に水をやります。""
+
+[Gated Words]
+- 日曜日は score=0.981 depth=0 role=core fatigue=0 reason=inside selected thread
+- 植物 score=0.086 depth=2 role=core fatigue=0 reason=inside selected thread
+- ベランダ score=0.073 depth=2 role=core fatigue=0 reason=inside selected thread
+- 水をやる score=0.061 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+60,水をやりすぎない植物は？,ローズマリーなら、水をやりすぎないように気をつけて育てているのを思い出しました。,"[{""turn"":26,""text"":""猫のミントは窓辺で昼寝します。"",""selection"":""keyword"",""matched_by"":[""unexpected:ミント""]},{""turn"":28,""text"":""ミントは鈴の音を怖がります。"",""selection"":""keyword"",""matched_by"":[""unexpected:ミント""]},{""turn"":57,""text"":""日曜日はベランダの植物に水をやります。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":59,""text"":""ローズマリーだけは水をやりすぎないようにしています。"",""selection"":""keyword"",""matched_by"":[""expected:やりすぎない"",""expected:ローズマリー""]}]","[26, 28, 57, 59]","[""ローズマリー"", ""水"", ""やりすぎない""]","[""ミント""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+水をやりすぎない植物は？
+
+[Extracted Input Words]
+- 植物 (1.30)
+- 水 (1.20)
+- やりすぎない (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=やりすぎない|ローズマリー|水 occurrence=1 origin=user representative=thread_67b4516e6032 score=1.603 group_score=1.603 base=1.105 common_bonus=0.497 eff=1.000 direct=水, やりすぎない core=水 / やりすぎない / ローズマリー support=-
+  source=""ローズマリーだけは水をやりすぎないようにしています。""
+key=ベランダ|日曜日は|植物|水をやる occurrence=1 origin=user representative=thread_2b3281a6268d score=1.346 group_score=1.346 base=1.346 eff=1.000 direct=植物 core=植物 / 水をやる / ベランダ / 日曜日は support=-
+  source=""日曜日はベランダの植物に水をやります。""
+
+[Gated Words]
+- 植物 score=1.919 depth=0 role=direct fatigue=1 reason=input word
+- 水 score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- 水をやる score=1.196 depth=0 role=core fatigue=1 reason=inside selected thread
+- やりすぎない score=1.104 depth=0 role=direct fatigue=0 reason=input word
+- ローズマリー score=0.257 depth=2 role=core fatigue=0 reason=inside selected thread
+- ベランダ score=0.210 depth=2 role=core fatigue=1 reason=inside selected thread
+- 日曜日は score=0.129 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+62,来週火曜日の予定は？,来週の火曜日は、歯科検診がある予定です。,"[{""turn"":46,""text"":""緑色のノートには会議の決定だけを書きます。"",""selection"":""keyword"",""matched_by"":[""unexpected:会議""]},{""turn"":59,""text"":""ローズマリーだけは水をやりすぎないようにしています。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":61,""text"":""来週の火曜日に歯科検診があります。"",""selection"":""keyword"",""matched_by"":[""expected:来週"",""expected:歯科検診"",""expected:火曜日""]}]","[46, 59, 61]","[""来週"", ""火曜日"", ""歯科検診""]","[""会議""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+来週火曜日の予定は？
+
+[Extracted Input Words]
+- 火曜日 (1.20)
+- 予定 (1.00)
+- 来週 (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ある|来週|歯科検診|火曜日 occurrence=1 origin=user representative=thread_d7057fa5b665 score=1.450 group_score=1.450 base=1.000 common_bonus=0.450 eff=1.000 direct=火曜日, 来週 core=火曜日 / 来週 / 歯科検診 / ある support=-
+  source=""来週の火曜日に歯科検診があります。""
+key=予定|低い丘|来月|歩く|遊歩道 occurrence=1 origin=user representative=thread_25e3b7e2466f score=0.452 group_score=0.452 base=0.452 eff=0.999 direct=予定 core=予定 / 低い丘 / 遊歩道 / 歩く / 来月 support=-
+  source=""来月、低い丘の遊歩道を歩く予定です。""
+
+[Gated Words]
+- 火曜日 score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- 予定 score=1.152 depth=0 role=direct fatigue=0 reason=input word
+- 来週 score=0.894 depth=0 role=direct fatigue=0 reason=input word
+- 歯科検診 score=0.252 depth=2 role=core fatigue=0 reason=inside selected thread
+- 低い丘 score=0.117 depth=2 role=core fatigue=0 reason=inside selected thread
+- 遊歩道 score=0.117 depth=2 role=core fatigue=0 reason=inside selected thread
+- ある score=0.094 depth=2 role=core fatigue=0 reason=inside selected thread
+- 歩く score=0.070 depth=2 role=core fatigue=0 reason=inside selected thread
+- 来月 score=0.061 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+64,歯医者で苦手なのは何？,歯医者の機械音が苦手だということを思い出しました。治療自体は怖くないみたいですね。,"[{""turn"":10,""text"":""辛いカレーは苦手です。"",""selection"":""keyword"",""matched_by"":[""expected:苦手""]},{""turn"":18,""text"":""私は高いところが少し怖いです。"",""selection"":""keyword"",""matched_by"":[""unexpected:怖い""]},{""turn"":61,""text"":""来週の火曜日に歯科検診があります。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":63,""text"":""歯医者の機械音は苦手ですが、治療自体は怖くありません。"",""selection"":""keyword"",""matched_by"":[""expected:機械音"",""expected:歯医者"",""expected:苦手"",""unexpected:治療""]}]","[10, 18, 61, 63]","[""歯医者"", ""機械音"", ""苦手""]","[""治療"", ""怖い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+歯医者で苦手なのは何？
+
+[Extracted Input Words]
+- 歯医者 (1.30)
+- 苦手 (1.10)
+- 何 (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=怖くない|機械音|歯医者|治療|苦手 occurrence=1 origin=user representative=thread_44d37414c14e score=2.076 group_score=2.076 base=1.432 common_bonus=0.644 eff=1.000 direct=歯医者, 苦手 core=歯医者 / 苦手 / 治療 / 機械音 / 怖くない support=-
+  source=""歯医者の機械音は苦手ですが、治療自体は怖くありません。""
+key=カレー|苦手|辛い occurrence=1 origin=user representative=thread_ba2e67e15f8d score=0.536 group_score=0.536 base=0.536 eff=0.999 direct=苦手 core=苦手 / カレー / 辛い support=-
+  source=""辛いカレーは苦手です。""
+
+[Gated Words]
+- 歯医者 score=1.913 depth=0 role=direct fatigue=0 reason=input word
+- 苦手 score=1.543 depth=0 role=direct fatigue=0 reason=input word
+- 治療 score=0.288 depth=2 role=core fatigue=0 reason=inside selected thread
+- 機械音 score=0.250 depth=2 role=core fatigue=0 reason=inside selected thread
+- 怖くない score=0.214 depth=2 role=core fatigue=0 reason=inside selected thread
+- カレー score=0.177 depth=2 role=core fatigue=0 reason=inside selected thread
+- 辛い score=0.121 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+66,昼休みに座る場所は？,公園の北側にあるベンチに座るのを思い出しました。,"[{""turn"":63,""text"":""歯医者の機械音は苦手ですが、治療自体は怖くありません。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":65,""text"":""昼休みは公園の北側のベンチに座ります。"",""selection"":""keyword"",""matched_by"":[""expected:ベンチ"",""expected:公園"",""expected:北側"",""expected:昼休み""]}]","[63, 65]","[""昼休み"", ""公園"", ""北側"", ""ベンチ"", ""座る""]","[""南側""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+昼休みに座る場所は？
+
+[Extracted Input Words]
+- 場所 (1.20)
+- 昼休み (1.10)
+- 座る (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ベンチ|公園|北側|座ります|昼休み occurrence=1 origin=user representative=thread_b0c53e244de1 score=0.561 group_score=0.561 base=0.561 eff=1.000 direct=昼休み core=昼休み / ベンチ / 公園 / 北側 / 座ります support=-
+  source=""昼休みは公園の北側のベンチに座ります。""
+
+[Gated Words]
+- 昼休み score=1.307 depth=0 role=direct fatigue=0 reason=input word
+- ベンチ score=0.144 depth=2 role=core fatigue=0 reason=inside selected thread
+- 公園 score=0.144 depth=2 role=core fatigue=0 reason=inside selected thread
+- 北側 score=0.123 depth=2 role=core fatigue=0 reason=inside selected thread
+- 座ります score=0.087 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+68,日差しが強い日はどのベンチ？,強い日差しの日は、木陰のベンチを選びます。,"[{""turn"":65,""text"":""昼休みは公園の北側のベンチに座ります。"",""selection"":""keyword"",""matched_by"":[""expected:ベンチ"",""unexpected:北側""]},{""turn"":67,""text"":""強い日差しの日は木陰のベンチを選びます。"",""selection"":""keyword"",""matched_by"":[""expected:ベンチ"",""expected:強い日差し"",""expected:木陰""]}]","[65, 67]","[""強い日差し"", ""木陰"", ""ベンチ"", ""選ぶ""]","[""北側""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+日差しが強い日はどのベンチ？
+
+[Extracted Input Words]
+- ベンチ (1.30)
+- 日差し (1.20)
+- 強い (1.00)
+- 日 (0.90)
+- どの (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ベンチ|強い|日|日差し|木陰|選びます occurrence=1 origin=user representative=thread_e4dd24645093 score=13.482 group_score=13.482 base=2.670 common_bonus=10.812 eff=1.000 direct=ベンチ, 日差し, 強い, 日 core=日差し / ベンチ / 日 / 強い / 木陰 support=選びます
+  source=""強い日差しの日は木陰のベンチを選びます。""
+key=ベンチ|公園|北側|座ります|昼休み occurrence=1 origin=user representative=thread_b0c53e244de1 score=1.095 group_score=1.095 base=1.095 eff=1.000 direct=ベンチ core=ベンチ / 公園 / 北側 / 昼休み / 座ります support=-
+  source=""昼休みは公園の北側のベンチに座ります。""
+
+[Gated Words]
+- 日差し score=2.766 depth=0 role=direct fatigue=0 reason=input word
+- ベンチ score=2.691 depth=0 role=direct fatigue=1 reason=input word
+- 日 score=1.796 depth=0 role=direct fatigue=0 reason=input word
+- 強い score=1.169 depth=0 role=direct fatigue=0 reason=input word
+- 木陰 score=1.127 depth=2 role=core fatigue=0 reason=inside selected thread
+- 選びます score=0.816 depth=2 role=core fatigue=0 reason=inside selected thread
+- 公園 score=0.283 depth=2 role=core fatigue=1 reason=inside selected thread
+- 北側 score=0.242 depth=2 role=core fatigue=1 reason=inside selected thread
+- 昼休み score=0.220 depth=2 role=core fatigue=1 reason=inside selected thread
+- 座ります score=0.170 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Suppressed Words]
+These were activated internally but should not drive the response.
+- 二月十四日 score=1.233 depth=0
+- 誕生日 score=1.143 depth=0
+- 雨の日 score=1.039 depth=0
+- 火曜日 score=1.036 depth=0
+- 日曜日は score=0.700 depth=0
+- 歯科検診 score=0.132 depth=2
+- 図書館 score=0.114 depth=2
+- 苺 score=0.101 depth=2
+- 好き score=0.094 depth=2
+- タルト score=0.093 depth=2
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""outside selected threads"": 10}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+70,子どものころの自転車は何色？,小学生のころに乗っていた、赤い自転車が思い浮かんだよ。,"[{""turn"":44,""text"":""仕事では緑色のノートを使っています。"",""selection"":""keyword"",""matched_by"":[""unexpected:緑色""]},{""turn"":46,""text"":""緑色のノートには会議の決定だけを書きます。"",""selection"":""keyword"",""matched_by"":[""unexpected:緑色""]},{""turn"":67,""text"":""強い日差しの日は木陰のベンチを選びます。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":69,""text"":""小学生のころ、赤い自転車に乗っていました。"",""selection"":""keyword"",""matched_by"":[""expected:小学生"",""expected:自転車"",""expected:赤い""]}]","[44, 46, 67, 69]","[""小学生"", ""赤い"", ""自転車"", ""乗る""]","[""緑色""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+子どものころの自転車は何色？
+
+[Extracted Input Words]
+- 自転車 (1.40)
+- 何色 (1.10)
+- 子どものころ (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=ころ|乗っていました|小学生|自転車|赤い occurrence=1 origin=user representative=thread_98676f5aedef score=1.386 group_score=1.386 base=1.386 eff=1.000 direct=自転車 core=自転車 / ころ / 小学生 / 赤い / 乗っていました support=-
+  source=""小学生のころ、赤い自転車に乗っていました。""
+
+[Gated Words]
+- 自転車 score=2.283 depth=0 role=direct fatigue=0 reason=input word
+- ころ score=0.856 depth=0 role=core fatigue=0 reason=inside selected thread
+- 小学生 score=0.257 depth=2 role=core fatigue=0 reason=inside selected thread
+- 赤い score=0.218 depth=2 role=core fatigue=0 reason=inside selected thread
+- 乗っていました score=0.181 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+72,赤い自転車でどこを走った？,川沿いを走ったことを思い出しました。小学生のころ、赤い自転車に乗っていたこともつながって出てきました。,"[{""turn"":69,""text"":""小学生のころ、赤い自転車に乗っていました。"",""selection"":""keyword"",""matched_by"":[""expected:自転車"",""expected:赤い""]},{""turn"":71,""text"":""赤い自転車で川沿いを走ったことがあります。"",""selection"":""keyword"",""matched_by"":[""expected:川沿い"",""expected:自転車"",""expected:赤い""]}]","[69, 71]","[""赤い"", ""自転車"", ""川沿い"", ""走る""]","[""海""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+赤い自転車でどこを走った？
+
+[Extracted Input Words]
+- 自転車 (1.40)
+- 赤い (1.20)
+- 走った (1.10)
+- どこ (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=こと|川沿い|自転車|赤い|走った occurrence=1 origin=user representative=thread_58cc5a2bb49b score=7.395 group_score=7.395 base=2.641 common_bonus=4.754 eff=1.000 direct=自転車, 赤い, 走った core=自転車 / 赤い / 走った / 川沿い / こと support=-
+  source=""赤い自転車で川沿いを走ったことがあります。""
+key=ころ|乗っていました|小学生|自転車|赤い occurrence=1 origin=user representative=thread_98676f5aedef score=2.977 group_score=2.977 base=2.053 common_bonus=0.924 eff=1.000 direct=自転車, 赤い core=自転車 / 赤い / 小学生 / 乗っていました / ころ support=-
+  source=""小学生のころ、赤い自転車に乗っていました。""
+
+[Gated Words]
+- 自転車 score=3.281 depth=0 role=direct fatigue=1 reason=input word
+- 赤い score=2.197 depth=0 role=direct fatigue=1 reason=input word
+- 走った score=1.449 depth=0 role=direct fatigue=0 reason=input word
+- 川沿い score=0.680 depth=2 role=core fatigue=0 reason=inside selected thread
+- 小学生 score=0.372 depth=2 role=core fatigue=1 reason=inside selected thread
+- こと score=0.339 depth=2 role=core fatigue=0 reason=inside selected thread
+- 乗っていました score=0.270 depth=2 role=core fatigue=1 reason=inside selected thread
+- ころ score=0.234 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+74,川の近くで思い出す音は？,川の近くだと、風の音がふと思い浮かびます。,"[{""turn"":71,""text"":""赤い自転車で川沿いを走ったことがあります。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":73,""text"":""川の近くでは風の音を思い出します。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]}]","[71, 73]","[""川"", ""風"", ""音"", ""思い出す""]","[""鈴""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+川の近くで思い出す音は？
+
+[Extracted Input Words]
+- 川 (1.30)
+- 音 (1.30)
+- 思い出す (1.10)
+- 近く (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=川|思い出します|近く|音|風 occurrence=1 origin=user representative=thread_af778769c203 score=5.736 group_score=5.736 base=2.049 common_bonus=3.688 eff=1.000 direct=川, 音, 近く core=川 / 音 / 近く / 風 / 思い出します support=-
+  source=""川の近くでは風の音を思い出します。""
+
+[Gated Words]
+- 川 score=1.913 depth=0 role=direct fatigue=0 reason=input word
+- 音 score=1.750 depth=0 role=direct fatigue=0 reason=input word
+- 近く score=1.132 depth=0 role=direct fatigue=0 reason=input word
+- 風 score=0.491 depth=2 role=core fatigue=0 reason=inside selected thread
+- 思い出します score=0.338 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Suppressed Words]
+These were activated internally but should not drive the response.
+- 鈴の音 score=1.673 depth=0
+- 川沿い score=1.534 depth=0
+- 大きな音 score=1.486 depth=0
+- 機械音 score=1.365 depth=0
+- ミント score=0.290 depth=2
+- 自転車 score=0.269 depth=2
+- 赤い score=0.183 depth=2
+- 怖がる score=0.180 depth=2
+- 歯医者 score=0.165 depth=2
+- 治療 score=0.152 depth=2
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""outside selected threads"": 15}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+76,冬に履く靴下はどんなもの？,冬は厚い灰色の靴下を履くのが思い浮かびますね。,"[{""turn"":48,""text"":""旅行の計画は黄色い手帳に書きます。"",""selection"":""keyword"",""matched_by"":[""unexpected:黄色い""]},{""turn"":73,""text"":""川の近くでは風の音を思い出します。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":75,""text"":""冬は厚い灰色の靴下を履きます。"",""selection"":""keyword"",""matched_by"":[""expected:厚い"",""expected:灰色"",""expected:靴下""]}]","[48, 73, 75]","[""冬"", ""厚い"", ""灰色"", ""靴下"", ""履く""]","[""黄色い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+冬に履く靴下はどんなもの？
+
+[Extracted Input Words]
+- 靴下 (1.30)
+- 冬 (1.10)
+- 履く (0.90)
+- どんなもの (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=冬|厚い|履きます|灰色|靴下 occurrence=1 origin=user representative=thread_0e505738d943 score=1.951 group_score=1.951 base=1.346 common_bonus=0.605 eff=1.000 direct=靴下, 冬 core=靴下 / 冬 / 灰色 / 厚い / 履きます support=-
+  source=""冬は厚い灰色の靴下を履きます。""
+
+[Gated Words]
+- 靴下 score=1.913 depth=0 role=direct fatigue=0 reason=input word
+- 冬 score=1.232 depth=0 role=direct fatigue=0 reason=input word
+- 灰色 score=0.246 depth=2 role=core fatigue=0 reason=inside selected thread
+- 厚い score=0.211 depth=2 role=core fatigue=0 reason=inside selected thread
+- 履きます score=0.179 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+78,灰色の靴下はいくつある？,灰色の靴下は三足あると思います。,"[{""turn"":75,""text"":""冬は厚い灰色の靴下を履きます。"",""selection"":""keyword"",""matched_by"":[""expected:灰色"",""expected:靴下""]},{""turn"":77,""text"":""灰色の靴下は三足あります。"",""selection"":""keyword"",""matched_by"":[""expected:三足"",""expected:灰色"",""expected:靴下""]}]","[75, 77]","[""灰色"", ""靴下"", ""三足""]","[""二足""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+灰色の靴下はいくつある？
+
+[Extracted Input Words]
+- 靴下 (1.30)
+- 灰色 (1.20)
+- いくつ (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=冬|厚い|履きます|灰色|靴下 occurrence=1 origin=user representative=thread_0e505738d943 score=2.678 group_score=2.678 base=1.847 common_bonus=0.831 eff=1.000 direct=靴下, 灰色 core=靴下 / 灰色 / 厚い / 冬 / 履きます support=-
+  source=""冬は厚い灰色の靴下を履きます。""
+key=あります|三足|灰色|靴下 occurrence=1 origin=user representative=thread_429276dd823b score=2.660 group_score=2.660 base=1.835 common_bonus=0.826 eff=1.000 direct=靴下, 灰色 core=靴下 / 灰色 / 三足 / あります support=-
+  source=""灰色の靴下は三足あります。""
+
+[Gated Words]
+- 靴下 score=2.670 depth=0 role=direct fatigue=1 reason=input word
+- 灰色 score=2.099 depth=0 role=direct fatigue=1 reason=input word
+- 厚い score=0.263 depth=2 role=core fatigue=1 reason=inside selected thread
+- 三足 score=0.262 depth=2 role=core fatigue=0 reason=inside selected thread
+- 冬 score=0.235 depth=2 role=core fatigue=1 reason=inside selected thread
+- 履きます score=0.223 depth=2 role=core fatigue=1 reason=inside selected thread
+- あります score=0.152 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+80,電話についてお願いしたことは？,電話は急ぎの用事だけにしてほしい、とお願いしていましたね。,"[{""turn"":46,""text"":""緑色のノートには会議の決定だけを書きます。"",""selection"":""keyword"",""matched_by"":[""expected:だけ""]},{""turn"":59,""text"":""ローズマリーだけは水をやりすぎないようにしています。"",""selection"":""keyword"",""matched_by"":[""expected:だけ""]},{""turn"":77,""text"":""灰色の靴下は三足あります。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":79,""text"":""電話は急ぎの用事だけにしてほしいです。"",""selection"":""keyword"",""matched_by"":[""expected:だけ"",""expected:急ぎ"",""expected:用事"",""expected:電話""]}]","[46, 59, 77, 79]","[""電話"", ""急ぎ"", ""用事"", ""だけ""]","[""毎日""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+電話についてお願いしたことは？
+
+[Extracted Input Words]
+- 電話 (1.30)
+- お願いした (1.00)
+- こと (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=だけ|にしてほしい|急ぎ|用事|電話 occurrence=1 origin=user representative=thread_b6315e70daf7 score=0.910 group_score=0.910 base=0.910 eff=1.000 direct=電話 core=電話 / 急ぎ / 用事 / にしてほしい / だけ support=-
+  source=""電話は急ぎの用事だけにしてほしいです。""
+key=こと|川沿い|自転車|赤い|走った occurrence=1 origin=user representative=thread_58cc5a2bb49b score=0.222 group_score=0.222 base=0.222 eff=1.000 direct=こと core=こと / 自転車 / 川沿い / 赤い support=-
+  source=""赤い自転車で川沿いを走ったことがあります。""
+
+[Gated Words]
+- 電話 score=1.913 depth=0 role=direct fatigue=0 reason=input word
+- こと score=0.666 depth=0 role=direct fatigue=1 reason=input word
+- 急ぎ score=0.203 depth=2 role=core fatigue=0 reason=inside selected thread
+- 用事 score=0.172 depth=2 role=core fatigue=0 reason=inside selected thread
+- にしてほしい score=0.143 depth=2 role=core fatigue=0 reason=inside selected thread
+- だけ score=0.117 depth=2 role=core fatigue=0 reason=inside selected thread
+- 自転車 score=0.083 depth=2 role=core fatigue=2 reason=inside selected thread
+- 川沿い score=0.062 depth=2 role=core fatigue=1 reason=inside selected thread
+- 赤い score=0.057 depth=2 role=core fatigue=2 reason=inside selected thread
+
+[Suppressed Words]
+These were activated internally but should not drive the response.
+- 走った score=0.044 depth=2
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""below min_word_score"": 1}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+82,普段はどう連絡してほしい？,普段は短いメッセージで連絡をくれると助かるよ。急ぎの用事の時だけ電話にしてほしいな。,"[{""turn"":36,""text"":""眠れない夜は短い詩を読みたいです。"",""selection"":""keyword"",""matched_by"":[""expected:短い""]},{""turn"":79,""text"":""電話は急ぎの用事だけにしてほしいです。"",""selection"":""keyword"",""matched_by"":[""unexpected:電話""]},{""turn"":81,""text"":""普段の連絡は短いメッセージが助かります。"",""selection"":""keyword"",""matched_by"":[""expected:メッセージ"",""expected:普段"",""expected:短い""]}]","[36, 79, 81]","[""普段"", ""短い"", ""メッセージ"", ""助かる""]","[""電話""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+普段はどう連絡してほしい？
+
+[Extracted Input Words]
+- 連絡 (1.20)
+- してほしい (1.00)
+- 普段 (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=メッセージ|助かる|普段|短い|連絡 occurrence=1 origin=user representative=thread_eb8d5cc0954b score=1.460 group_score=1.460 base=1.007 common_bonus=0.453 eff=1.000 direct=連絡, 普段 core=連絡 / 普段 / メッセージ / 助かる / 短い support=-
+  source=""普段の連絡は短いメッセージが助かります。""
+key=だけ|にしてほしい|急ぎ|用事|電話 occurrence=1 origin=user representative=thread_b6315e70daf7 score=0.373 group_score=0.373 base=0.373 eff=1.000 direct=- core=にしてほしい / 電話 / 急ぎ / 用事 support=-
+  source=""電話は急ぎの用事だけにしてほしいです。""
+
+[Gated Words]
+- 連絡 score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- にしてほしい score=0.944 depth=0 role=core fatigue=1 reason=inside selected thread
+- 普段 score=0.894 depth=0 role=direct fatigue=0 reason=input word
+- メッセージ score=0.221 depth=2 role=core fatigue=0 reason=inside selected thread
+- 助かる score=0.164 depth=2 role=core fatigue=0 reason=inside selected thread
+- 短い score=0.150 depth=2 role=core fatigue=0 reason=inside selected thread
+- 電話 score=0.099 depth=2 role=core fatigue=1 reason=inside selected thread
+- 急ぎ score=0.077 depth=2 role=core fatigue=1 reason=inside selected thread
+- 用事 score=0.065 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Suppressed Words]
+These were activated internally but should not drive the response.
+- だけ score=0.043 depth=2
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""below min_word_score"": 1}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+84,昨日忘れたものは？,昨日、電車に傘を忘れたって言ってたよね。,"[{""turn"":48,""text"":""旅行の計画は黄色い手帳に書きます。"",""selection"":""keyword"",""matched_by"":[""unexpected:手帳""]},{""turn"":81,""text"":""普段の連絡は短いメッセージが助かります。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":83,""text"":""昨日、傘を電車に忘れました。"",""selection"":""keyword"",""matched_by"":[""expected:昨日"",""expected:電車""]}]","[48, 81, 83]","[""昨日"", ""傘"", ""電車"", ""忘れる""]","[""手帳""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+昨日忘れたものは？
+
+[Extracted Input Words]
+- もの (1.20)
+- 忘れた (1.00)
+- 昨日 (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=傘|忘れました|昨日|電車 occurrence=1 origin=user representative=thread_924fa9c16025 score=0.305 group_score=0.305 base=0.305 eff=1.000 direct=昨日 core=昨日 / 傘 / 電車 support=-
+  source=""昨日、傘を電車に忘れました。""
+key=ベンチ|強い|日|日差し|木陰|選びます occurrence=1 origin=user representative=thread_e4dd24645093 score=0.283 group_score=0.283 base=0.283 eff=1.000 direct=- core=日 / ベンチ / 日差し / 木陰 support=-
+  source=""強い日差しの日は木陰のベンチを選びます。""
+
+[Gated Words]
+- 昨日 score=0.845 depth=0 role=direct fatigue=0 reason=input word
+- 日 score=0.766 depth=0 role=core fatigue=1 reason=inside selected thread
+- ベンチ score=0.093 depth=2 role=core fatigue=2 reason=inside selected thread
+- 傘 score=0.091 depth=2 role=core fatigue=0 reason=inside selected thread
+- 電車 score=0.079 depth=2 role=core fatigue=0 reason=inside selected thread
+- 日差し score=0.073 depth=2 role=core fatigue=1 reason=inside selected thread
+- 木陰 score=0.068 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Suppressed Words]
+These were activated internally but should not drive the response.
+- 忘れました score=0.047 depth=2
+- 強い score=0.042 depth=2
+- 選びます score=0.040 depth=2
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""below min_word_score"": 3}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+86,忘れた傘の見た目は？,透明で、持ち手だけが黒色の傘だったと思います。,"[{""turn"":69,""text"":""小学生のころ、赤い自転車に乗っていました。"",""selection"":""keyword"",""matched_by"":[""unexpected:赤い""]},{""turn"":71,""text"":""赤い自転車で川沿いを走ったことがあります。"",""selection"":""keyword"",""matched_by"":[""unexpected:赤い""]},{""turn"":83,""text"":""昨日、傘を電車に忘れました。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":85,""text"":""忘れた傘は透明で、持ち手だけ黒色です。"",""selection"":""keyword"",""matched_by"":[""expected:持ち手"",""expected:透明"",""expected:黒色""]}]","[69, 71, 83, 85]","[""傘"", ""透明"", ""持ち手"", ""黒色""]","[""赤い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+忘れた傘の見た目は？
+
+[Extracted Input Words]
+- 傘 (1.40)
+- 見た目 (1.20)
+- 忘れた (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=傘|忘れた|持ち手|透明|黒色 occurrence=1 origin=user representative=thread_074b13a8c504 score=2.288 group_score=2.288 base=1.578 common_bonus=0.710 eff=1.000 direct=傘, 忘れた core=傘 / 忘れた / 透明 / 黒色 / 持ち手 support=-
+  source=""忘れた傘は透明で、持ち手だけ黒色です。""
+key=傘|忘れました|昨日|電車 occurrence=1 origin=user representative=thread_924fa9c16025 score=1.247 group_score=1.247 base=1.247 eff=1.000 direct=傘 core=傘 / 電車 / 忘れました / 昨日 support=-
+  source=""昨日、傘を電車に忘れました。""
+
+[Gated Words]
+- 傘 score=2.947 depth=0 role=direct fatigue=1 reason=input word
+- 忘れた score=1.047 depth=0 role=direct fatigue=0 reason=input word
+- 透明 score=0.327 depth=2 role=core fatigue=0 reason=inside selected thread
+- 黒色 score=0.327 depth=2 role=core fatigue=0 reason=inside selected thread
+- 電車 score=0.327 depth=2 role=core fatigue=1 reason=inside selected thread
+- 持ち手 score=0.280 depth=2 role=core fatigue=0 reason=inside selected thread
+- 忘れました score=0.197 depth=2 role=core fatigue=0 reason=inside selected thread
+- 昨日 score=0.170 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+88,傘は見つかった？,今朝、駅員さんから見つかったって連絡があったよ。,"[{""turn"":81,""text"":""普段の連絡は短いメッセージが助かります。"",""selection"":""keyword"",""matched_by"":[""expected:連絡""]},{""turn"":85,""text"":""忘れた傘は透明で、持ち手だけ黒色です。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":87,""text"":""今朝、駅員さんから傘が見つかったと連絡がありました。"",""selection"":""keyword"",""matched_by"":[""expected:今朝"",""expected:連絡"",""expected:駅員""]}]","[81, 85, 87]","[""今朝"", ""駅員"", ""傘"", ""見つかる"", ""連絡""]","[""なくしたまま""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+傘は見つかった？
+
+[Extracted Input Words]
+- 傘 (1.40)
+- 見つかった (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=今朝|傘|見つかった|連絡|駅員さん occurrence=1 origin=user representative=thread_7ea82e1cc719 score=2.836 group_score=2.836 base=1.956 common_bonus=0.880 eff=1.000 direct=傘, 見つかった core=傘 / 見つかった / 駅員さん / 連絡 / 今朝 support=-
+  source=""今朝、駅員さんから傘が見つかったと連絡がありました。""
+key=傘|忘れた|持ち手|透明|黒色 occurrence=1 origin=user representative=thread_074b13a8c504 score=1.490 group_score=1.490 base=1.490 eff=1.000 direct=傘 core=傘 / 透明 / 黒色 / 持ち手 / 忘れた support=-
+  source=""忘れた傘は透明で、持ち手だけ黒色です。""
+key=傘|忘れました|昨日|電車 occurrence=1 origin=user representative=thread_924fa9c16025 score=1.473 group_score=1.473 base=1.473 eff=1.000 direct=傘 core=傘 / 電車 / 忘れました / 昨日 support=-
+  source=""昨日、傘を電車に忘れました。""
+
+[Gated Words]
+- 傘 score=4.197 depth=0 role=direct fatigue=2 reason=input word
+- 見つかった score=1.360 depth=0 role=direct fatigue=0 reason=input word
+- 駅員さん score=0.391 depth=2 role=core fatigue=0 reason=inside selected thread
+- 電車 score=0.390 depth=2 role=core fatigue=2 reason=inside selected thread
+- 連絡 score=0.376 depth=2 role=core fatigue=1 reason=inside selected thread
+- 透明 score=0.333 depth=2 role=core fatigue=1 reason=inside selected thread
+- 黒色 score=0.333 depth=2 role=core fatigue=1 reason=inside selected thread
+- 持ち手 score=0.281 depth=2 role=core fatigue=1 reason=inside selected thread
+- 今朝 score=0.235 depth=2 role=core fatigue=0 reason=inside selected thread
+- 忘れました score=0.234 depth=2 role=core fatigue=1 reason=inside selected thread
+- 忘れた score=0.202 depth=2 role=core fatigue=1 reason=inside selected thread
+- 昨日 score=0.201 depth=2 role=core fatigue=2 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+90,春になったら始めたいことは？,春になったら陶芸教室に通ってみたいって言ってたよね。それ、いいなと思って思い出したよ。,"[{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""keyword"",""matched_by"":[""unexpected:写真""]},{""turn"":87,""text"":""今朝、駅員さんから傘が見つかったと連絡がありました。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":89,""text"":""春になったら陶芸教室へ通ってみたいです。"",""selection"":""keyword"",""matched_by"":[""expected:陶芸教室""]}]","[2, 87, 89]","[""春"", ""陶芸教室"", ""通う""]","[""写真""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+春になったら始めたいことは？
+
+[Extracted Input Words]
+- 春 (1.20)
+- 始めたい (1.00)
+- こと (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+A small set of related experience threads was selected.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=春|通ってみたい|陶芸教室 occurrence=1 origin=user representative=thread_1da17091b446 score=0.597 group_score=0.597 base=0.597 eff=1.000 direct=春 core=春 / 陶芸教室 / 通ってみたい support=-
+  source=""春になったら陶芸教室へ通ってみたいです。""
+key=こと|川沿い|自転車|赤い|走った occurrence=1 origin=user representative=thread_58cc5a2bb49b score=0.233 group_score=0.233 base=0.233 eff=1.000 direct=こと core=こと / 自転車 / 川沿い / 赤い support=-
+  source=""赤い自転車で川沿いを走ったことがあります。""
+
+[Gated Words]
+- 春 score=1.425 depth=0 role=direct fatigue=0 reason=input word
+- こと score=0.701 depth=0 role=direct fatigue=2 reason=input word
+- 陶芸教室 score=0.181 depth=2 role=core fatigue=0 reason=inside selected thread
+- 通ってみたい score=0.094 depth=2 role=core fatigue=0 reason=inside selected thread
+- 川沿い score=0.065 depth=2 role=core fatigue=2 reason=inside selected thread
+
+[Suppressed Words]
+These were activated internally but should not drive the response.
+- 走った score=0.046 depth=2
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""below min_word_score"": 1, ""recently_exposed"": 2}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+92,陶芸で作りたいものは？,小さな白い皿を作りたいとおっしゃっていましたね。春になったら陶芸教室に通ってみたい、とも言っていました。,"[{""turn"":50,""text"":""去年、金沢で小さな茶筒を買いました。"",""selection"":""keyword"",""matched_by"":[""unexpected:茶筒""]},{""turn"":52,""text"":""その茶筒には焙じ茶を入れています。"",""selection"":""keyword"",""matched_by"":[""unexpected:茶筒""]},{""turn"":89,""text"":""春になったら陶芸教室へ通ってみたいです。"",""selection"":""keyword"",""matched_by"":[""expected:陶芸""]},{""turn"":91,""text"":""陶芸では小さな白い皿を作りたいです。"",""selection"":""keyword"",""matched_by"":[""expected:白い"",""expected:陶芸""]}]","[50, 52, 89, 91]","[""陶芸"", ""小さい"", ""白い"", ""皿"", ""作る""]","[""茶筒""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+陶芸で作りたいものは？
+
+[Extracted Input Words]
+- 陶芸 (1.30)
+- 作りたい (1.00)
+- もの (0.80)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=作りたい|小さな|白い|皿|陶芸 occurrence=1 origin=user representative=thread_f0236498895b score=2.022 group_score=2.022 base=1.395 common_bonus=0.628 eff=1.000 direct=陶芸, 作りたい core=陶芸 / 作りたい / 皿 / 小さな / 白い support=-
+  source=""陶芸では小さな白い皿を作りたいです。""
+key=春|通ってみたい|陶芸教室 occurrence=1 origin=user representative=thread_1da17091b446 score=0.856 group_score=0.856 base=0.856 eff=1.000 direct=- core=陶芸教室 / 春 / 通ってみたい support=-
+  source=""春になったら陶芸教室へ通ってみたいです。""
+
+[Gated Words]
+- 陶芸 score=1.913 depth=0 role=direct fatigue=0 reason=input word
+- 陶芸教室 score=1.749 depth=0 role=core fatigue=1 reason=inside selected thread
+- 作りたい score=1.259 depth=0 role=direct fatigue=0 reason=input word
+- 皿 score=0.326 depth=2 role=core fatigue=0 reason=inside selected thread
+- 小さな score=0.195 depth=2 role=core fatigue=0 reason=inside selected thread
+- 白い score=0.180 depth=2 role=core fatigue=0 reason=inside selected thread
+- 春 score=0.166 depth=2 role=core fatigue=1 reason=inside selected thread
+- 通ってみたい score=0.126 depth=2 role=core fatigue=1 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+94,白い皿の模様は？,青い線を一本だけ入れたいって言っていましたね。,"[{""turn"":69,""text"":""小学生のころ、赤い自転車に乗っていました。"",""selection"":""keyword"",""matched_by"":[""unexpected:赤い""]},{""turn"":71,""text"":""赤い自転車で川沿いを走ったことがあります。"",""selection"":""keyword"",""matched_by"":[""unexpected:赤い""]},{""turn"":91,""text"":""陶芸では小さな白い皿を作りたいです。"",""selection"":""keyword"",""matched_by"":[""expected:白い""]},{""turn"":93,""text"":""白い皿には青い線を一本だけ入れたいです。"",""selection"":""keyword"",""matched_by"":[""expected:一本"",""expected:白い"",""expected:青い線""]}]","[69, 71, 91, 93]","[""白い"", ""皿"", ""青い線"", ""一本"", ""入れる""]","[""赤い""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+白い皿の模様は？
+
+[Extracted Input Words]
+- 皿 (1.30)
+- 模様 (1.20)
+- 白い (1.10)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=作りたい|小さな|白い|皿|陶芸 occurrence=1 origin=user representative=thread_f0236498895b score=2.476 group_score=2.476 base=1.708 common_bonus=0.769 eff=1.000 direct=皿, 白い core=皿 / 白い / 陶芸 / 作りたい / 小さな support=-
+  source=""陶芸では小さな白い皿を作りたいです。""
+key=一本だけ|入れたい|白い|皿|線|青い occurrence=1 origin=user representative=thread_025c04f9d97a score=2.452 group_score=2.452 base=1.691 common_bonus=0.761 eff=1.000 direct=皿, 白い core=皿 / 白い / 線 / 青い / 一本だけ support=入れたい
+  source=""白い皿には青い線を一本だけ入れたいです。""
+
+[Gated Words]
+- 皿 score=2.706 depth=0 role=direct fatigue=1 reason=input word
+- 白い score=1.755 depth=0 role=direct fatigue=1 reason=input word
+- 陶芸 score=0.393 depth=2 role=core fatigue=1 reason=inside selected thread
+- 線 score=0.343 depth=2 role=core fatigue=0 reason=inside selected thread
+- 青い score=0.314 depth=2 role=core fatigue=0 reason=inside selected thread
+- 一本だけ score=0.297 depth=2 role=core fatigue=0 reason=inside selected thread
+- 作りたい score=0.287 depth=2 role=core fatigue=1 reason=inside selected thread
+- 小さな score=0.249 depth=2 role=core fatigue=1 reason=inside selected thread
+- 入れたい score=0.216 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},{},[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+96,今日の夕方の約束は？,今日の夕方は、真琴さんに写真を送る約束をしました。,"[{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""keyword"",""matched_by"":[""expected:写真"",""unexpected:亮介""]},{""turn"":14,""text"":""大学時代の友人の真琴とは毎年夏に会います。"",""selection"":""keyword"",""matched_by"":[""expected:真琴""]},{""turn"":16,""text"":""真琴は海より山が好きです。"",""selection"":""keyword"",""matched_by"":[""expected:真琴""]},{""turn"":93,""text"":""白い皿には青い線を一本だけ入れたいです。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":95,""text"":""今日の夕方、真琴に写真を送る約束をしました。"",""selection"":""keyword"",""matched_by"":[""expected:今日"",""expected:写真"",""expected:夕方"",""expected:真琴"",""expected:約束"",""expected:送る""]}]","[2, 14, 16, 93, 95]","[""今日"", ""夕方"", ""真琴"", ""写真"", ""送る"", ""約束""]","[""亮介""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+今日の夕方の約束は？
+
+[Extracted Input Words]
+- 夕方 (1.10)
+- 今日 (1.00)
+- 約束 (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=今日|写真|夕方|真琴|約束|送る occurrence=1 origin=user representative=thread_d088dd7a5ce2 score=3.324 group_score=3.324 base=1.187 common_bonus=2.137 eff=1.000 direct=夕方, 約束, 今日 core=夕方 / 約束 / 今日 / 真琴 / 写真 support=送る
+  source=""今日の夕方、真琴に写真を送る約束をしました。""
+
+[Gated Words]
+- 夕方 score=1.166 depth=0 role=direct fatigue=0 reason=input word
+- 約束 score=1.066 depth=0 role=direct fatigue=0 reason=input word
+- 今日 score=0.953 depth=0 role=direct fatigue=0 reason=input word
+- 真琴 score=0.339 depth=2 role=core fatigue=0 reason=inside selected thread
+- 写真 score=0.279 depth=2 role=core fatigue=0 reason=inside selected thread
+- 送る score=0.186 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Suppressed Words]
+These were activated internally but should not drive the response.
+- 日 score=0.897 depth=0
+- ベンチ score=0.109 depth=2
+- 日差し score=0.086 depth=2
+- 木陰 score=0.080 depth=2
+- 強い score=0.050 depth=2
+- 選びます score=0.047 depth=2
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""below min_word_score"": 2, ""outside selected threads"": 4}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+98,真琴に送る写真は何の写真？,金沢で買った茶筒の写真だよ。今日の夕方に送る約束をしてるんだ。,"[{""turn"":2,""text"":""兄の亮介は写真を撮るのが好きです。"",""selection"":""keyword"",""matched_by"":[""expected:写真""]},{""turn"":14,""text"":""大学時代の友人の真琴とは毎年夏に会います。"",""selection"":""keyword"",""matched_by"":[""expected:真琴""]},{""turn"":16,""text"":""真琴は海より山が好きです。"",""selection"":""keyword"",""matched_by"":[""expected:真琴""]},{""turn"":50,""text"":""去年、金沢で小さな茶筒を買いました。"",""selection"":""keyword"",""matched_by"":[""expected:茶筒"",""expected:金沢""]},{""turn"":52,""text"":""その茶筒には焙じ茶を入れています。"",""selection"":""keyword"",""matched_by"":[""expected:茶筒""]},{""turn"":95,""text"":""今日の夕方、真琴に写真を送る約束をしました。"",""selection"":""keyword"",""matched_by"":[""expected:写真"",""expected:真琴"",""expected:送る""]},{""turn"":97,""text"":""送る写真は金沢で買った茶筒の写真です。"",""selection"":""keyword"",""matched_by"":[""expected:写真"",""expected:茶筒"",""expected:送る"",""expected:金沢""]}]","[2, 14, 16, 50, 52, 95, 97]","[""真琴"", ""送る"", ""金沢"", ""茶筒"", ""写真""]","[""猫""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+真琴に送る写真は何の写真？
+
+[Extracted Input Words]
+- 真琴 (1.40)
+- 写真 (1.30)
+- 送る (1.00)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=今日|写真|夕方|真琴|約束|送る occurrence=1 origin=user representative=thread_d088dd7a5ce2 score=8.408 group_score=8.408 base=3.003 common_bonus=5.405 eff=1.000 direct=真琴, 写真, 送る core=真琴 / 写真 / 送る / 夕方 / 約束 support=今日
+  source=""今日の夕方、真琴に写真を送る約束をしました。""
+key=写真|茶筒|買った|送る|金沢 occurrence=1 origin=user representative=thread_23d75ed7af6d score=2.278 group_score=2.278 base=1.571 common_bonus=0.707 eff=1.000 direct=写真, 送る core=写真 / 送る / 茶筒 / 金沢 / 買った support=-
+  source=""送る写真は金沢で買った茶筒の写真です。""
+key=より|好き|山|海|真琴 occurrence=1 origin=user representative=thread_0a10e00d54e1 score=1.535 group_score=1.535 base=1.535 eff=0.999 direct=真琴 core=真琴 / 好き / 山 / 海 support=-
+  source=""真琴は海より山が好きです。""
+key=会う|友人|夏|大学時代|毎年|真琴 occurrence=1 origin=user representative=thread_48c5bf5ad344 score=1.530 group_score=1.530 base=1.530 eff=0.999 direct=真琴 core=真琴 / 夏 / 大学時代 / 友人 / 会う support=毎年
+  source=""大学時代の友人の真琴とは毎年夏に会います。""
+
+[Gated Words]
+- 真琴 score=4.332 depth=0 role=direct fatigue=1 reason=input word
+- 写真 score=3.153 depth=0 role=direct fatigue=1 reason=input word
+- 送る score=1.525 depth=0 role=direct fatigue=1 reason=input word
+- 好き score=0.565 depth=2 role=core fatigue=0 reason=inside selected thread
+- 夕方 score=0.539 depth=2 role=core fatigue=1 reason=inside selected thread
+- 約束 score=0.538 depth=2 role=core fatigue=1 reason=inside selected thread
+- 茶筒 score=0.515 depth=2 role=core fatigue=0 reason=inside selected thread
+- 今日 score=0.462 depth=2 role=core fatigue=1 reason=inside selected thread
+- 山 score=0.431 depth=2 role=core fatigue=0 reason=inside selected thread
+- 海 score=0.431 depth=2 role=core fatigue=0 reason=inside selected thread
+- 金沢 score=0.427 depth=2 role=core fatigue=0 reason=inside selected thread
+- 夏 score=0.371 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""max_prompt_words reached before per-word gate/fatigue checks"": 8}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1
+100,今夜は何時までに寝る予定？,明日は早起きをする予定なので、今夜は11時までに寝るつもりです。,"[{""turn"":97,""text"":""送る写真は金沢で買った茶筒の写真です。"",""selection"":""recent_context"",""matched_by"":[""recent_context""]},{""turn"":99,""text"":""明日は早起きするので、今夜は十一時までに寝ます。"",""selection"":""keyword"",""matched_by"":[""expected:今夜"",""expected:十一時"",""expected:早起き"",""expected:明日""]}]","[97, 99]","[""今夜"", ""十一時"", ""寝る"", ""明日"", ""早起き""]","[""十二時""]",VALID_RECALL,"[""USED_VALID_MEMORY""]",HIGH,"The response is consistent with the available prior conversation history and does not introduce a material false memory, contradiction, or attribution error.",false,[],[],[],[],[],"[Current Input]
+今夜は何時までに寝る予定？
+
+[Extracted Input Words]
+- 寝る (1.20)
+- 今夜 (1.00)
+- 何時 (1.00)
+- 予定 (0.90)
+@user and @assistant are conversational participant references.
+They indicate who first-person or second-person expressions referred to in the original utterance.
+
+[Gated Recall Context]
+Multiple input words converged on the top experience threads.
+Only this gated context should be used for the response.
+
+[Gated Thread Groups]
+Source lines are verbatim past utterances from the selected threads; interpret them in their own context.
+key=今夜|十一時|寝る|早起き|明日 occurrence=1 origin=user representative=thread_2cb4576bde73 score=1.623 group_score=1.623 base=1.119 common_bonus=0.504 eff=1.000 direct=寝る, 今夜 core=寝る / 今夜 / 十一時 / 早起き / 明日 support=-
+  source=""明日は早起きするので、今夜は十一時までに寝ます。""
+key=夜|眠れない|短い|詩|読みたい occurrence=1 origin=user representative=thread_0cb0ab42fae7 score=0.531 group_score=0.531 base=0.531 eff=0.999 direct=- core=夜 / 詩 / 眠れない / 短い / 読みたい support=-
+  source=""眠れない夜は短い詩を読みたいです。""
+key=出さないでほしい|夜|大きな音 occurrence=1 origin=user representative=thread_c34034203ba0 score=0.474 group_score=0.474 base=0.474 eff=0.999 direct=- core=夜 / 大きな音 / 出さないでほしい support=-
+  source=""夜は大きな音を出さないでほしいです。""
+key=予定|低い丘|来月|歩く|遊歩道 occurrence=1 origin=user representative=thread_25e3b7e2466f score=0.436 group_score=0.436 base=0.436 eff=0.999 direct=予定 core=予定 / 低い丘 / 遊歩道 / 歩く / 来月 support=-
+  source=""来月、低い丘の遊歩道を歩く予定です。""
+
+[Gated Words]
+- 寝る score=1.589 depth=0 role=direct fatigue=0 reason=input word
+- 夜 score=1.369 depth=0 role=core fatigue=0 reason=inside selected thread
+- 予定 score=1.114 depth=0 role=direct fatigue=0 reason=input word
+- 今夜 score=1.104 depth=0 role=direct fatigue=0 reason=input word
+- 十一時 score=0.226 depth=2 role=core fatigue=0 reason=inside selected thread
+- 早起き score=0.226 depth=2 role=core fatigue=0 reason=inside selected thread
+- 明日 score=0.143 depth=2 role=core fatigue=0 reason=inside selected thread
+- 詩 score=0.129 depth=2 role=core fatigue=0 reason=inside selected thread
+- 大きな音 score=0.128 depth=2 role=core fatigue=0 reason=inside selected thread
+- 眠れない score=0.120 depth=2 role=core fatigue=0 reason=inside selected thread
+- 低い丘 score=0.113 depth=2 role=core fatigue=0 reason=inside selected thread
+- 遊歩道 score=0.113 depth=2 role=core fatigue=0 reason=inside selected thread
+
+[Activation Trace]
+(omitted from LLM prompt; visible in console log only)
+
+[Instruction]
+励起された単語とthreadは正確な文章記憶ではなく連想の手がかりである。
+複数の入力語が同じthreadを指している場合、そのthreadをより強い手がかりとして扱う。
+Gated Recall Context がある場合は、それを優先し、Suppressed Words は返答の主材料にしない。
+回答では、必要なら『思い浮かんだ』『つながって出てきた』のように自然な想起として表現する。
+断定しすぎず、自然な想起として短く返す。",[],[],{},"{""max_prompt_words reached before per-word gate/fatigue checks"": 5}",[],llm,local-model,True,False,NONE,,human_review_with_copilot_assistance,2026-11-26T11:46:00+09:00,human_valid_v0.1

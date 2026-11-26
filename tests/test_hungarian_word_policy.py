@@ -33,9 +33,33 @@ class HungarianWordPolicyTests(unittest.TestCase):
         self.assertEqual(sorted(words), ["ház", "házban"])
 
     def test_negation_and_pronouns_are_kept(self):
-        words, events = finalize(["nem", "sem", "nincs", "én", "te", "van"])
-        self.assertEqual(sorted(words), sorted(["nem", "sem", "nincs", "én", "te", "van"]))
+        words, events = finalize(["nem", "sem", "nincs", "én", "te"])
+        self.assertEqual(sorted(words), sorted(["nem", "sem", "nincs", "én", "te"]))
         self.assertEqual(events, [])
+
+    def test_reviewed_stop_words_are_rejected(self):
+        words, _ = finalize([
+            "azért", "mivel", "viszont", "azonban", "tehát",
+            "így", "úgy", "ám", "bár", "habár", "noha",
+            "mintha", "miközben", "mialatt", "továbbá",
+            "valamint", "ugyanis", "hiszen",
+            "egy", "csak", "már", "még", "meg", "van",
+        ])
+        self.assertEqual(words, [])
+
+    def test_postpositions_are_kept(self):
+        expected = [
+            "alatt", "fölött", "között", "mellett", "mögött",
+            "után", "előtt", "óta", "felé", "nélkül",
+        ]
+        words, events = finalize(expected)
+        self.assertEqual(sorted(words), sorted(expected))
+        self.assertEqual(events, [])
+
+    def test_past_and_future_copula_are_kept_but_present_is_rejected(self):
+        words, events = finalize(["van", "volt", "lesz"])
+        self.assertEqual(sorted(words), ["lesz", "volt"])
+        self.assertEqual([(e.surface, e.failure_type) for e in events], [("van", "rejected_by_policy")])
 
     def test_single_latin_letter_dropped_digit_kept(self):
         words, _ = finalize(["h", "5", "ház"])

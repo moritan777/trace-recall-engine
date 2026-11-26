@@ -1,4 +1,4 @@
-# Trace Recall Engine - Research History
+﻿# Trace Recall Engine - Research History
 
 ## Purpose
 
@@ -6,7 +6,7 @@ This document records the chronological design shift behind the Trace Recall Eng
 
 ## Configuration
 
-The history covers the 100T Weighted-vs-Count comparison and subsequent Count-mode evaluations at 1000T, 3000T, and 10000T.
+The history covers the 100T Weighted-vs-Count comparison, subsequent Count-mode evaluations at 1000T, 3000T, and 10000T, and the 100T Human-Valid evaluation of source-text-assisted recall.
 
 ## 2026-07-06
 
@@ -100,9 +100,89 @@ Trace Recall Engineは、Conversation長ではなくWorking Memoryサイズで�
 
 ↓
 
+## 2026-11-25 — Human-Valid 100T source-text evaluation
+
+固定された100ターンのdevelopment fixtureを使い、最終応答が人間の会話として破綻していないかを評価した。
+
+この評価はRAG型の厳密な検索精度ではなく、不完全・連想的・再構成的な想起を許容しながら、明確な偽記憶、人物の誤帰属、既知履歴との明確な矛盾を検出することを目的とする。
+
+評価構成:
+
+- LLM Extractor
+- baseline Activation Gate
+- `threadgroup-source` Prompt View
+- local response model
+- `gate-cap-after-group`: disabled
+
+選択済みThreadGroupについて、保存済みの原文 `source_text` をResponse LLMへ渡した。
+
+アプリ側では主語、好み、因果関係、時間関係などの意味ラベルを生成せず、意味解釈はLLMへ委ねた。
+
+51応答をレビューした結果:
+
+- Human-Valid: 48
+- Human-Invalid: 2
+- Undetermined: 1
+- 判定可能50件中のHuman-Valid率: **48 / 50 = 96.0%**
+
+`source_text` の提示により、単語集合だけでは失われていた発話内の関係をLLMが読み取れるケースを確認した。
+
+一方、曖昧な連想や関連記憶の混合は、確定的な過去事実として断定しない限り、必ずしも失敗としない評価方針を採用した。
+
+この結果は繰り返し確認・調整に使用したdevelopment fixture上の結果であり、未見benchmarkや一般的な96%のRecall精度を示すものではない。
+
+次の評価では、構成をfreezeしたうえで未見conversation fixtureを一度だけ実行する。
+
+詳細: [Human-Valid 100T Evaluation](human_valid_100t_source_local/README.md)
+
+行単位評価: [human_valid.csv](human_valid_100t_source_local/human_valid.csv)
+
+↓
+
+## 2026-11-26 — Human-Valid Unseen 100T v1
+
+`48cd233` をfreeze pointとして、既存のdevelopment fixtureとは内容の異なるsynthetic 100T fixtureを一度だけ評価した。
+結果確認後もPrompt、Gate、WordPolicy、fixture、expected valuesは変更していない。
+
+評価構成:
+- LLM Extractor
+- identity WordPolicy
+- baseline Activation Gate
+- `threadgroup-source` Prompt View
+- local response model
+- external retrievalなし
+
+no-response Recall pipeline:
+- Expected Hit: 143 / 180 = 79.4%
+- Unexpected Hit: 6
+- Working Memory Recall Precision: 0.960
+- LLM Extractor success: 49 / 49
+- Extractor fallback: 0
+
+Response評価:
+- local-model response: 49 / 49
+- Human-Valid: 48
+- Human-Invalid: 1
+- Undetermined: 0
+- Human-Valid率: **48 / 49 = 98.0%**
+
+既知failureはTurn 56の1件。
+過去には「以前は緑茶」「最近は焙じ茶」とあるが、強いgated contextが得られず、Response LLMが「香りの強いものが好きになった」という未確認の好みを追加したため、`INVALID_FALSE_MEMORY / UNSUPPORTED_ADDITION` と判定した。
+
+この結果は、expected-word coverage 79.4%とHuman-Valid 98.0%が異なる評価軸であることを示した。
+全期待語の完全検索ではなく、不完全な想起からでも捏造・誤帰属・矛盾を避けた会話が成立するかを評価する方針を支持する。
+ただし単一のsynthetic unseen fixtureであり、一般的な98%性能を示すものではない。
+
+詳細: [Human-Valid Unseen 100T v1](human_valid_unseen_100t_v1/README.md)
+行単位評価: [human_valid.csv](human_valid_unseen_100t_v1/human_valid.csv)
+↓
+
 ## Results
 
 100TではCount方式の採用を決定し、1000T以降ではCount方式のままWorking Memoryを bounded に保てることを確認した。
+
+その後のdevelopment 100T Human-Valid評価では、選択済みThreadGroupへ原文 `source_text` を添える構成により、51応答中48件をHuman-Valid、2件をHuman-Invalid、1件をUndeterminedと判定した。
+freezeした構成によるunseen 100T v1では、49応答中48件をHuman-Valid、1件をHuman-Invalid、0件をUndeterminedと判定した。
 
 ## Findings
 
@@ -126,10 +206,13 @@ AIはどう思い出すか
 
 現在:
 
-RecallされたTraceから、Working Memoryへ何を載せるべきか
+RecallされたTraceから、Working Memoryへ何を載せ、LLMがそれをどのように会話として再構成するか
 
-保存方式の研究は一区切りとなり、今後はRecall Selection・Working Memory Policy・Conversation Policyを中心とした研究へ移行する。
+保存方式の研究は一区切りとなり、現在はRecall Selection・Working Memory Policy・Conversation Policyに加えて、正確なRAG検索とは異なるHuman-Validな想起評価を研究対象としている。
 
 ## Conclusion
 
-Trace Recall Engineの研究対象は、Memory StorageからRecall Selection、Working Memory Policy、Conversation Policyへ移行した。
+Trace Recall Engineの研究対象は、Memory StorageからRecall Selection、Working Memory Policy、Conversation Policy、そして不完全な想起からHuman-Validな応答を成立させる評価へ移行した。
+
+96.0%はdevelopment fixture上のチェックポイントであり、その後のfreezeしたunseen 100T v1では48 / 49 = 98.0% Human-Validを記録した。
+次の研究段階では、unseen v1を調整対象にせず、別の独立fixtureまたは異なる評価domainで一般化を確認する。
