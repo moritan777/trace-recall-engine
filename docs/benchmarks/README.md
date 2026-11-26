@@ -1,4 +1,4 @@
-﻿## Trace Recall Engine Benchmarks
+## Trace Recall Engine Benchmarks
 
 This directory contains public benchmark and evaluation reports for the Trace Recall Engine.
 
@@ -89,6 +89,22 @@ This result is from a **development fixture**, not an unseen benchmark.
 
 The next Human-Valid evaluation should use a frozen configuration on an unseen conversation fixture.
 
+#### Unseen 100T Fixture v1
+
+- [Human-Valid Unseen 100T v1](human_valid_unseen_100t_v1/README.md)
+- Freeze point: `48cd233`
+- Configuration: LLM Extractor + baseline Activation Gate + `threadgroup-source` + local response model
+- Recall pipeline: 143 / 180 expected words (79.4%), 6 unexpected hits, Working Memory Recall Precision 0.960
+- Evaluated responses: 49
+- Human-Valid: 48
+- Human-Invalid: 1
+- Undetermined: 0
+- Human-Valid rate: 48 / 49 = 98.0%
+
+This evaluation used a synthetic fixture that had not been inspected while tuning the frozen implementation. The single Human-Invalid response was retained as a known failure without modifying the Prompt, Gate, WordPolicy, fixture, or expected values.
+
+The 98.0% figure describes Human-Valid response classification, not exact recall accuracy.
+
 ### Four-Stage Research Story
 
 <table>
@@ -133,7 +149,9 @@ The next Human-Valid evaluation should use a frozen configuration on an unseen c
 - Human-Valid evaluation is treated separately from exact recall accuracy.
 - Supplying verbatim `source_text` for already-selected ThreadGroups is being evaluated as a way to preserve linguistic relations without adding application-side semantic labels.
 - In the current development fixture, LLM Extractor + baseline Gate + `threadgroup-source` + local response model produced 48 Human-Valid responses, 2 Human-Invalid responses, and 1 Undetermined response across 51 evaluated responses.
-- The current 100T Human-Valid result is a development-set result and requires validation on an unseen fixture before broader claims are made.
+- The development fixture produced 48 Human-Valid responses, 2 Human-Invalid responses, and 1 Undetermined response across 51 evaluated responses.
+- The frozen configuration was then evaluated on an unseen synthetic 100T fixture, producing 48 Human-Valid responses and 1 Human-Invalid response across 49 evaluated responses.
+- In the unseen fixture, expected-word coverage was 79.4% while Human-Valid response rate was 98.0%, supporting separate evaluation of recall-pipeline coverage and conversational validity.
 
 ### Interpretation
 
@@ -143,9 +161,11 @@ The Human-Valid evaluation extends this question beyond recall hit rates. Trace 
 
 ### Next Benchmark Phase
 
-The immediate next Human-Valid benchmark should use an unseen conversation fixture with the current configuration frozen before results are inspected.
+The first frozen unseen 100T evaluation is complete.
 
-The existing 100T conversation remains a development fixture for diagnosis and regression testing.
+The unseen v1 fixture must now remain frozen and may be used for regression testing, but it is no longer an unseen validation set.
+
+The next validation should use another independently prepared fixture or a different evaluation domain without tuning the implementation against the unseen v1 failure.
 
 See also:
 

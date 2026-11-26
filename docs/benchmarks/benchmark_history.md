@@ -1,4 +1,4 @@
-# Trace Recall Engine - Research History
+﻿# Trace Recall Engine - Research History
 
 ## Purpose
 
@@ -139,11 +139,50 @@ Trace Recall Engineは、Conversation長ではなくWorking Memoryサイズで�
 
 ↓
 
+## 2026-11-26 — Human-Valid Unseen 100T v1
+
+`48cd233` をfreeze pointとして、既存のdevelopment fixtureとは内容の異なるsynthetic 100T fixtureを一度だけ評価した。
+結果確認後もPrompt、Gate、WordPolicy、fixture、expected valuesは変更していない。
+
+評価構成:
+- LLM Extractor
+- identity WordPolicy
+- baseline Activation Gate
+- `threadgroup-source` Prompt View
+- local response model
+- external retrievalなし
+
+no-response Recall pipeline:
+- Expected Hit: 143 / 180 = 79.4%
+- Unexpected Hit: 6
+- Working Memory Recall Precision: 0.960
+- LLM Extractor success: 49 / 49
+- Extractor fallback: 0
+
+Response評価:
+- local-model response: 49 / 49
+- Human-Valid: 48
+- Human-Invalid: 1
+- Undetermined: 0
+- Human-Valid率: **48 / 49 = 98.0%**
+
+既知failureはTurn 56の1件。
+過去には「以前は緑茶」「最近は焙じ茶」とあるが、強いgated contextが得られず、Response LLMが「香りの強いものが好きになった」という未確認の好みを追加したため、`INVALID_FALSE_MEMORY / UNSUPPORTED_ADDITION` と判定した。
+
+この結果は、expected-word coverage 79.4%とHuman-Valid 98.0%が異なる評価軸であることを示した。
+全期待語の完全検索ではなく、不完全な想起からでも捏造・誤帰属・矛盾を避けた会話が成立するかを評価する方針を支持する。
+ただし単一のsynthetic unseen fixtureであり、一般的な98%性能を示すものではない。
+
+詳細: [Human-Valid Unseen 100T v1](human_valid_unseen_100t_v1/README.md)
+行単位評価: [human_valid.csv](human_valid_unseen_100t_v1/human_valid.csv)
+↓
+
 ## Results
 
 100TではCount方式の採用を決定し、1000T以降ではCount方式のままWorking Memoryを bounded に保てることを確認した。
 
-その後の100T Human-Valid評価では、選択済みThreadGroupへ原文 `source_text` を添える構成により、51応答中48件をHuman-Valid、2件をHuman-Invalid、1件をUndeterminedと判定した。
+その後のdevelopment 100T Human-Valid評価では、選択済みThreadGroupへ原文 `source_text` を添える構成により、51応答中48件をHuman-Valid、2件をHuman-Invalid、1件をUndeterminedと判定した。
+freezeした構成によるunseen 100T v1では、49応答中48件をHuman-Valid、1件をHuman-Invalid、0件をUndeterminedと判定した。
 
 ## Findings
 
@@ -175,4 +214,5 @@ RecallされたTraceから、Working Memoryへ何を載せ、LLMがそれをど�
 
 Trace Recall Engineの研究対象は、Memory StorageからRecall Selection、Working Memory Policy、Conversation Policy、そして不完全な想起からHuman-Validな応答を成立させる評価へ移行した。
 
-今回の96.0%はdevelopment fixture上のチェックポイントであり、次の研究段階はfreezeした構成による未見fixture評価である。
+96.0%はdevelopment fixture上のチェックポイントであり、その後のfreezeしたunseen 100T v1では48 / 49 = 98.0% Human-Validを記録した。
+次の研究段階では、unseen v1を調整対象にせず、別の独立fixtureまたは異なる評価domainで一般化を確認する。
